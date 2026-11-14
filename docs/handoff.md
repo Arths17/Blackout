@@ -11,3 +11,7 @@ Import from src/audio.ts. play(name) takes the file stem: relay_click on a succe
 A play call before the first key is discarded. The first key can also trigger the relay without losing its sound while resume finishes. Footsteps during initial loading are discarded to avoid a burst of queued steps. startAmbience can be called before unlocking and starts after that key and decoding.
 
 Audio uses local mix levels and a 700 px attenuation range; no game tuning or config values were changed. File-stem sound names are the only API assumption. Scene wiring stays with Claude.
+
+## Shipping
+
+Vite already uses base: './'; it was preserved. npm run audio regenerates WAVs. npm run zip rebuilds and produces blackout-html5.zip, with index.html at the root and all seven WAVs in audio/. The ZIP script uses Node standard libraries. The archive passed unzip integrity checks and all built asset URLs loaded under /jam/ on a plain static server. README.md and docs/itch_page.md contain controls, build steps, page copy, and the lamp-flash/return-surge capture plan. No screenshots or GIF have been captured.
