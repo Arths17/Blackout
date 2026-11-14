@@ -92,7 +92,8 @@ export const CFG = {
   playerSpeed: 220,
   playerRadius: 11,
   creatureStalkSpeed: 130, // closer to playerSpeed = harder
-  creatureRadius: 20,
+  creatureRadius: 20, // contact range: how close it has to get to hurt the player
+  bossHitBonus: 14, // extra reach for the player's shots and bounce only, so the boss is easier to hit without being easier to touch you
 
   windup: 1.0, // shorter = harder; 1.0 gives early/hit/late regions of similar size on Quick bank
   lungeSpeed: 520,
