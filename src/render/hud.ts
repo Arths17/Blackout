@@ -10,13 +10,11 @@ let controlsSeen = false;
 
 export class Hud {
   private pips: Phaser.GameObjects.Image[] = [];
-  private bolts: Phaser.GameObjects.Image[] = [];
   private banner: Phaser.GameObjects.BitmapText;
   private sub: Phaser.GameObjects.BitmapText;
   private bar: Phaser.GameObjects.Rectangle;
   private frame: Phaser.GameObjects.Graphics;
   private healthCaption: Phaser.GameObjects.BitmapText;
-  private shockCaption: Phaser.GameObjects.BitmapText;
   private status: Phaser.GameObjects.BitmapText;
   private controlsPanel: Phaser.GameObjects.Graphics;
   private controlsTitle: Phaser.GameObjects.BitmapText;
@@ -29,22 +27,16 @@ export class Hud {
 
   constructor(private scene: Phaser.Scene, onControlsClose: () => void) {
     this.onClose = onControlsClose;
-    // Right-hand panel: caption plus one bolt per shock needed, so it grows with the boss's health.
-    const RX = VIEW.w - 2 - (54 + CFG.shocksToWin * 16);
     const text = (x: number, y: number, value: string, tint: number, size = 7) =>
       scene.add.bitmapText(x, y, 'stencil', value, size).setTint(tint).setOrigin(0.5).setDepth(DEPTH.text);
     this.frame = scene.add.graphics().setDepth(DEPTH.hud - 1);
     this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 84, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 84, 15);
-    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(RX, 1, VIEW.w - RX - 2, 15);
-    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(RX, 1, VIEW.w - RX - 2, 15);
     this.frame.fillStyle(PALETTE.ink, 0.88).fillRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     this.healthCaption = text(66, 8, 'VITAL', PALETTE.n6, 7);
-    this.shockCaption = text(RX + 27, 8, 'SHOCKS', PALETTE.n6, 7);
     this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 7);
     for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
-    for (let i = 0; i < CFG.shocksToWin; i++) this.bolts.push(scene.add.image(RX + 50 + i * 16, 2, 'ui', 3).setOrigin(0, 0).setDepth(DEPTH.hud));
     this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
     this.banner = text(VIEW.w / 2, VIEW.h / 2 - 7, '', PALETTE.n7, 14).setDepth(DEPTH.banner);
     this.sub = text(VIEW.w / 2, VIEW.h / 2 + 10, '', PALETTE.n7).setDepth(DEPTH.banner);
@@ -82,9 +74,7 @@ export class Hud {
   update(w: World): void {
     const U = atlasOf(this.scene).sheets.ui;
     this.pips.forEach((p, i) => p.setFrame(i < w.hp ? U.pip.full : w.grace > 0.8 && i === w.hp ? U.pip.flash : U.pip.empty));
-    this.bolts.forEach((b, i) => b.setFrame(i < w.shocks ? U.bolt.full : U.bolt.empty));
     this.healthCaption.setTint(w.hp <= 1 ? PALETTE.r4 : PALETTE.n6);
-    this.shockCaption.setTint(w.shocks >= CFG.shocksToWin - 1 ? PALETTE.warm2 : PALETTE.n6);
     let status = 'PRESS 1  2  OR 3 TO FIRE A GENERATOR';
     if (w.phase !== 'play') status = '';
     else if (w.bounce) status = w.bounce.super ? 'SUPER BOUNCE  HIT IT BACK' : 'BOUNCING  HIT IT BACK';

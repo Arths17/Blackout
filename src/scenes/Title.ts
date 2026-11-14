@@ -61,7 +61,6 @@ export class Title extends Phaser.Scene {
     this.sparks = this.add.graphics().setDepth(31);
 
     this.prompt = this.add.bitmapText(22, 150, 'stencil', '> PRESS ANY KEY', 7).setTint(PALETTE.n7).setDepth(32);
-    this.add.bitmapText(22, 166, 'stencil', 'BOUNCE BACK JAM', 7).setTint(PALETTE.n5).setDepth(32);
 
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(40);
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(41).setAlpha(DARK.grainAlpha * 1.4);
