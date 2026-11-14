@@ -38,7 +38,7 @@ export class Darkness {
   private grid = new Uint8Array(this.cols * this.rows);
 
   constructor(scene: Phaser.Scene, private env: Env) {
-    this.tex = scene.textures.createCanvas(KEY, VIEW.w, VIEW.h)!;
+    this.tex = scene.textures.exists(KEY) ? scene.textures.get(KEY) as Phaser.Textures.CanvasTexture : scene.textures.createCanvas(KEY, VIEW.w, VIEW.h)!;
     this.ctx = this.tex.getContext();
     scene.add.image(0, 0, KEY).setOrigin(0, 0).setDepth(DEPTH.dark);
   }

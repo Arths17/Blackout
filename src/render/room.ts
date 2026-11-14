@@ -6,7 +6,7 @@ import type { Light } from './darkness';
 import { panelPos } from './panels';
 import { atlasOf, px } from './pixel';
 
-// Floor and wall bounds in screen px. They follow the sim's room rectangle (ROOM / 3) to within a pixel.
+// Floor and wall bounds in screen px. They follow the sim's room rectangle (ROOM / VIEW.s) to within a pixel.
 export const FLOOR = {
   x0: Math.floor(px(ROOM.x)),
   y0: Math.ceil(px(ROOM.y)),
@@ -53,7 +53,7 @@ export class Room {
 
   private bake(): void {
     const A = atlasOf(this.scene).sheets;
-    const tex = this.scene.textures.createCanvas('room', VIEW.w, VIEW.h)!;
+    const tex = this.scene.textures.exists('room') ? this.scene.textures.get('room') as Phaser.Textures.CanvasTexture : this.scene.textures.createCanvas('room', VIEW.w, VIEW.h)!;
     const ctx = tex.getContext();
     ctx.imageSmoothingEnabled = false;
     const blit = (name: string, f: number, x: number, y: number, flip = false) => {

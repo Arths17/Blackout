@@ -52,6 +52,7 @@ try {
     if (response.status() >= 400) errors.push(`HTTP ${response.status()}: ${response.url()}`);
   });
   await page.addInitScript(() => {
+    Math.random = (() => { let n = 7; return () => ((n = (Math.imul(n, 1664525) + 1013904223) >>> 0) / 4294967296); })();
     window.__smokeAudio = [];
     const Audio = window.AudioContext;
     if (Audio) window.AudioContext = new Proxy(Audio, {
@@ -66,7 +67,7 @@ try {
   assert.equal(response.status(), 200, 'page returns 200');
   await page.waitForSelector('canvas', { state: 'visible', timeout: 15000 });
   const canvas = await page.locator('canvas').first().evaluate(element => ({ width: element.width, height: element.height }));
-  assert.ok(canvas.width > 0 && canvas.height > 0, 'canvas has a drawing surface');
+  assert.deepEqual(canvas, { width: 320, height: 180 }, 'native canvas is 320x180');
   await page.waitForFunction(() => window.__smokeAudio.length > 0, null, { timeout: 10000 });
   const beforeKey = await page.evaluate(() => window.__smokeAudio.map(context => context.state));
   await page.keyboard.press('e');
@@ -91,11 +92,59 @@ try {
     warnings.push('Some built WAVs were not requested by the game during this smoke window. HTTP availability does not prove scene audio wiring.');
   }
   await mkdir(shots, { recursive: true });
-  const screenshot = resolve(shots, 'smoke.png');
-  await page.screenshot({ path: screenshot });
+  await page.screenshot({ path: resolve(shots, 'smoke.png') });
+  const restart = async () => {
+    await page.evaluate(() => { window.__smokePreviousWorld = window.__blackout; });
+    await page.keyboard.press('r');
+    await page.waitForFunction(() => window.__blackout !== window.__smokePreviousWorld && window.__blackout.time < 0.5 && window.__blackout.phase === 'play' && window.__blackout.shocks === 0);
+  };
+  await restart();
+  const x0 = await page.evaluate(() => window.__blackout.player.x);
+  await page.keyboard.down('d');
+  await page.waitForTimeout(200);
+  await page.keyboard.up('d');
+  assert.ok(await page.evaluate(x => window.__blackout.player.x > x, x0), 'movement reaches the sim');
+  await restart();
+  await page.evaluate(() => {
+    const w = window.__blackout;
+    w.hp = 1; w.grace = 0;
+    w.creature.asleep = true; w.creature.state = 'stalk';
+    w.creature.x = w.player.x; w.creature.y = w.player.y;
+  });
+  await page.waitForFunction(() => window.__blackout.phase === 'lost');
+  await restart();
+  await page.keyboard.press('e');
+  await page.waitForFunction(() => window.__blackout.surge !== null);
+  await page.evaluate(() => {
+    const w = window.__blackout, s = w.surge, point = s.route.points[1];
+    w.shocks = 4; w.lastHitBreaker = -1;
+    w.player.x = 950; w.player.y = 560;
+    w.creature.x = point.x; w.creature.y = point.y;
+    w.creature.state = 'windup'; w.creature.timer = 99;
+    s.dist = s.route.cum[1] - 5;
+  });
+  await page.waitForFunction(() => window.__blackout.phase === 'won');
+  await page.waitForTimeout(1000);
+  assert.deepEqual(await page.evaluate(() => ({ cooldown: window.__blackout.cooldown, surge: window.__blackout.surge })),
+    { cooldown: 0, surge: null }, 'win clears countdown and shot');
+  await page.evaluate(() => { window.__blackout.player.x = 1000; window.__blackout.player.y = 50; });
+  await page.waitForFunction(() => window.__blackout.phase === 'escaped');
+  await restart();
+  const screenshots = [];
+  for (const scale of [1, 4]) {
+    await page.setViewportSize({ width: 320 * scale, height: 180 * scale });
+    await page.goto(url + '?lure=hit&freeze=1.2', { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => window.__blackout?.time >= 1.2);
+    const box = await page.locator('canvas').boundingBox();
+    assert.equal(box.width, 320 * scale, 'integer canvas width');
+    assert.equal(box.height, 180 * scale, 'integer canvas height');
+    const path = resolve(shots, `slice-${scale}x.png`);
+    await page.locator('canvas').screenshot({ path });
+    screenshots.push(path);
+  }
   assert.deepEqual(errors, [], 'no page, console, request or HTTP errors');
   console.log(JSON.stringify({ result: 'pass', servedAt: prefix, canvas, beforeKey, afterKey,
-    audio, errors, warnings, screenshot }, null, 2));
+    audio, errors, warnings, screenshots, flows: ['movement', 'restart', 'death', 'win', 'escape'] }, null, 2));
 } catch (error) {
   console.error(error.message);
   if (errors.length) console.error(JSON.stringify(errors, null, 2));

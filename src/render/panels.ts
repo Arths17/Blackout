@@ -34,11 +34,11 @@ export class Breakers {
   constructor(private scene: Phaser.Scene) {
     for (const r of ROUTES) {
       const p = panelPos(r);
-      this.sprites.push(scene.add.sprite(p.x, p.y, 'breaker', 0).setOrigin(0, 0).setDepth(DEPTH.ghost - 2));
+      this.sprites.push(scene.add.sprite(p.x, p.y, 'breaker', 0).setOrigin(0, 0).setDepth(DEPTH.y + p.y));
       const tex = scene.textures.exists(`screen${r.id}`) ? scene.textures.get(`screen${r.id}`) as Phaser.Textures.CanvasTexture : scene.textures.createCanvas(`screen${r.id}`, W, H)!;
       this.textures.push(tex);
       this.screens.push(tex.getContext());
-      scene.add.image(p.x, p.y, `screen${r.id}`).setOrigin(0, 0).setDepth(DEPTH.ghost - 1);
+      scene.add.image(p.x, p.y, `screen${r.id}`).setOrigin(0, 0).setDepth(DEPTH.y + p.y + 0.1);
       this.keys.push('');
       this.shake.push(-1);
     }

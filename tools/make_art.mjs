@@ -278,36 +278,6 @@ function grid(rows, w, h, x = 0, y = 0) {
   }));
   return image;
 }
-const worker = {
-  down: [
-    '......#####.....', '.....#ssshh#....', '.....#hwhss#....', '.....#ffffs#....',
-    '.....#enene#....', '.....#eeee#.....', '....#shhhhs#....', '...#sshsshss#...',
-    '...#swsnssns#...', '...#snssssss#...', '...#ennsnsee#...', '....#snnnss#....',
-    '.....#snsns#....', '.....#nn#nn#....', '....#nn#.#nn#...', '....###...###...',
-  ],
-  up: [
-    '......#####.....', '.....#hsssh#....', '.....#hssss#....', '.....#ssssn#....',
-    '.....#snnnn#....', '......#nnn#.....', '....#shhssh#....', '...#shssssss#...',
-    '...#sswwwnss#...', '...#sssssnnn#...', '...#enhsnsee#...', '....#snnnss#....',
-    '.....#snsns#....', '.....#nn#nn#....', '....#nn#.#nn#...', '....###...###...',
-  ],
-  right: [
-    '......#####.....', '.....#hsssh#....', '.....#hshhhh#...', '.....#seffee#...',
-    '.....#snenef#...', '......#eee#.....', '.....#shss#.....', '....#shshss#....',
-    '....#swsnss#....', '....#sshnsss#...', '....#sneness#...', '.....#snnns#....',
-    '.....#snsns#....', '.....#nn#nn#....', '....#nn#..#nn#..', '....###....###..',
-  ],
-};
-function player(dir, frame) {
-  const rows = worker[dir];
-  const t = new Img(16, 16);
-  const step = [0, -1, 0, 1, 0][frame];
-  rows.forEach((row, y) => {
-    const dx = y > 11 ? step * (y % 2 ? 1 : -1) : 0;
-    t.blit(grid([row], 16, 1), dx, y);
-  });
-  return t;
-}
 // A collapsed maintenance suit: raised left scapula, one trailing arm, exposed ribs and a split jaw.
 const body = {
   down: [
@@ -635,7 +605,7 @@ function pip(state) {
 
 function bolt(full) {
   const t = new Img(9, 11);
-  const c = full ? P.w : P.n3, e = full ? P.c2 : P.n1;
+  const c = full ? P.w : P.n6, e = full ? P.c2 : P.n1;
   const pts = [[5, 0], [3, 4], [5, 4], [3, 10], [7, 5], [5, 5], [7, 0]];
   const mask = new Img(9, 11);
   mask.line(5, 0, 2, 5, c); mask.line(6, 0, 3, 5, c); mask.line(2, 5, 6, 5, c); mask.line(3, 6, 7, 6, c); mask.line(6, 5, 3, 10, c); mask.line(7, 5, 4, 10, c);
@@ -666,9 +636,16 @@ save('breaker', sheet(36, 28, 4, breakerFrames));
 save('door', sheet(32, 16, 2, [door(false), door(true)]));
 save('ui', sheet(9, 11, 5, uiFrames.map((f) => { const c = new Img(9, 11); c.blit(f, 0, 0); return c; })));
 save('shadow', sheet(24, 10, 2, [shadow(12, 5), shadow(24, 9)].map((f) => { const c = new Img(24, 10); c.blit(f, 0, 0); return c; })));
-const playerFrames = [];
-for (const dir of ['down', 'up', 'right']) for (let f = 0; f < 5; f++) playerFrames.push(player(dir, f));
-save('player', sheet(16, 16, 5, playerFrames));
+const hero = JSON.parse(fs.readFileSync('assets/src/hero.json', 'utf8'));
+const playerFrames = hero.frames.map(rows => {
+  const image = new Img(16, 24);
+  rows.forEach((row, y) => [...row].forEach((key, x) => {
+    const index = parseInt(key, 36);
+    if (index) image.set(x, y, P[hero.palette[index]]);
+  }));
+  return image;
+});
+save('player', sheet(16, 24, 8, playerFrames));
 save('creature', sheet(32, 32, 11, creatureFrames));
 console.log('frames: tiles', tileFrames.length, 'props', propFrames.length, 'creature', creatureFrames.length);
 
@@ -682,7 +659,7 @@ const atlas = {
     breaker: { frame: [36, 28], cols: 4, states: { ready: 0, cooling: 1, offline: 2, busy: 3 }, dentOffset: 4 },
     ui: { frame: [9, 11], cols: 5, pip: { full: 0, empty: 1, flash: 2 }, bolt: { full: 3, empty: 4 } },
     shadow: { frame: [24, 10], cols: 2, player: 0, creature: 1 },
-    player: { frame: [16, 16], cols: 5, anchor: [8, 14], dirs: { down: 0, up: 5, right: 10 }, idle: 0, walk: [1, 2, 3, 4] },
+    player: { frame: [16, 24], cols: 8, anchor: [8, 23], anims: hero.animations },
     creature: {
       frame: [32, 32], cols: 11, anchor: [16, 24], dirs: { down: 0, up: 11, right: 22 },
       anims: { stalk: [0, 1, 2, 3], windup: [4, 5, 6], lunge: [7, 8], recoil: [9, 10] }, death: [33, 34, 35, 36], sleep: 37, relaxed: true,

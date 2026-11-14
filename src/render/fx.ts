@@ -70,8 +70,11 @@ export class Fx {
       for (let i = 0; i <= n; i++) {
         const p = pointAt(s.route, from + ((s.dist - from) * i) / n);
         const k = i / n;
-        const jit = 1 + 1.8 * k;
-        pts.push([px(p.x) + (Math.random() - 0.5) * jit * 2, px(p.y) + (Math.random() - 0.5) * jit * 2]);
+        // Sid's coherent wave motion, snapped to pixels along the shared surge route.
+        const wave = Math.sin(i * 1.8 + t * 24) * (1 + k);
+        const next = pointAt(s.route, from + ((s.dist - from) * i) / n + 1);
+        const angle = Math.atan2(next.y - p.y, next.x - p.x);
+        pts.push([Math.round(px(p.x) - Math.sin(angle) * wave), Math.round(px(p.y) + Math.cos(angle) * wave)]);
       }
       const pass = (color: number, off: number, every: number) => {
         g.fillStyle(color, 1);

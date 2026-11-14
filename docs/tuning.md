@@ -70,3 +70,8 @@ Rerun outcome, no-repeat, clamps, fairness, grace, determinism, type-check and b
 ## Verification
 
 `npx tsc --noEmit`, `npm test` (19/19), and `npm run build` passed after `npm ci` installed the font already present in the merged lockfile. The first build attempt had failed because that dependency was missing from this worktree; no source fix was needed. The 3,000-game bot batch plus position sweeps ran twice identically. Tools run headlessly in Node without Phaser or browser imports.
+
+
+## Update after sim fixes and presentation integration
+
+2026-11-14: reran `node tools/playbot.ts 1000 1` against the combined fixed sim (no tuning values or routes changed). Baiting: 89.5% wins / 10.5% deaths, winning mean 93.16 seconds, range 28.62–302.37. Random and spam: 0% wins / 100% deaths. No repeated counted breaker scores. Return loop clearance remains 19.22 px versus 35 px combined player/surge reach. These results supersede the pre-fix headline rates above; the same full-state-policy limitations apply. Detailed integration/audit status is appended to `docs/review.md`.

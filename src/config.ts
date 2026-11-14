@@ -60,6 +60,8 @@ export const DARK = {
   grainAlpha: 0.035,
   playerR: 52, // light radii in screen px
   playerHalo: 17,
+  coneR: 104,
+  coneHalf: 0.6,
   coneCos: 0.72,
   stripR: 14,
   lampR: 34,
@@ -68,6 +70,8 @@ export const DARK = {
 };
 
 export const VIS = {
+  playerStep: 0.32,
+  creatureStep: 0.47,
   hitStop: 0.07, // seconds the sim freezes on a counted shock
   shockShake: { ms: 200, amp: 0.008 },
   bounceShake: { ms: 60, amp: 0.003 },

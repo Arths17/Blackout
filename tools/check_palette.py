@@ -10,7 +10,7 @@ allowed = {tuple(int(v[i:i + 2], 16) for i in (0, 2, 4)) for v in pal.values()}
 atlas = json.load(open(ROOT / 'public/assets/atlas.json'))
 
 bad = 0
-for name, meta in atlas['sheets'].items():
+for name, meta in {**atlas['sheets'], 'stencil': {'frame': [6, 8]}}.items():
     path = ROOT / 'public/assets' / f'{name}.png'
     im = Image.open(path).convert('RGBA')
     cw, ch = meta['frame']
@@ -35,7 +35,9 @@ for name, meta in atlas['sheets'].items():
     print(f'ok   {name}: max {worst} colors per cell{note}')
 
 cfg = (ROOT / 'src/config.ts').read_text().lower()
-missing = [k for k, v in pal.items() if v not in cfg]
+block = re.search(r'export const palette = \{([\s\S]*?)\};', cfg)[1]
+master = dict(re.findall(r'(\w+): 0x([0-9a-f]{6})', block))
+missing = [k for k in set(pal) | set(master) if pal.get(k) != master.get(k)]
 if missing:
     print('FAIL src/config.ts is missing palette entries:', ', '.join(missing)); bad += 1
 sys.exit(1 if bad else 0)

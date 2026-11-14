@@ -150,25 +150,152 @@
   "player": {
    "frame": [
     16,
-    16
+    24
    ],
-   "cols": 5,
+   "cols": 8,
    "anchor": [
     8,
-    14
+    23
    ],
-   "dirs": {
-    "down": 0,
-    "up": 5,
-    "right": 10
-   },
-   "idle": 0,
-   "walk": [
-    1,
-    2,
-    3,
-    4
-   ]
+   "anims": {
+    "idle_down": {
+     "frames": [
+      0
+     ],
+     "fps": 5,
+     "source": "sid's work/public/hero/idle_down.png",
+     "sha256": "713bc8942570be1da31f8bfb32ab6b889634f8544ee7f66a8753531d42195c68"
+    },
+    "walk_down": {
+     "frames": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+     ],
+     "fps": 8,
+     "source": "sid's work/public/hero/walk_down.png",
+     "sha256": "9e20a12522c836bee43bfb161979aa93b810b2dda98bd14eef92d81f597202c2"
+    },
+    "idle_up": {
+     "frames": [
+      9
+     ],
+     "fps": 5,
+     "source": "sid's work/public/hero/idle_up.png",
+     "sha256": "231e639e280cc5e3150ae3da983afd20676b0fd1c1997bee5710915b66b8f30e"
+    },
+    "walk_up": {
+     "frames": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+     ],
+     "fps": 8,
+     "source": "sid's work/public/hero/walk_up.png",
+     "sha256": "1c404eb24cf04508c46a1935d5671a70676d93d2fc9d8b6c2817c25ce02fc112"
+    },
+    "idle_left": {
+     "frames": [
+      18
+     ],
+     "fps": 5,
+     "source": "sid's work/public/hero/idle_left.png",
+     "sha256": "d1e8d9db71e7095a936bff4323bd79401b907543a13b14922cdf8de7a4baecd0"
+    },
+    "walk_left": {
+     "frames": [
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26
+     ],
+     "fps": 8,
+     "source": "sid's work/public/hero/walk_left.png",
+     "sha256": "4811834bf8daecf5cf411900c6135139fa9567fa78b2c387a0956c0ec38d57fe"
+    },
+    "idle_right": {
+     "frames": [
+      27
+     ],
+     "fps": 5,
+     "source": "sid's work/public/hero/idle_right.png",
+     "sha256": "50b159b3b34a09d7bb35a1bda45e492b6d6912166d81008be9ee144d2314bdc8"
+    },
+    "walk_right": {
+     "frames": [
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35
+     ],
+     "fps": 8,
+     "source": "sid's work/public/hero/walk_right.png",
+     "sha256": "9e74d12b33c05c9312c8a7896f218aaa581491a57ae7d7e3fe9a778a1a825482"
+    },
+    "interact": {
+     "frames": [
+      36,
+      37,
+      38,
+      39
+     ],
+     "fps": 6,
+     "source": "sid's work/public/hero/interact.png",
+     "sha256": "0785e2e8c09d3aa5da4b0000eb0ef7d0f733157046d9053c27a5956e7334b3bd"
+    },
+    "hurt": {
+     "frames": [
+      40,
+      41,
+      42,
+      43
+     ],
+     "fps": 5,
+     "source": "sid's work/public/hero/hurt.png",
+     "sha256": "1295ef85c3da453361ae13aa194dc666349312b8455c3b1f1ae302ab8d3149e2"
+    },
+    "fall": {
+     "frames": [
+      44,
+      45,
+      46,
+      47,
+      48
+     ],
+     "fps": 7,
+     "source": "sid's work/public/hero/fall.png",
+     "sha256": "a3888cae8b2d272cc2751193bdaed8896c8e346468333049a57db8c8be39e704"
+    },
+    "victory": {
+     "frames": [
+      49,
+      50,
+      51,
+      52
+     ],
+     "fps": 6,
+     "source": "sid's work/public/hero/victory.png",
+     "sha256": "113c26f08313cce64be391664e048cb1e4b383bfce3dd673a24cf5e40f8f5235"
+    }
+   }
   },
   "creature": {
    "frame": [

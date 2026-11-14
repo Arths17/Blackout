@@ -53,3 +53,10 @@ Latest run passed: page 200, visible 1152×648 canvas, first E key caused no exc
 Screenshot: [smoke.png](shots/smoke.png), inspected visually. It shows the current pre-overhaul dark industrial room, four red health pips at top left, five empty shock icons, three breaker diagrams around the lower/right edges, player at the lower-left breaker, green creature/windup near center-right, and a bright white surge with a blue light pool in the upper-left lane. This is the merged `ccb8f16` presentation, not Claude's incoming pixel-art overhaul.
 
 Final checks: `node --check tools/smoke.mjs`, `npx tsc --noEmit`, `npm test` (19/19), `npm run build`, `npm run smoke` all passed. The seeded batch and diagnostic sweep were also run twice with identical output. All work is local on `cd-2`; nothing pushed and no pull request opened.
+
+
+## Combined pixel slice and Sid integration — 2026-11-14
+
+Supersedes the earlier audio-integration gap: scene audio is wired and all seven WAVs are now requested in browser smoke. Phaser is pinned to 3.90.0. cd-1's shadowed flashlight and root sim were merged with cd-2's indexed original art, support tools, and the friends' White Hero animation import from Sid's sheets. Sid's history/prototype is preserved; its alternate mechanics are not active. No node_modules are tracked in the combined tip. The user explicitly changed the push instruction to `main`; no PR is requested.
+
+`docs/review.md` contains the whole-game comparison, verified status and remaining pacing/Return-loop-clearance findings. `docs/tuning.md` has current post-fix seeded results. Native 1× and integer 4× screenshots are in `docs/shots/slice-1x.png` and `slice-4x.png`; source art was viewed at 8×. Hero source sheets remain unchanged, with provenance and conversion recorded in CREDITS and assets/LICENSES. No generative-image tools used.

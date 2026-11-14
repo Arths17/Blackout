@@ -2,8 +2,10 @@
 
 | Asset | Source | License | Notes |
 | --- | --- | --- | --- |
-| Tiles, decals, props, breakers, door, lamps, player, creature, UI, shadows | Original, `tools/make_art.mjs` | Project license | Exports go to `public/assets/`; `atlas.json` lists frames and anchors |
+| Tiles, decals, props, breakers, door, lamps, creature, UI, shadows | Original, `tools/make_art.mjs` | Project license | Exports go to `public/assets/`; `atlas.json` lists frames and anchors |
 
+| White Hero idle/walk/interact/hurt/fall/victory | User-supplied friends' art; original files in `sid's work/public/hero/` | Team-supplied permission from the user, checked 2026-11-14; no CC0 claim | Original 32×48 PNGs preserved; 53 frames sampled at 16×24 and mapped to the cold master palette by `tools/import_hero.py`. Source filenames and SHA-256 values are in `assets/src/hero.json`. |
+| Office arena and root monster | User-supplied ZIPs, also retained in Sid's prototype | User describes these as friends' work; no separate license text found in the archives | Reference only; excluded from production assets. |
 
 ## Earlier sourcing
 

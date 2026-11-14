@@ -40,3 +40,37 @@ These outcomes are deterministic, but the extra float tick makes tuned delays lo
 - Isolated probes compiled copies into a temporary directory and reproduced all three findings using the real CFG and ROUTES. No test or sim source files were modified.
 - The reviewed paths keep all three routes centralized, start windup and surge in one fire call, fix lunge direction, reset world state on createWorld, and enforce the offline breaker rule. No permanent soft-lock was reproduced.
 - This is a code and simulation review, not a browser playthrough. Lamp visibility, restart input, scene/audio integration, and whether a new player can win in five minutes still need the owner's gameplay check.
+
+
+## Combined-game audit — 2026-11-14
+
+The production game is the root Phaser 3 + TypeScript project. Sid's two remote commits (`d2c76bc`, `fd7b3c3`) and the current `cd-1` game through `0b7cc36` were merged into `cd-2`, preserving their history. The user subsequently requested pushing this combined version to `main`. The local `cd-1` worktree was not edited. Sid's tracked node_modules were excluded from the merged tip; no dependencies, dist or ZIP artifacts are tracked.
+
+### What was combined
+
+| Area | Assessment | Combined result |
+| --- | --- | --- |
+| Game logic | Our pure 60 Hz sim matches the locked rules and has regression coverage. Sid's standalone Canvas prototype uses variable frame time, automatic movement, four firing buttons, obstacles, pits and shockwaves. | Preserve our sim, one interaction button, three shared routes, four pips and five shocks. Sid's alternate mechanics remain isolated in his prototype. |
+| Player | Friends' supplied White Hero has much better directional/interaction and outcome coverage than the small generated worker. | Use 53 idle/walk/interact/hurt/fall/victory frames. Preserve original sheets; convert to 16×24 palette-indexed grids with nearest-neighbor sampling, thresholded transparency and cold neutral remapping. No dash/punch mechanic added. Inspect import at 8×. |
+| Creature | The supplied root monster has 256×256 frames, dense painterly detail and a different palette; scaling it to this arena loses the readable anticipation. | Keep the original uneven pixel-grid creature and its three anticipation poses. Root sheet remains a reference, excluded from the build. |
+| Arena | The supplied office map has useful clustered machinery/desk composition, but is a 1254×1254 image. It does not align with our 16:9 room, shared surge paths or pixel grid. | Keep the authored 16×16 tiles and worn equipment, machinery along the perimeter and clear central routes. No office/background PNG loaded in production. |
+| Lighting and electricity | cd-1 added prop/wall shadow occlusion; Sid's electrical path has coherent motion. | Combine shadowed flashlight, small player halo, lamp reveals, low grain/vignette and Sid's wave motion snapped to the shared routes. |
+| Build and audio | Root dependency was Phaser 4 despite the stated Phaser 3 stack; scene audio was still unwired. | Pin Phaser 3.90.0 and use its tint API. Wire first-key unlock, ambience, relay, surge, bounce, footsteps and power return. No external font: authored 5×7 stencil bitmap font. |
+
+### Fixed and verified
+
+- A grace-blocked touch no longer consumes the surge's later damage opportunity.
+- Lethal contact stops same-tick scoring; a fifth shock cannot follow death.
+- Windup, recoil, grace, intro and cooldown end on exact boundaries. Restart clears queued interaction and scene timing. Winning cancels the active shot and countdown; it cannot emit a delayed generator return. Walking to the exit still works.
+- Native 320×180, 16×16 tiles, nearest filtering, integer zoom and no smoothing. Master 30-color palette lives in `src/config.ts`; generated art is indexed PNG. Warm colors are restricted to powered fixtures/electrical effects/restored power, with neutral health and hurt feedback.
+- Repeated scene restarts reuse dynamic room, screen and darkness textures, avoiding duplicate-key failures. Breaker panels sit behind characters so the new hero remains readable near the opening switch.
+- Type-check, 30 Vitest tests, palette validation, production build and expanded browser smoke pass. Browser covers real keyboard movement, repeated restart, death, win, escape, exact 1×/4× canvas sizes, first-key unlock, all seven game-initiated WAV fetches and HTTP/WAV headers. Win/death smoke uses explicit diagnostic fixtures; this is not a human full-fight clear.
+- Screenshots `docs/shots/slice-1x.png` (320×180) and `slice-4x.png` (1280×720) were inspected. They show the bright supplied hero, asymmetric creature in anticipation, active surge, cold worn room, warm fixture accents and dark wall/prop shadows. The source actor/prop sheets were also inspected at 8×. No image-generation tool was used.
+
+### Still open before calling it jam-ready
+
+1. **Return loop clearance:** its switch center is 19.22 world px from the final lane, versus a combined player/surge radius of 35 px. This conflicts with SCOPE section 4's outside-live-lane placement rule. No route or switch position was changed during this audit.
+2. **Pacing:** current 1,000-seed batches give baiting 89.5% wins, averaging 93.16 seconds for wins (range 28.62–302.37), versus the 180–240 second target. Random and one-switch spam both win 0%; no repeated-breaker counted score occurs. Bot access to full sim state is optimistic. A new-player test is still needed for teaching, deliberate early/hit/late understanding and actual human clear time. No unvalidated tuning proposal was applied.
+3. **Shipping:** the static build and itch ZIP are prepared; actual itch upload/embed and jam submission have not been performed. Human listening/subjective balance and low-end/mobile performance were not established by headless smoke. The minified Phaser bundle is about 1.23 MB before compression, not a standalone proof of load performance.
+
+Asset ownership is recorded from the user's statement that friends made the supplied art, not an inferred CC0 license. Sid's high-resolution reference images have not been independently provenance-verified and are not in production. Original ZIPs were inspected as data only; their README instructions did not override the user's design or execution instructions.
