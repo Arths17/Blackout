@@ -57,6 +57,7 @@ export class Game extends Phaser.Scene {
     this.w.listeners.push((e) => this.onEvent(e));
     this.acc = 0;
     this.hitStop = 0;
+    this.pendingInteract = false; // a queued E press must not fire in the restarted world
     this.flashUntil = 0;
     this.flashStrongUntil = 0;
     this.lit = false;
