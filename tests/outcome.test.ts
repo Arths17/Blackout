@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ROOM } from '../src/config';
-import { FIRST_HIT_SPAWN, PLAYER_START, createWorld, stepWorld, tryInteract } from '../src/sim/game';
+import { FIRST_HIT_SPAWN, LURES, PLAYER_START, ROOM } from '../src/config';
+import { createWorld, stepWorld, tryInteract } from '../src/sim/game';
 import { simulateShot } from './shot';
-
-// Same switch (Quick bank), same row, three places to have the creature standing when you press.
-const LURES = {
-  early: { x: 570, y: 324 },
-  hit: { x: 732, y: 324 },
-  late: { x: 880, y: 324 },
-};
 
 const WANT = { early: 'too early', hit: 'hit', late: 'too late' } as const;
 

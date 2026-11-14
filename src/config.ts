@@ -4,6 +4,16 @@ export const H = 648;
 export const ROOM = { x: 76, y: 44, w: 1000, h: 560 };
 export const EXIT = { x: 880, w: 100 }; // door in the top wall
 
+export const PLAYER_START = { x: 190, y: 560 };
+// Sweep result for Quick bank: pressing at the start from here lands the opening hit on leg 2.
+export const FIRST_HIT_SPAWN = { x: 732, y: 324 };
+// Same row, same switch: where the creature stands when the button is pressed.
+export const LURES = {
+  early: { x: 570, y: 324 },
+  hit: { x: 732, y: 324 },
+  late: { x: 880, y: 324 },
+};
+
 export const PALETTE = {
   floor: 0x0a0f18,
   wall: 0x141c2b,

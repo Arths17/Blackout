@@ -1,4 +1,4 @@
-import { CFG, EXIT, ROOM } from '../config';
+import { CFG, EXIT, FIRST_HIT_SPAWN, PLAYER_START, ROOM } from '../config';
 import { hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
 import { ROUTES, pointAt, type Vec } from './routes';
@@ -43,11 +43,6 @@ export interface WorldOpts {
   creature?: Vec;
   asleep?: boolean;
 }
-
-// Found by sweeping Quick bank (tests/outcome.test.ts checks it): from here the opening lunge
-// crosses leg 2 just as the surge gets there.
-export const FIRST_HIT_SPAWN: Vec = { x: 732, y: 324 };
-export const PLAYER_START: Vec = { x: 190, y: 560 };
 
 export function createWorld(opts: WorldOpts = {}): World {
   const p = opts.player ?? PLAYER_START;
