@@ -9,12 +9,16 @@ export class CreatureView {
   private ghost: Phaser.GameObjects.Sprite;
   private shadow: Phaser.GameObjects.Image;
   private eyes: Phaser.GameObjects.Graphics;
+  private bar: Phaser.GameObjects.Graphics;
+  private shown = 0; // segments drawn, easing toward the real value so a hit visibly drains
 
   constructor(scene: Phaser.Scene) {
     this.spr = scene.add.sprite(0, 0, 'tree-monster', 0).setOrigin(0.5, 0.82).setDisplaySize(64, 64);
     this.ghost = scene.add.sprite(0, 0, 'tree-monster', 0).setOrigin(0.5, 0.82).setDisplaySize(64, 64).setDepth(DEPTH.ghost).setVisible(false);
     this.shadow = scene.add.image(0, 0, 'shadow', 1).setOrigin(0.5, 0.5).setDepth(DEPTH.shadow);
     this.eyes = scene.add.graphics().setDepth(DEPTH.over);
+    this.bar = scene.add.graphics().setDepth(DEPTH.over + 1);
+    this.shown = CFG.shocksToWin;
   }
 
   update(w: World, t: number): void {
@@ -45,11 +49,39 @@ export class CreatureView {
     const reveal = c.alive ? Math.max(0, Math.min(1, (w.revealUntil - t) / CFG.revealSeconds)) : 0;
     this.ghost.setVisible(reveal > 0).setFrame(frame).setFlipX(flip).setPosition(x, y).setAlpha(Math.min(1, reveal * 1.6));
 
+    this.drawHealth(w, x, y);
     const g = this.eyes;
     g.clear();
     if (c.alive) {
       this.drawEyes(g, w, t, x, y, frame, flip);
       this.telegraph(g, w);
+    }
+  }
+
+  // Segmented health bar over the boss's head, one segment per shock still needed.
+  private drawHealth(w: World, x: number, y: number): void {
+    const g = this.bar;
+    g.clear();
+    if (!w.creature.alive) return;
+    const n = CFG.shocksToWin;
+    const left = Math.max(0, n - w.shocks);
+    this.shown += (left - this.shown) * 0.18;
+    if (Math.abs(this.shown - left) < 0.01) this.shown = left;
+    const seg = 8;
+    const gap = 1;
+    const width = n * seg + (n - 1) * gap;
+    const bx = Math.round(x - width / 2);
+    const by = Math.round(y - 64 * 0.82 + 3);
+    g.fillStyle(PALETTE.ink, 0.92).fillRect(bx - 2, by - 2, width + 4, 7);
+    g.lineStyle(1, PALETTE.r3, 1).strokeRect(bx - 2, by - 2, width + 4, 7);
+    for (let i = 0; i < n; i++) {
+      const sx = bx + i * (seg + gap);
+      g.fillStyle(PALETTE.r1, 1).fillRect(sx, by, seg, 3);
+      const now = Math.max(0, Math.min(1, left - i));
+      const was = Math.max(0, Math.min(1, this.shown - i));
+      if (now > 0) g.fillStyle(left === 1 ? PALETTE.r5 : PALETTE.r4, 1).fillRect(sx, by, Math.round(seg * now), 3);
+      // the part that was just lost drains away in white
+      if (was > now) g.fillStyle(PALETTE.w, 0.9).fillRect(sx + Math.round(seg * now), by, Math.max(1, Math.round(seg * (was - now))), 3);
     }
   }
 

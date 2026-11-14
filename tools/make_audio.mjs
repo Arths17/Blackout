@@ -251,24 +251,6 @@ function chargeUp() {
   });
 }
 
-function jumpBlip() {
-  return shot(0.16, (t) => 0.8 * sweep(t, 240, 640, 0.12) * Math.exp(-t * 14) + 0.15 * noise() * burst(t, 0, 200));
-}
-
-function dashWhoosh() {
-  let z = 0;
-  return shot(0.24, (t) => {
-    const hz = 400 + 3200 * Math.sin(Math.PI * Math.min(1, t / 0.22));
-    z += (1 - Math.exp(-2 * Math.PI * hz / rate)) * (noise() - z);
-    return sat(3 * z) * Math.sin(Math.PI * Math.min(1, t / 0.22));
-  });
-}
-
-function landThud() {
-  const low = lowpass(300);
-  return shot(0.12, (t) => sat(6 * low(noise())) * Math.exp(-t * 40) + 0.4 * ring(t, 90, 30));
-}
-
 // Vines creeping over the door: a papery rustle with creaks and sparse crackles.
 function vineGrow() {
   const hi = lowpass(2600);
@@ -359,9 +341,6 @@ await wav('power_back', powerBack(), 0.7);
 await wav('fizzle', fizzle(), 0.7);
 await wav('blackout', blackout(), 0.85);
 await wav('charge_up', chargeUp(), 0.7);
-await wav('jump', jumpBlip(), 0.6);
-await wav('dash', dashWhoosh(), 0.7);
-await wav('land', landThud(), 0.6);
 await wav('vines', vineGrow(), 0.6);
 await wav('parry', parryClang(), 0.85);
 await wav('parry_swing', parrySwing(), 0.6);

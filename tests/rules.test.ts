@@ -354,13 +354,13 @@ describe('boss levels', () => {
       expect(b.stalk).toBeLessThan(CFG.playerSpeed * 0.85);
       expect(b.windup).toBeGreaterThan(CFG.windupFloor);
     }
-    expect(BOSS_LEVELS.length).toBe(6);
+    expect(BOSS_LEVELS.length).toBe(5);
   });
 
   it('applying a level changes the tuning and level 1 restores the defaults', () => {
-    applyBossLevel(5);
-    expect(CFG.creatureStalkSpeed).toBe(BOSS_LEVELS[5].stalk);
-    expect(CFG.shocksToWin).toBe(BOSS_LEVELS[5].shocks);
+    applyBossLevel(4);
+    expect(CFG.creatureStalkSpeed).toBe(BOSS_LEVELS[4].stalk);
+    expect(CFG.shocksToWin).toBe(BOSS_LEVELS[4].shocks);
     applyBossLevel(0);
     expect(CFG.creatureStalkSpeed).toBe(BOSS_LEVELS[0].stalk);
     expect(CFG.shocksToWin).toBe(5);

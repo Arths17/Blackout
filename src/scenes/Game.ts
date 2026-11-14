@@ -124,9 +124,8 @@ export class Game extends Phaser.Scene {
     kb.on('keydown-ENTER', () => {
       if (this.w.phase === 'escaped') {
         progress.level = (progress.level + 1) % BOSS_LEVELS.length;
-        this.scene.start('Obby');
-      }
-      else if (this.w.phase === 'lost') this.scene.restart();
+        this.scene.restart();
+      } else if (this.w.phase === 'lost') this.scene.restart();
     });
   }
 

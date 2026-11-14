@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DARK, PALETTE, VIEW } from '../config';
+import { BOSS_LEVELS, DARK, PALETTE, VIEW } from '../config';
 import { progress } from '../progress';
 import { EYES, TREE_EYES, dither, rgb, type Atlas } from '../render/pixel';
 
@@ -28,9 +28,8 @@ export class Boot extends Phaser.Scene {
     this.makeGrain();
     const q = new URLSearchParams(window.location.search);
     const lv = Number(q.get('level'));
-    if (lv >= 1) progress.level = Math.min(5, Math.floor(lv) - 1);
-    // ?boss=1 skips the platforming section and goes straight to the fight.
-    this.scene.start(q.has('boss') ? 'Game' : 'Obby');
+    if (lv >= 1) progress.level = Math.min(BOSS_LEVELS.length - 1, Math.floor(lv) - 1);
+    this.scene.start('Game');
   }
 
   // The monster sheet draws its own orange eyes. Find them per frame so the glow lands on them exactly.

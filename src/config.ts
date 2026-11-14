@@ -130,23 +130,6 @@ export const CFG = {
 
 };
 
-// The platforming section before the boss. Units are screen px, not world units.
-export const OBBY = {
-  runSpeed: 95,
-  gravity: 950,
-  jumpSpeed: 320,
-  jumpCut: 0.5, // vy multiplier when jump is released early
-  coyote: 0.12, // seconds you can still jump after walking off an edge
-  buffer: 0.12, // seconds an early jump press is remembered
-  edge: 3, // px of sideways forgiveness when landing
-  dashSpeed: 330,
-  dashSeconds: 0.18,
-  dashCooldown: 0.4,
-  halfW: 4,
-  fallY: 230, // below this you respawn at the last checkpoint
-  maxFall: 420,
-};
-
 // Boss fight difficulty per level. Stalk stays well under playerSpeed so there is always a gap to open.
 export const BOSS_LEVELS = [
   { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20 },
@@ -154,7 +137,6 @@ export const BOSS_LEVELS = [
   { name: 'THE ROTTING GROVE', stalk: 148, windup: 0.84, lunge: 600, lungeMax: 420, recoil: 0.42, shocks: 6, radius: 22 },
   { name: 'THE STRANGLING ROOTS', stalk: 157, windup: 0.76, lunge: 640, lungeMax: 440, recoil: 0.38, shocks: 6, radius: 23 },
   { name: 'THE ELDER CANOPY', stalk: 166, windup: 0.7, lunge: 680, lungeMax: 460, recoil: 0.35, shocks: 7, radius: 25 },
-  { name: 'THE HEART OF THE WOOD', stalk: 174, windup: 0.64, lunge: 720, lungeMax: 480, recoil: 0.32, shocks: 7, radius: 27 },
 ];
 
 export function applyBossLevel(i: number): void {

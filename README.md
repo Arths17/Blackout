@@ -6,13 +6,13 @@ Lure the creature into a route, throw the breaker, then move clear. The surge hu
 
 ## Controls
 
-There are six levels. Each is a platforming section followed by a boss fight, and the boss gets faster, bigger and tougher every level. In the platforming section: A or D to move, Space to jump, Shift to dash. Falling just puts you back at the last checkpoint. In the boss fight:
+There are five boss fights in a row, and the boss gets faster, bigger and tougher each time. Its health shows as a bar over its head.
 
 - WASD or arrow keys: move.
 - E or Space: charge a nearby breaker, then press again to fire the held charge from your body in the direction you face. It ricochets off the walls and can hurt you.
 - Shift: parry the boss's touch (a short window, then a cooldown). Two parries in a row launch a bigger, faster super bounce that deals several shocks.
 - R: restart the boss fight immediately.
-- Enter on the exit screen: go to the next level's platforming section (after the last level, back to level 1).
+- Enter on the exit screen: start the next fight (after the fifth, back to the first).
 
 Click the game to focus it, then press a key to enable audio.
 
