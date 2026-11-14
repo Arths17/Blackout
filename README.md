@@ -6,6 +6,8 @@ Lure the creature into a route, throw the breaker, then move clear. The surge hu
 
 ## Controls
 
+The game opens with a short platforming section before the boss fight. A or D to move, Space to jump, Shift to dash. Falling just puts you back at the last checkpoint. The rest is the boss fight:
+
 - WASD or arrow keys: move.
 - E or Space: charge a nearby breaker, then press again to fire the held charge from your body in the direction you face. It ricochets off the walls and can hurt you.
 - R: restart immediately.

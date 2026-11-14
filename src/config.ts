@@ -99,8 +99,8 @@ export const CFG = {
   surgeHitRadius: 24, // bigger = wider hit band, easier to land and to get hit
 
   bounceEvery: 2, // every Nth creature hit on the player sends them bouncing
-  bounceSpeed: 480,
-  bounceSeconds: 2.5,
+  bounceSpeed: 520,
+  bounceSeconds: 3.2,
   bounceHitGrace: 1.0, // immunity after a bounce hits the creature, so the player can get away
   shotBounces: 3, // wall contacts on a shot fired from the player's body
   shotLead: 48, // px the shot starts ahead of the body so it can't hit the shooter on frame one
@@ -120,4 +120,21 @@ export const CFG = {
   lampFade: 0.3,
   revealSeconds: 0.3,
 
+};
+
+// The platforming section before the boss. Units are screen px, not world units.
+export const OBBY = {
+  runSpeed: 95,
+  gravity: 950,
+  jumpSpeed: 320,
+  jumpCut: 0.5, // vy multiplier when jump is released early
+  coyote: 0.12, // seconds you can still jump after walking off an edge
+  buffer: 0.12, // seconds an early jump press is remembered
+  edge: 3, // px of sideways forgiveness when landing
+  dashSpeed: 330,
+  dashSeconds: 0.18,
+  dashCooldown: 0.4,
+  halfW: 4,
+  fallY: 230, // below this you respawn at the last checkpoint
+  maxFall: 420,
 };

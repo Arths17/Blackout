@@ -24,7 +24,8 @@ export class Boot extends Phaser.Scene {
     this.scanEyes();
     this.makeVignette();
     this.makeGrain();
-    this.scene.start('Game');
+    // ?boss=1 skips the platforming section and goes straight to the fight.
+    this.scene.start(new URLSearchParams(window.location.search).has('boss') ? 'Game' : 'Obby');
   }
 
   private scanEyes(): void {
