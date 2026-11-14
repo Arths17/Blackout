@@ -169,7 +169,8 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     if (w.grace <= CFG.timerEpsilon) w.grace = 0;
   }
 
-  if (w.cooldown > 0 && !w.surge) {
+  // Terminal worlds stop counting: no power-return click after the win.
+  if (w.cooldown > 0 && !w.surge && w.phase === 'play') {
     w.cooldown -= dt;
     if (w.cooldown <= CFG.timerEpsilon) {
       w.cooldown = 0;
@@ -213,6 +214,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   if (w.shocks >= CFG.shocksToWin) return;
   if (res.finished) {
     w.surge = null;
+    if (w.phase !== 'play') return;
     if (s.hitCreature) {
       w.missStreak = 0;
       w.cooldown = CFG.generatorCooldown;
