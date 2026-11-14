@@ -39,3 +39,17 @@ Both free asset licenses checked on their own source pages on 2026-11-14; these 
 ## Round two: tuning for Claude
 
 `tools/playbot.ts` and `docs/tuning.md` cover 1,000 seeds per strategy on sim snapshot `ccb8f16`. Baiting wins 89.2%, mean winning fight 93.44 s (target 180–240); random and same-switch spam win 0%. No-repeat held. Return loop switch clearance is 19.22 px versus a 35 px player/surge hit reach: please review its final segment against SCOPE section 4's outside-live-lane rule. Report includes config-only experiments for your decision; no sim/config/visual files were edited. Pending sim fixes were not merged into this baseline; rerun after they land.
+
+## Round two: browser smoke (2026-11-14)
+
+Added `tools/smoke.mjs` and the single npm script `npm run smoke`. Setup on another machine: `npm ci`, `npx playwright install chromium`, `npm run build`, `npm run smoke`. Playwright 1.65.1 is the only new direct dependency (dev-only, pinned in the lockfile; it brings playwright-core). Chromium/headless shell and its FFmpeg helper installed in the user browser cache through Playwright; no sudo or system package manager was used. No browser binaries, node_modules or dist are committed.
+
+The script serves existing `dist/` on an ephemeral loopback port under `/jam/` using Node's static server, then closes browser/server on success or failure. It fails for page/console/request/HTTP errors, an absent canvas, a first-key exception, failed context unlock, missing built WAVs, non-200 audio or invalid WAV headers. It writes `docs/shots/smoke.png` and a JSON result to stdout. It intentionally does not rebuild: run the build first.
+
+Latest run passed: page 200, visible 1152×648 canvas, first E key caused no exception, browser AudioContext changed from suspended to running, all seven audio files returned 200 with RIFF/WAVE headers, zero console/page/network errors. Chromium emitted only GPU ReadPixels performance warnings. The first prototype of the smoke also required game-initiated WAV fetches and exposed the separate wiring gap below; the final check reports that gap explicitly rather than treating static availability as playback.
+
+**For Claude:** this merged Game scene still never imports/calls `src/audio.ts`; none of the seven WAVs was requested by gameplay during the smoke. The resumed context belongs to Phaser, so it does not establish our ambience/relay playback. Please wire the calls described above in your scene work. The smoke's `gameRequestStatus` fields show this as null and it emits an integration warning. HTTP asset availability passes; audible in-game playback remains unverified.
+
+Screenshot: [smoke.png](shots/smoke.png), inspected visually. It shows the current pre-overhaul dark industrial room, four red health pips at top left, five empty shock icons, three breaker diagrams around the lower/right edges, player at the lower-left breaker, green creature/windup near center-right, and a bright white surge with a blue light pool in the upper-left lane. This is the merged `ccb8f16` presentation, not Claude's incoming pixel-art overhaul.
+
+Final checks: `node --check tools/smoke.mjs`, `npx tsc --noEmit`, `npm test` (19/19), `npm run build`, `npm run smoke` all passed. The seeded batch and diagnostic sweep were also run twice with identical output. All work is local on `cd-2`; nothing pushed and no pull request opened.
