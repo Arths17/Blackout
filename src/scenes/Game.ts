@@ -46,6 +46,7 @@ export class Game extends Phaser.Scene {
   private title!: Phaser.GameObjects.BitmapText;
   private titleRule!: Phaser.GameObjects.Rectangle;
   private subtitle!: Phaser.GameObjects.BitmapText;
+  private levelLine!: Phaser.GameObjects.BitmapText;
   private leaving = false;
   private vinesPlayed = false;
   private hud!: Hud;
@@ -117,6 +118,7 @@ export class Game extends Phaser.Scene {
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
     this.hud = new Hud(this, () => undefined);
     this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', BOSS_LEVELS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
+    this.levelLine = this.add.bitmapText(VIEW.w / 2, 27, 'stencil', `LEVEL ${progress.level + 1} OF ${BOSS_LEVELS.length}`, 7).setTint(PALETTE.warm).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
     this.subtitle = this.add.bitmapText(VIEW.w / 2, 60, 'stencil', LORE[progress.level].warden, 7).setTint(PALETTE.n7).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
 
@@ -324,6 +326,7 @@ export class Game extends Phaser.Scene {
     this.title.setAlpha(card);
     this.titleRule.setAlpha(card * 0.8);
     this.subtitle.setAlpha(card);
+    this.levelLine.setAlpha(card);
     if (!this.vinesPlayed && t >= 0.4) {
       this.vinesPlayed = true;
       play('vines');

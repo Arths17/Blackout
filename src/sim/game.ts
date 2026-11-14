@@ -352,7 +352,7 @@ function stepBounce(w: World, b: Bounce, dt: number): void {
     }
     const end = { x: p.x + b.vx * t, y: p.y + b.vy * t };
     const c = w.creature;
-    const reach = (b.super ? CFG.superRadius : r) + CFG.creatureRadius;
+    const reach = (b.super ? CFG.superRadius : r) + CFG.creatureRadius + CFG.bossHitBonus;
     const speed = b.super ? CFG.superSpeed : CFG.bounceSpeed;
     if (!b.armed && Math.hypot(c.x - p.x, c.y - p.y) > reach + 12) b.armed = true;
     if (b.armed && c.alive && (b.super || c.state !== 'recoil') && distToSegment(c, start, end) <= reach) {
@@ -472,7 +472,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   const res = stepSurge(
     s,
     dt,
-    { x: w.creature.x, y: w.creature.y, r: CFG.creatureRadius },
+    { x: w.creature.x, y: w.creature.y, r: CFG.creatureRadius + CFG.bossHitBonus },
     { x: w.player.x, y: w.player.y, r: CFG.playerRadius },
     w.grace <= 0,
   );
