@@ -145,14 +145,29 @@ function registerShock(w: World, breaker: number): void {
     w.phase = 'won';
     w.endTime = w.time;
     w.creature.alive = false;
+    w.surge = null;
+    w.cooldown = 0;
+    w.grace = 0;
     emit(w, { type: 'win' });
   }
 }
 
 export function stepWorld(w: World, input: MoveInput, dt: number): void {
   w.time += dt;
-  if (w.phase === 'lost') return;
-  if (w.grace > 0) w.grace = Math.max(0, w.grace - dt);
+  if (w.phase === 'lost' || w.phase === 'escaped') return;
+  if (w.phase === 'won') {
+    stepPlayer(w.player, input, dt);
+    if (inExit(w.player)) {
+      w.phase = 'escaped';
+      w.endTime = w.time;
+      emit(w, { type: 'escape' });
+    }
+    return;
+  }
+  if (w.grace > 0) {
+    w.grace -= dt;
+    if (w.grace <= CFG.timerEpsilon) w.grace = 0;
+  }
 
   if (w.cooldown > 0 && !w.surge) {
     w.cooldown -= dt;
@@ -161,7 +176,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
       emit(w, { type: 'powerBack' });
     }
   }
-  if (w.creature.asleep && w.time >= CFG.introSeconds) w.creature.asleep = false;
+  if (w.creature.asleep && w.time + CFG.timerEpsilon >= CFG.introSeconds) w.creature.asleep = false;
 
   stepPlayer(w.player, input, dt);
   if (w.creature.alive) {
@@ -173,11 +188,6 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   }
   // A lethal creature touch ends the tick: no shock, lamp or bounce may follow the lose event.
   if (isLost(w)) return;
-  if (w.phase === 'won' && inExit(w.player)) {
-    w.phase = 'escaped';
-    w.endTime = w.time;
-    emit(w, { type: 'escape' });
-  }
 
   const s = w.surge;
   if (!s) return;
@@ -200,6 +210,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   if (res.hitPlayer) damagePlayer(w);
   if (isLost(w)) return;
   if (res.hitCreature && w.creature.alive) registerShock(w, id);
+  if (w.shocks >= CFG.shocksToWin) return;
   if (res.finished) {
     w.surge = null;
     if (s.hitCreature) {

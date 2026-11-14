@@ -60,6 +60,7 @@ export function stepCreature(c: Creature, dt: number, player: Vec): void {
     case 'windup': {
       c.timer -= dt;
       if (c.timer <= CFG.timerEpsilon) {
+        c.timer = 0;
         const dx = c.target.x - c.x;
         const dy = c.target.y - c.y;
         const d = Math.hypot(dx, dy) || 1;
@@ -77,12 +78,12 @@ export function stepCreature(c: Creature, dt: number, player: Vec): void {
       c.y += c.dirY * step;
       c.lungeLeft -= step;
       clampToRoom(c);
-      if (c.lungeLeft <= 0) c.state = 'stalk';
+      if (c.lungeLeft <= CFG.timerEpsilon) { c.lungeLeft = 0; c.state = 'stalk'; }
       break;
     }
     case 'recoil': {
       c.timer -= dt;
-      if (c.timer <= CFG.timerEpsilon) c.state = 'stalk';
+      if (c.timer <= CFG.timerEpsilon) { c.timer = 0; c.state = 'stalk'; }
       break;
     }
   }
