@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import { PALETTE } from '../config';
+import { PATH_COLORS } from '../config';
 import { isOffline, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { DEPTH } from './layers';
 import { px } from './pixel';
 
-const COLORS = [PALETTE.c1, PALETTE.warm2, PALETTE.r5];
+const COLORS = PATH_COLORS;
 
 // Every generator's path stays on screen, above the darkness, so you can see where the boss
 // crosses one and press that generator's number.
@@ -27,7 +27,7 @@ export class Paths {
     for (const r of ROUTES) {
       const off = isOffline(w, r.id);
       const live = w.surge?.route.id === r.id;
-      const alpha = live ? 0.8 : off ? 0.14 : 0.45;
+      const alpha = live ? 0.95 : off ? 0.16 : 0.6;
       const color = COLORS[r.id];
       let on = true;
       let run = 0;

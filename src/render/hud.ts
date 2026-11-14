@@ -94,8 +94,8 @@ export class Hud {
     if (w.phase === 'won' && !inExit(w.player)) { banner = 'POWER RESTORED'; sub = 'EXIT OPEN  GO UP, TOP RIGHT'; }
     else if (w.phase === 'escaped') {
       const last = progress.level >= BOSS_LEVELS.length - 1;
-      banner = last ? 'THE WOOD IS QUIET' : `LEVEL ${progress.level + 1} CLEAR`;
-      sub = `${w.endTime.toFixed(1)}S  ${last ? '[ENTER] FROM THE START' : '[ENTER] NEXT LEVEL'}`;
+      banner = last ? 'THE ROT ENDS' : `BOSS ${progress.level + 1} DEFEATED`;
+      sub = `${w.endTime.toFixed(1)}S  [ENTER] OPEN THE CHEST`;
     }
     else if (w.phase === 'lost') { banner = 'BLACKED OUT'; sub = 'RESTART [R]'; }
     this.bar.setVisible(banner !== '');

@@ -54,20 +54,23 @@ export const VIEW = { w: 384, h: 216, s: 3.0 }; // s = world px per screen px
 
 export const DARK = {
   cell: 2, // darkness is painted in flat 2 px cells
-  alpha: [0, 0.2, 0.42, 0.7], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
+  alpha: [0, 0.15, 0.33, 0.56], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
   ambient: 3,
-  vignette: [0, 0.04, 0.09, 0.16],
+  vignette: [0, 0.03, 0.07, 0.12],
   grainAlpha: 0.035,
-  playerR: 52, // light radii in screen px
-  playerHalo: 17,
-  coneR: 104,
+  playerR: 60, // light radii in screen px
+  playerHalo: 19,
+  coneR: 120,
   coneHalf: 0.6,
   coneCos: 0.72,
-  stripR: 14,
-  lampR: 34,
-  surgeR: 58,
-  panelR: 26,
+  stripR: 16,
+  lampR: 38,
+  surgeR: 64,
+  panelR: 30,
 };
+
+// One clearly different color per generator: its path on the floor, its number and its panel diagram.
+export const PATH_COLORS = [0x3fd2ff, 0xffa530, 0xd774ff];
 
 export const VIS = {
   playerStep: 0.32,
@@ -101,8 +104,8 @@ export const CFG = {
   bounceEvery: 2, // every Nth creature hit on the player sends them bouncing
   bounceSpeed: 520,
   bounceSeconds: 4.0,
-  parryWindow: 0.3, // seconds after pressing Shift that a touch from the boss is blocked
-  parryCooldown: 0.75, // whiffing costs you this long before the next try
+  parryWindow: 0.42, // seconds after pressing Shift that a touch from the boss is blocked
+  parryCooldown: 0.7, // whiffing costs you this long before the next try
   parryStreakSeconds: 6, // a parry streak lapses if the next one takes longer than this
   parriesForSuper: 2,
   superSpeed: 640,
@@ -140,9 +143,9 @@ export const CFG = {
 // boss up once it is down to its last 40% of health.
 export const BOSS_LEVELS = [
   { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20, lungeEvery: 0, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1 },
-  { name: 'THE GNARLED DEEP', stalk: 144, windup: 0.9, lunge: 580, lungeMax: 420, recoil: 0.45, shocks: 5, radius: 22, lungeEvery: 8, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1 },
-  { name: 'THE ROTTING GROVE', stalk: 156, windup: 0.8, lunge: 640, lungeMax: 450, recoil: 0.4, shocks: 6, radius: 24, lungeEvery: 6.5, shotEvery: 8, shots: 1, shotSpeed: 380, enrage: 1.1 },
-  { name: 'THE STRANGLING ROOTS', stalk: 164, windup: 0.74, lunge: 690, lungeMax: 480, recoil: 0.36, shocks: 7, radius: 26, lungeEvery: 5.5, shotEvery: 7, shots: 2, shotSpeed: 420, enrage: 1.1 },
+  { name: 'THE GNARLED DEEP', stalk: 140, windup: 0.92, lunge: 560, lungeMax: 410, recoil: 0.46, shocks: 5, radius: 21, lungeEvery: 9, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1 },
+  { name: 'THE ROTTING GROVE', stalk: 150, windup: 0.84, lunge: 610, lungeMax: 430, recoil: 0.42, shocks: 6, radius: 23, lungeEvery: 7.5, shotEvery: 9.5, shots: 1, shotSpeed: 350, enrage: 1.05 },
+  { name: 'THE STRANGLING ROOTS', stalk: 158, windup: 0.78, lunge: 650, lungeMax: 455, recoil: 0.38, shocks: 6, radius: 25, lungeEvery: 6.5, shotEvery: 8.5, shots: 2, shotSpeed: 390, enrage: 1.08 },
   { name: 'THE ELDER CANOPY', stalk: 174, windup: 0.64, lunge: 760, lungeMax: 520, recoil: 0.3, shocks: 8, radius: 28, lungeEvery: 4.2, shotEvery: 5.5, shots: 3, shotSpeed: 460, enrage: 1.15 },
 ];
 
@@ -161,3 +164,12 @@ export function applyBossLevel(i: number): void {
   CFG.bossShotSpeed = b.shotSpeed;
   CFG.enrage = b.enrage;
 }
+
+// Coins from a chest depend on how fast the boss fell. At or under `fast` seconds is the maximum,
+// at `fast * slowMul` or longer is the minimum, and it falls off in a straight line between.
+export const COINS = {
+  max: 100,
+  min: 10,
+  fast: [30, 40, 55, 65, 80],
+  slowMul: 4,
+};

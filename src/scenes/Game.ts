@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
 import { BOSS_LEVELS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyBossLevel } from '../config';
 import { progress } from '../progress';
+import { LORE } from '../lore';
 import { createWorld, fire, stepWorld, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
@@ -43,6 +44,8 @@ export class Game extends Phaser.Scene {
   private paths!: Paths;
   private title!: Phaser.GameObjects.BitmapText;
   private titleRule!: Phaser.GameObjects.Rectangle;
+  private subtitle!: Phaser.GameObjects.BitmapText;
+  private leaving = false;
   private vinesPlayed = false;
   private hud!: Hud;
   private grain!: Phaser.GameObjects.Image;
@@ -102,6 +105,7 @@ export class Game extends Phaser.Scene {
     this.exitCue = new ExitCue(this);
     this.paths = new Paths(this);
     this.vinesPlayed = false;
+    this.leaving = false;
     this.fx = new Fx(this);
     this.dust = new Dust(this);
     this.dark = new Darkness(this, { floor: FLOOR, blockers: this.room.blockers });
@@ -112,6 +116,7 @@ export class Game extends Phaser.Scene {
     this.hud = new Hud(this, () => undefined);
     this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', BOSS_LEVELS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
+    this.subtitle = this.add.bitmapText(VIEW.w / 2, 60, 'stencil', LORE[progress.level].warden, 7).setTint(PALETTE.n7).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
 
     const kb = this.input.keyboard!;
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT,ONE,TWO,THREE') as Record<string, Phaser.Input.Keyboard.Key>;
@@ -125,11 +130,15 @@ export class Game extends Phaser.Scene {
     bind(['TWO', 'NUMPAD_TWO'], 1);
     bind(['THREE', 'NUMPAD_THREE'], 2);
     kb.on('keydown-ENTER', () => {
-      if (this.w.phase === 'escaped') {
-        progress.level = (progress.level + 1) % BOSS_LEVELS.length;
-        this.scene.restart();
-      } else if (this.w.phase === 'lost') this.scene.restart();
+      if (this.w.phase === 'escaped') this.toChest();
+      else if (this.w.phase === 'lost') this.scene.restart();
     });
+  }
+
+  private toChest(): void {
+    if (this.leaving) return;
+    this.leaving = true;
+    this.scene.start('Chest');
   }
 
   private onEvent(e: SimEvent): void {
@@ -168,7 +177,7 @@ export class Game extends Phaser.Scene {
         this.fx.burst(this.w.creature.x, this.w.creature.y, 10);
         break;
       case 'escape':
-        if (progress.level >= BOSS_LEVELS.length - 1) this.time.delayedCall(900, () => this.scene.start('Finish'));
+        this.time.delayedCall(900, () => this.toChest());
         break;
       case 'parryStart':
         play('parry_swing');
@@ -306,6 +315,7 @@ export class Game extends Phaser.Scene {
     const card = Math.max(0, Math.min(1, Math.min((t - 0.2) / 0.6, (3.8 - t) / 0.8)));
     this.title.setAlpha(card);
     this.titleRule.setAlpha(card * 0.8);
+    this.subtitle.setAlpha(card);
     if (!this.vinesPlayed && t >= 0.4) {
       this.vinesPlayed = true;
       play('vines');

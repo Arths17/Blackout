@@ -291,6 +291,24 @@ function superLaunch() {
   });
 }
 
+// Chest lid creaking open, then a little shower of chimes.
+function chestOpen() {
+  const wood = lowpass(700);
+  return shot(1.3, (t) => {
+    const creak = sweep(t, 90, 260, 0.5) * (0.5 + 0.5 * Math.sin(2 * Math.PI * 17 * t)) * Math.exp(-Math.max(0, t - 0.45) * 12) * 0.5;
+    const grit = sat(4 * wood(noise())) * 0.35 * Math.min(1, t / 0.05) * Math.exp(-Math.max(0, t - 0.4) * 10);
+    let chimes = 0;
+    [[0.5, 1568], [0.58, 2093], [0.66, 2637], [0.75, 3136]].forEach(([at, hz]) => {
+      if (t > at) chimes += 0.3 * ring(t - at, hz, 6);
+    });
+    return creak + grit + chimes;
+  });
+}
+
+function coinPing() {
+  return shot(0.16, (t) => 0.8 * ring(t, 1760, 26) + 0.55 * ring(t, 2349, 34) + 0.25 * noise() * burst(t, 0, 500));
+}
+
 async function wav(name, data, peak) {
   const mean = data.reduce((sum, x) => sum + x, 0) / data.length;
   let max = 0;
@@ -341,5 +359,7 @@ await wav('vines', vineGrow(), 0.6);
 await wav('parry', parryClang(), 0.85);
 await wav('parry_swing', parrySwing(), 0.6);
 await wav('super_launch', superLaunch(), 0.9);
+await wav('chest_open', chestOpen(), 0.7);
+await wav('coin', coinPing(), 0.6);
 await wav('music_loop', music(), 0.6);
 await wav('heartbeat', heartbeat(), 0.8);

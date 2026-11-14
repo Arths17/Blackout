@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BOSS_LEVELS, CFG, EXIT, applyBossLevel } from '../src/config';
+import { BOSS_LEVELS, CFG, COINS, EXIT, applyBossLevel } from '../src/config';
+import { coinsFor } from '../src/sim/coins';
 import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stepWorld, type World } from '../src/sim/game';
 import { ROUTES } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
@@ -401,5 +402,41 @@ describe('boss attacks', () => {
       stepWorld(h, idle, DT);
       expect(1000 - h.creature.x).toBeGreaterThan(calm);
     });
+  });
+});
+
+describe('coins', () => {
+  it('a fast kill pays the most and a slow one the least', () => {
+    for (let i = 0; i < BOSS_LEVELS.length; i++) {
+      const fast = COINS.fast[i];
+      expect(coinsFor(i, 1)).toBe(COINS.max);
+      expect(coinsFor(i, fast)).toBe(COINS.max);
+      expect(coinsFor(i, fast * COINS.slowMul)).toBe(COINS.min);
+      expect(coinsFor(i, 9999)).toBe(COINS.min);
+    }
+  });
+
+  it('every extra second never pays more', () => {
+    for (let i = 0; i < BOSS_LEVELS.length; i++) {
+      let prev = Infinity;
+      for (let s = 0; s <= 400; s += 5) {
+        const c = coinsFor(i, s);
+        expect(c).toBeLessThanOrEqual(prev);
+        expect(c).toBeGreaterThanOrEqual(COINS.min);
+        prev = c;
+      }
+    }
+  });
+
+  it('there is a fast time for every boss', () => {
+    expect(COINS.fast.length).toBe(BOSS_LEVELS.length);
+  });
+});
+
+describe('boss 5 keeps its difficulty', () => {
+  it('the last boss is unchanged', () => {
+    const b = BOSS_LEVELS[4];
+    expect([b.stalk, b.windup, b.lunge, b.lungeMax, b.recoil, b.shocks, b.radius, b.lungeEvery, b.shotEvery, b.shots, b.shotSpeed, b.enrage])
+      .toEqual([174, 0.64, 760, 520, 0.3, 8, 28, 4.2, 5.5, 3, 460, 1.15]);
   });
 });

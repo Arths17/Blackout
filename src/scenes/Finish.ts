@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { initAudio, play, startAmbience } from '../audio';
 import { BOSS_LEVELS, PALETTE, VIEW } from '../config';
-import { progress, resetRun } from '../progress';
+import { progress, resetRun, totalCoins } from '../progress';
 
 const fmt = (s: number): string => {
   const m = Math.floor(s / 60);
@@ -28,19 +28,23 @@ export class Finish extends Phaser.Scene {
 
     const text = (y: number, v: string, size: number, tint: number) =>
       this.add.bitmapText(VIEW.w / 2, y, 'stencil', v, size).setTint(tint).setOrigin(0.5);
-    text(40, 'GOOD JOB', 14, PALETTE.warm2);
-    const ask = text(66, 'WHAT DO YOU THINK OF BLACKOUT', 7, PALETTE.w);
+    text(26, 'GOOD JOB', 14, PALETTE.warm2);
+    const ask = text(48, 'WHAT DO YOU THINK OF BLACKOUT', 7, PALETTE.w);
     const g = this.add.graphics();
     const qx = Math.round(ask.x + ask.width / 2 - 1);
     const qy = Math.round(ask.y - 4);
     g.fillStyle(PALETTE.w, 1);
     Q.forEach((row, j) => [...row].forEach((c, i) => c === '1' && g.fillRect(qx + i, qy + j, 1, 1)));
-    g.fillStyle(PALETTE.warm, 1).fillRect(VIEW.w / 2 - 70, 80, 140, 1);
+    g.fillStyle(PALETTE.warm, 1).fillRect(VIEW.w / 2 - 70, 62, 140, 1);
 
-    text(100, 'YOUR TIME', 7, PALETTE.n7);
-    text(118, fmt(progress.total), 14, PALETTE.warm);
+    const col = (x: number, label: string, value: string) => {
+      this.add.bitmapText(x, 82, 'stencil', label, 7).setTint(PALETTE.n7).setOrigin(0.5);
+      this.add.bitmapText(x, 100, 'stencil', value, 14).setTint(PALETTE.warm).setOrigin(0.5);
+    };
+    col(VIEW.w / 2 - 80, 'YOUR TIME', fmt(progress.total));
+    col(VIEW.w / 2 + 80, 'COINS', String(totalCoins()));
     BOSS_LEVELS.forEach((b, i) => {
-      text(142 + i * 9, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S`, 7, PALETTE.n6);
+      text(128 + i * 10, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S  ${progress.levelCoins[i]} COINS`, 7, PALETTE.n6);
     });
     const hint = text(VIEW.h - 14, '[ENTER] PLAY AGAIN', 7, PALETTE.warm2);
     this.tweens.add({ targets: hint, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });

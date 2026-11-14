@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DARK, PALETTE, ROOM, VIEW } from '../config';
+import { DARK, PALETTE, PATH_COLORS, ROOM, VIEW } from '../config';
 import { isOffline, type World } from '../sim/game';
 import { ROUTES, pathBetween, type Route } from '../sim/routes';
 import type { Light } from './darkness';
@@ -94,7 +94,7 @@ export class Breakers {
   private draw(r: Route, state: number, w: World, S: Record<string, number>): void {
     const ctx = this.screens[r.id];
     ctx.clearRect(0, 0, W, H);
-    this.digit(ctx, r.id + 1, 8, 2, state === S.offline ? PALETTE.n4 : PALETTE.n7);
+    this.digit(ctx, r.id + 1, 8, 2, state === S.offline ? PALETTE.n4 : PATH_COLORS[r.id]);
     ctx.fillStyle = hexs(PALETTE.n4);
     ctx.fillRect(5, 4, 2, 1);
     ctx.fillRect(13, 4, 2, 1);
@@ -102,7 +102,7 @@ export class Breakers {
     ctx.fillStyle = hexs(PALETTE.n3);
     for (let gx = 0; gx < SCREEN.w; gx += 8) for (let gy = 0; gy < SCREEN.h; gy += 8) ctx.fillRect(SCREEN.x + gx, SCREEN.y + gy, 1, 1);
     const map = (x: number, y: number): [number, number] => [SCREEN.x + (x - ROOM.x) * SC, SCREEN.y + (y - ROOM.y) * SC];
-    const base = state === S.offline ? PALETTE.n4 : state === S.cooling ? PALETTE.n5 : PALETTE.n7;
+    const base = state === S.offline ? PALETTE.n4 : state === S.cooling ? PALETTE.n5 : PATH_COLORS[r.id];
     ctx.fillStyle = hexs(base);
     for (let i = 1; i < r.points.length; i++) {
       const [ax, ay] = map(r.points[i - 1].x, r.points[i - 1].y);

@@ -6,10 +6,14 @@ export const progress = {
   level: 0,
   total: 0,
   levelTimes: BOSS_LEVELS.map(() => 0),
+  levelCoins: BOSS_LEVELS.map(() => 0),
 };
+
+export const totalCoins = (): number => progress.levelCoins.reduce((a, b) => a + b, 0);
 
 export function resetRun(): void {
   progress.level = 0;
   progress.total = 0;
   progress.levelTimes = BOSS_LEVELS.map(() => 0);
+  progress.levelCoins = BOSS_LEVELS.map(() => 0);
 }
