@@ -4,6 +4,7 @@ import { Boot } from './scenes/Boot';
 import { Chest } from './scenes/Chest';
 import { Finish } from './scenes/Finish';
 import { Game } from './scenes/Game';
+import { Title } from './scenes/Title';
 
 const game = new Phaser.Game({
   type: Phaser.WEBGL,
@@ -13,7 +14,7 @@ const game = new Phaser.Game({
   backgroundColor: PALETTE.ink,
   render: { pixelArt: true, antialias: false, roundPixels: true },
   scale: { mode: Phaser.Scale.NONE, zoom: 1, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [Boot, Game, Chest, Finish],
+  scene: [Boot, Title, Game, Chest, Finish],
 });
 function resize(): void {
   const zoom = Math.max(1, Math.floor(Math.min(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h)));
