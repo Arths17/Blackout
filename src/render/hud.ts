@@ -100,10 +100,11 @@ export class Hud {
         }
       }
     }
-    let status = 'FIND A BREAKER  [E]';
+    let status = 'THROW BREAKER 1  [E]';
     if (w.phase !== 'play') status = '';
     else if (w.surge) status = 'SURGE LIVE';
     else if (w.cooldown > 0) status = 'GENERATOR RECOVERING';
+    else if (w.shocks === 0 && w.missStreak > 0) status = 'MISSED  LURE IT FIRST';
     else if (w.lastHitBreaker >= 0) status = `BREAKER ${w.lastHitBreaker + 1} OFFLINE`;
     this.status.setText(status);
     let banner = '', sub = '';
