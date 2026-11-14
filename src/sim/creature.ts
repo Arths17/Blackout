@@ -9,6 +9,7 @@ export interface Creature {
   facing: number;
   state: CreatureState;
   timer: number;
+  windupTotal: number;
   target: Vec;
   dirX: number;
   dirY: number;
@@ -18,12 +19,13 @@ export interface Creature {
 }
 
 export function makeCreature(x: number, y: number): Creature {
-  return { x, y, facing: Math.PI, state: 'stalk', timer: 0, target: { x, y }, dirX: 0, dirY: 0, lungeLeft: 0, asleep: false, alive: true };
+  return { x, y, facing: Math.PI, state: 'stalk', timer: 0, windupTotal: 1, target: { x, y }, dirX: 0, dirY: 0, lungeLeft: 0, asleep: false, alive: true };
 }
 
 export function startWindup(c: Creature, target: Vec, windup: number): void {
   c.state = 'windup';
   c.timer = windup;
+  c.windupTotal = windup;
   c.target = { x: target.x, y: target.y };
   c.facing = Math.atan2(target.y - c.y, target.x - c.x);
 }
