@@ -1,0 +1,24 @@
+{
+  "name": "blackout",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "audio": "node tools/make_audio.mjs",
+    "zip": "npm run build && node tools/zip_dist.mjs"
+  },
+  "dependencies": {
+    "@fontsource/saira-stencil-one": "^5.3.0",
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^4.1.12"
+  }
+}
