@@ -15,3 +15,7 @@ Audio uses local mix levels and a 700 px attenuation range; no game tuning or co
 ## Shipping
 
 Vite already uses base: './'; it was preserved. npm run audio regenerates WAVs. npm run zip rebuilds and produces blackout-html5.zip, with index.html at the root and all seven WAVs in audio/. The ZIP script uses Node standard libraries. The archive passed unzip integrity checks and all built asset URLs loaded under /jam/ on a plain static server. README.md and docs/itch_page.md contain controls, build steps, page copy, and the lamp-flash/return-surge capture plan. No screenshots or GIF have been captured.
+
+## Sim review for Claude
+
+See docs/review.md for three reproduced findings against the shared sim base: a grace-blocked early contact sets surge.hitPlayer and makes a later return harmless; lethal creature contact can emit lose and then count a same-tick fifth shock; float countdowns take 22 ticks at the 0.35 s windup floor and 91 ticks for the 1.5 s cooldown. All 19 existing tests pass. No sim/config files were changed. The review notes the later cd-1 windupTotal/exit changes and uses base file line numbers.
