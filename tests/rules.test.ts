@@ -52,6 +52,43 @@ describe('no-repeat rule', () => {
   });
 });
 
+describe('multi-hit surge', () => {
+  it('a surge that passes over the creature twice scores two shocks', () => {
+    const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 1060, y: 590 }, asleep: true });
+    const r = ROUTES[1];
+    w.surge = makeSurge(r);
+    const spot = r.points[1];
+    w.creature.x = spot.x;
+    w.creature.y = spot.y;
+    w.creature.alive = true;
+    let moved = false;
+    for (let i = 0; i < 600 && w.surge; i++) {
+      stepWorld(w, idle, DT);
+      // After the first hit, drop the creature onto the next bounce point so the head crosses it again.
+      if (w.shocks === 1 && !moved) {
+        moved = true;
+        w.creature.state = 'stalk';
+        w.creature.x = r.points[2].x;
+        w.creature.y = r.points[2].y;
+      }
+    }
+    expect(w.shocks).toBe(2);
+    expect(w.lastHitBreaker).toBe(1);
+  });
+
+  it('one long pass over the creature is a single hit', () => {
+    const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 1060, y: 590 }, asleep: true });
+    const r = ROUTES[1];
+    w.surge = makeSurge(r);
+    w.creature.x = (r.points[0].x + r.points[1].x) / 2;
+    w.creature.y = (r.points[0].y + r.points[1].y) / 2;
+    w.creature.alive = true;
+    w.creature.state = 'stalk';
+    for (let i = 0; i < 60; i++) { stepWorld(w, idle, DT); w.creature.state = 'stalk'; }
+    expect(w.shocks).toBe(1);
+  });
+});
+
 describe('miss cost', () => {
   it('a miss shortens the next windup and lengthens the cooldown', () => {
     const w = createWorld(farAway);

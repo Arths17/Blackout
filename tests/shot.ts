@@ -21,7 +21,7 @@ export function simulateShot(breaker: number, creature: Vec, player?: Vec): Shot
   const w = createWorld({ creature, player });
   let hitTime: number | null = null;
   w.listeners.push((e) => {
-    if (e.type === 'shock') hitTime = w.time;
+    if (e.type === 'shock' && hitTime === null) hitTime = w.time;
   });
   const a = route.points[1];
   const b = route.points[2];

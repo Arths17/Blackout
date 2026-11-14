@@ -190,7 +190,8 @@ function isLost(w: World): boolean {
 function registerShock(w: World, breaker: number): void {
   hitCreature(w.creature, w.surge ? dirAt(w.surge.route, w.surge.dist) : { x: 0, y: 0 });
   // Offline breakers can't be fired, so counted is only false if a surge was injected by hand.
-  const counted = breaker !== w.lastHitBreaker;
+  // A later pass of the same surge still counts: the same breaker can't start a second shot, but one shot can hit twice.
+  const counted = breaker !== w.lastHitBreaker || (w.surge?.hits ?? 0) > 1;
   if (counted) {
     w.shocks++;
     w.lastHitBreaker = breaker;

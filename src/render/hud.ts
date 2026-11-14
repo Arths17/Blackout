@@ -112,11 +112,11 @@ export class Hud {
     else if (w.lastHitBreaker >= 0) status = `BREAKER ${w.lastHitBreaker + 1} OFFLINE`;
     this.status.setText(status);
     let banner = '', sub = '';
-    if (w.phase === 'won' && !inExit(w.player)) { banner = 'POWER RESTORED'; sub = 'EXIT OPEN'; }
+    if (w.phase === 'won' && !inExit(w.player)) { banner = 'POWER RESTORED'; sub = 'EXIT OPEN  GO UP, TOP RIGHT'; }
     else if (w.phase === 'escaped') {
       if (this.best === 0) this.best = bestTime(w.endTime);
       banner = 'OUT';
-      sub = `${w.endTime.toFixed(1)}S  BEST ${this.best.toFixed(1)}S  [R]`;
+      sub = `${w.endTime.toFixed(1)}S  BEST ${this.best.toFixed(1)}S  [ENTER] FROM START`;
     }
     else if (w.phase === 'lost') { banner = 'BLACKED OUT'; sub = 'RESTART [R]'; }
     this.bar.setVisible(banner !== '');

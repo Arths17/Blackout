@@ -7,6 +7,7 @@ import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
 import { Atmosphere } from '../render/atmosphere';
 import { Entrance } from '../render/entrance';
+import { ExitCue } from '../render/exitcue';
 import { Dust, Fx } from '../render/fx';
 import { Hud } from '../render/hud';
 import { DEPTH } from '../render/layers';
@@ -33,6 +34,9 @@ export class Game extends Phaser.Scene {
   private dark!: Darkness;
   private atmosphere!: Atmosphere;
   private entrance!: Entrance;
+  private exitCue!: ExitCue;
+  private title!: Phaser.GameObjects.BitmapText;
+  private titleRule!: Phaser.GameObjects.Rectangle;
   private vinesPlayed = false;
   private hud!: Hud;
   private grain!: Phaser.GameObjects.Image;
@@ -86,6 +90,7 @@ export class Game extends Phaser.Scene {
     this.creatureView = new CreatureView(this);
     this.atmosphere = new Atmosphere(this);
     this.entrance = new Entrance(this);
+    this.exitCue = new ExitCue(this);
     this.vinesPlayed = false;
     this.fx = new Fx(this);
     this.dust = new Dust(this);
@@ -95,6 +100,8 @@ export class Game extends Phaser.Scene {
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(DARK.grainAlpha);
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
     this.hud = new Hud(this, () => undefined);
+    this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', 'THE HOLLOW TREE', 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
+    this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
 
     const kb = this.input.keyboard!;
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
@@ -107,7 +114,8 @@ export class Game extends Phaser.Scene {
     kb.on('keydown-E', press);
     kb.on('keydown-SPACE', press);
     kb.on('keydown-ENTER', () => {
-      if (this.w.phase === 'lost' || this.w.phase === 'escaped') this.scene.restart();
+      if (this.w.phase === 'escaped') this.scene.start('Obby');
+      else if (this.w.phase === 'lost') this.scene.restart();
     });
   }
 
@@ -256,6 +264,11 @@ export class Game extends Phaser.Scene {
     lights.push(...this.room.update(t, this.lit));
     lights.push(...atmosphere.lights);
     lights.push(...this.entrance.update(t));
+    lights.push(...this.exitCue.update(w, t));
+    // Area name card over the first few seconds of play.
+    const card = Math.max(0, Math.min(1, Math.min((t - 0.2) / 0.6, (3.8 - t) / 0.8)));
+    this.title.setAlpha(card);
+    this.titleRule.setAlpha(card * 0.8);
     if (!this.vinesPlayed && t >= 0.4) {
       this.vinesPlayed = true;
       play('vines');

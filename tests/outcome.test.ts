@@ -51,14 +51,14 @@ describe('quick bank outcomes', () => {
 });
 
 describe('first hit', () => {
-  it('pressing breaker 1 at the start lands a shock without costing health', () => {
+  it('pressing breaker 1 at the start lands at least one shock without costing health', () => {
     const w = createWorld();
     expect(w.creature.x).toBe(FIRST_HIT_SPAWN.x);
     w.player.x = PLAYER_START.x;
     w.player.y = PLAYER_START.y;
     expect(tryInteract(w)).toBe('ok');
     for (let i = 0; i < 400 && w.surge; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
-    expect(w.shocks).toBe(1);
+    expect(w.shocks).toBeGreaterThanOrEqual(1);
     expect(w.lastHitBreaker).toBe(0);
     expect(w.hp).toBe(4);
   });

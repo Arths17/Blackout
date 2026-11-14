@@ -100,7 +100,7 @@ export const CFG = {
 
   bounceEvery: 2, // every Nth creature hit on the player sends them bouncing
   bounceSpeed: 520,
-  bounceSeconds: 3.2,
+  bounceSeconds: 4.0,
   bounceHitGrace: 1.0, // immunity after a bounce hits the creature, so the player can get away
   shotBounces: 3, // wall contacts on a shot fired from the player's body
   shotLead: 48, // px the shot starts ahead of the body so it can't hit the shooter on frame one

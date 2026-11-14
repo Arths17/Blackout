@@ -13,6 +13,9 @@ export interface Surge {
   nextLamp: number;
   nextContact: number;
   hitCreature: boolean;
+  // Times the head has swept over the creature; every separate pass counts.
+  hits: number;
+  inside: boolean;
   hitPlayer: boolean;
   done: boolean;
 }
@@ -26,7 +29,7 @@ export interface SurgeStepResult {
 }
 
 export function makeSurge(route: Route): Surge {
-  return { route, dist: 0, nextLamp: 0, nextContact: 0, hitCreature: false, hitPlayer: false, done: false };
+  return { route, dist: 0, nextLamp: 0, nextContact: 0, hitCreature: false, hits: 0, inside: false, hitPlayer: false, done: false };
 }
 
 export function distToSegment(p: Vec, a: Vec, b: Vec): number {
@@ -54,10 +57,13 @@ export function stepSurge(s: Surge, dt: number, creature: Circle, player: Circle
 
   // Sweep the whole stretch since last tick so a long frame can't skip over a target.
   const path = pathBetween(r, prev, s.dist);
-  if (!s.hitCreature && swept(path, creature)) {
+  const over = swept(path, creature);
+  if (over && !s.inside) {
+    s.hits++;
     s.hitCreature = true;
     res.hitCreature = true;
   }
+  s.inside = over;
   if (canHurt && !s.hitPlayer && swept(path, player)) {
     s.hitPlayer = true;
     res.hitPlayer = true;

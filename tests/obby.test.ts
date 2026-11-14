@@ -37,10 +37,10 @@ function runCourse(early: number, limit = 90): Obby {
 }
 
 describe('obby', () => {
-  it('every ordinary gap is well inside a plain jump', () => {
+  it('every ordinary gap is inside a plain jump', () => {
     for (let i = 0; i < PLATFORMS.length - 1; i++) {
       const g = gapAfter(i);
-      if (g < 90) expect(g).toBeLessThanOrEqual(45);
+      if (g < 90) expect(g).toBeLessThanOrEqual(54);
     }
   });
 
@@ -55,11 +55,11 @@ describe('obby', () => {
     const s = runCourse(2);
     expect(s.finished).toBe(true);
     expect(s.falls).toBe(0);
-    expect(s.time).toBeLessThan(40);
+    expect(s.time).toBeLessThan(60);
   });
 
-  it('jump timing is forgiving: anywhere from 0 to 20 px before the edge still clears it', () => {
-    for (const early of [0, 5, 10, 15, 20]) {
+  it('jump timing is forgiving: anywhere from 0 to 8 px before the edge still clears it', () => {
+    for (const early of [0, 2, 4, 6, 8]) {
       const s = runCourse(early);
       expect(s.finished, `early ${early}`).toBe(true);
       expect(s.falls, `early ${early}`).toBe(0);
@@ -67,8 +67,9 @@ describe('obby', () => {
   });
 
   it('the wide gap needs the dash', () => {
-    const wide = PLATFORMS.findIndex((_, i) => i < PLATFORMS.length - 1 && gapAfter(i) > 90);
-    expect(wide).toBeGreaterThanOrEqual(0);
+    const wides = PLATFORMS.map((_, i) => i).filter((i) => i < PLATFORMS.length - 1 && gapAfter(i) > 90);
+    expect(wides.length).toBe(2);
+    const wide = wides[0];
     const s = createObby();
     const p = PLATFORMS[wide];
     s.x = p.x + p.w - 2;

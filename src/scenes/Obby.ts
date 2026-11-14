@@ -112,7 +112,8 @@ export class Obby extends Phaser.Scene {
     sign(150, 100, 'SPACE  JUMP');
     sign(505, 76, 'SHIFT  DASH');
     sign(590, 88, '>>  >>');
-    sign(1338, 60, 'THE BOSS');
+    sign(FINISH_X - 70, 84, 'THE BOSS');
+    sign(1840, 108, 'DASH AGAIN');
   }
 
   private leave(): void {

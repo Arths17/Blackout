@@ -10,7 +10,8 @@ The game opens with a short platforming section before the boss fight. A or D to
 
 - WASD or arrow keys: move.
 - E or Space: charge a nearby breaker, then press again to fire the held charge from your body in the direction you face. It ricochets off the walls and can hurt you.
-- R: restart immediately.
+- R: restart the boss fight immediately.
+- Enter on the exit screen: start over from the platforming section.
 
 Click the game to focus it, then press a key to enable audio.
 

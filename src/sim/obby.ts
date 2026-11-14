@@ -39,7 +39,8 @@ export interface Obby {
   finished: boolean;
 }
 
-// Every gap is under 45 px; a jump clears about 64 and the one dash gap needs the dash.
+// Ordinary gaps run 30-54 px; a plain jump clears about 64 on the flat and about 59 up a step.
+// The two wide gaps (100 and 104 px) need the dash.
 export const PLATFORMS: Platform[] = [
   { x: 0, y: 140, w: 170 },
   { x: 200, y: 140, w: 70 },
@@ -53,15 +54,27 @@ export const PLATFORMS: Platform[] = [
   { x: 1030, y: 124, w: 46 },
   { x: 1110, y: 108, w: 46 },
   { x: 1190, y: 92, w: 46 },
-  { x: 1275, y: 108, w: 160 },
+  { x: 1275, y: 108, w: 60 },
+  { x: 1385, y: 124, w: 34 },
+  { x: 1470, y: 108, w: 30 },
+  { x: 1550, y: 92, w: 30 },
+  { x: 1634, y: 108, w: 36 },
+  { x: 1720, y: 124, w: 34 },
+  { x: 1804, y: 140, w: 60 },
+  { x: 1968, y: 124, w: 40 },
+  { x: 2058, y: 108, w: 34 },
+  { x: 2142, y: 92, w: 34 },
+  { x: 2228, y: 108, w: 40 },
+  { x: 2318, y: 124, w: 160 },
 ];
 
 export const CHECKPOINTS: Checkpoint[] = [
   { x: 495, y: 108 },
   { x: 930, y: 140 },
+  { x: 1830, y: 140 },
 ];
 
-export const FINISH_X = 1400;
+export const FINISH_X = 2440;
 export const START = { x: 24, y: 140 };
 
 export function createObby(): Obby {
