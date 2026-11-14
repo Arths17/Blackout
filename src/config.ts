@@ -2,6 +2,7 @@ export const W = 1152;
 export const H = 648;
 
 export const ROOM = { x: 76, y: 44, w: 1000, h: 560 };
+export const EXIT = { x: 880, w: 100 }; // door in the top wall
 
 export const PALETTE = {
   floor: 0x0a0f18,
@@ -21,22 +22,28 @@ export const CFG = {
   creatureStalkSpeed: 130, // closer to playerSpeed = harder
   creatureRadius: 20,
 
-  windup: 0.7, // shorter = harder
+  windup: 1.0, // shorter = harder; 1.0 gives early/hit/late regions of similar size on Quick bank
   lungeSpeed: 520,
   lungeMaxDist: 380,
   recoil: 0.5, // shorter = harder
 
   surgeSpeed: 650, // faster = harder to read
-  surgeHitRadius: 18,
+  surgeHitRadius: 24, // bigger = wider hit band, easier to land and to get hit
 
   graceSeconds: 1.0, // shorter = harder
   healthPips: 4, // fewer = harder
   shocksToWin: 5, // more = longer fight
 
-  missWindupReduction: 0.08,
+  missWindupReduction: 0.08, // per consecutive miss; bigger = harder
   windupFloor: 0.35,
   generatorCooldown: 1.5,
-  missCooldownAdd: 0.6,
+  missCooldownAdd: 0.6, // per consecutive miss
+  cooldownMax: 3.5,
+  introSeconds: 8, // creature stays put this long unless the first breaker is thrown
+
+  interactRange: 70, // px from a switch; smaller = harder to fire under pressure
+  lampFade: 0.3,
+  revealSeconds: 0.3,
 
   darkness: 0.94, // higher = harder to see
   playerLightRadius: 130,
