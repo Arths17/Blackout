@@ -8,6 +8,7 @@ export interface Light {
   y: number;
   r: number;
   tint?: number;
+  facing?: number;
   floor?: number; // darkest this light can make a cell; strips only haze the dark instead of lighting it
 }
 
@@ -23,7 +24,7 @@ export class Darkness {
   private grid = new Uint8Array(this.cols * this.rows);
 
   constructor(scene: Phaser.Scene) {
-    this.tex = scene.textures.createCanvas(KEY, VIEW.w, VIEW.h)!;
+    this.tex = scene.textures.exists(KEY) ? scene.textures.get(KEY) as Phaser.Textures.CanvasTexture : scene.textures.createCanvas(KEY, VIEW.w, VIEW.h)!;
     this.ctx = this.tex.getContext();
     scene.add.image(0, 0, KEY).setOrigin(0, 0).setDepth(DEPTH.dark);
   }
@@ -39,7 +40,11 @@ export class Darkness {
       const r1 = Math.min(rows - 1, Math.ceil((l.y + l.r) / cell));
       for (let cy = r0; cy <= r1; cy++) {
         for (let cx = c0; cx <= c1; cx++) {
-          const d = Math.hypot(cx * cell + 1 - l.x, cy * cell + 1 - l.y) / l.r + dither(cx, cy) * 0.1;
+          const dx = cx * cell + 1 - l.x, dy = cy * cell + 1 - l.y;
+          const length = Math.hypot(dx, dy);
+          if (l.facing !== undefined && length > DARK.playerHalo &&
+              (dx * Math.cos(l.facing) + dy * Math.sin(l.facing)) / length < DARK.coneCos) continue;
+          const d = length / l.r + dither(cx, cy) * 0.045;
           const tier = Math.max(l.floor ?? 0, d < 0.36 ? 0 : d < 0.66 ? 1 : d < 1 ? 2 : 3);
           const i = cy * cols + cx;
           if (tier < grid[i]) grid[i] = tier;
@@ -73,7 +78,11 @@ export class Darkness {
       const r1 = Math.min(rows - 1, Math.ceil((l.y + l.r) / cell));
       for (let cy = r0; cy <= r1; cy++) {
         for (let cx = c0; cx <= c1; cx++) {
-          const d = Math.hypot(cx * cell + 1 - l.x, cy * cell + 1 - l.y) / l.r + dither(cx, cy) * 0.1;
+          const dx = cx * cell + 1 - l.x, dy = cy * cell + 1 - l.y;
+          const length = Math.hypot(dx, dy);
+          if (l.facing !== undefined && length > DARK.playerHalo &&
+              (dx * Math.cos(l.facing) + dy * Math.sin(l.facing)) / length < DARK.coneCos) continue;
+          const d = length / l.r + dither(cx, cy) * 0.045;
           if (d >= 1) continue;
           c.fillStyle = `rgba(${col},${d < 0.36 ? 0.15 : d < 0.66 ? 0.08 : 0.04})`;
           c.fillRect(cx * cell, cy * cell, cell, cell);

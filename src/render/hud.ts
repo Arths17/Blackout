@@ -5,61 +5,49 @@ import { ROUTES } from '../sim/routes';
 import { DEPTH } from './layers';
 import { atlasOf, px } from './pixel';
 
-const FONT = '"Silkscreen", monospace';
-
 export class Hud {
   private pips: Phaser.GameObjects.Image[] = [];
   private bolts: Phaser.GameObjects.Image[] = [];
-  private status: Phaser.GameObjects.Text;
-  private prompt: Phaser.GameObjects.Text;
-  private banner: Phaser.GameObjects.Text;
-  private sub: Phaser.GameObjects.Text;
+  private status: Phaser.GameObjects.BitmapText;
+  private prompt: Phaser.GameObjects.BitmapText;
+  private banner: Phaser.GameObjects.BitmapText;
+  private sub: Phaser.GameObjects.BitmapText;
   private bar: Phaser.GameObjects.Rectangle;
 
   constructor(private scene: Phaser.Scene) {
-    const style = (c: number, size = 8) => ({ fontFamily: FONT, fontSize: `${size}px`, color: `#${c.toString(16).padStart(6, '0')}` });
-    for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 11, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
+    const text = (x: number, y: number, value: string, tint: number, size = 7) =>
+      scene.add.bitmapText(x, y, 'stencil', value, size).setTint(tint).setOrigin(0.5).setDepth(DEPTH.text);
+    for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
     const right = Math.floor(px(EXIT.x)) - 6;
-    for (let i = 0; i < CFG.shocksToWin; i++) this.bolts.push(scene.add.image(right - (CFG.shocksToWin - i) * 11, 1, 'ui', 3).setOrigin(0, 0).setDepth(DEPTH.hud));
-    this.status = scene.add.text(VIEW.w / 2 - 20, 7, '', style(PALETTE.n7)).setOrigin(0.5).setDepth(DEPTH.text);
-    this.prompt = scene.add.text(0, 0, 'E', style(PALETTE.w)).setOrigin(0.5).setDepth(DEPTH.text).setVisible(false);
-    this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 44, PALETTE.ink, 0.78).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
-    this.banner = scene.add.text(VIEW.w / 2, VIEW.h / 2 - 7, '', style(PALETTE.warm, 16)).setOrigin(0.5).setDepth(DEPTH.banner);
-    this.sub = scene.add.text(VIEW.w / 2, VIEW.h / 2 + 11, '', style(PALETTE.n7)).setOrigin(0.5).setDepth(DEPTH.banner);
-    scene.add.text(VIEW.w / 2, VIEW.h - 7, 'WASD MOVE   E FIRE   R RESTART', style(PALETTE.n4)).setOrigin(0.5).setDepth(DEPTH.text);
+    for (let i = 0; i < CFG.shocksToWin; i++) this.bolts.push(scene.add.image(right - (CFG.shocksToWin - i) * 10, 1, 'ui', 3).setOrigin(0, 0).setDepth(DEPTH.hud));
+    this.status = text(130, 5, '', PALETTE.n7);
+    this.prompt = text(0, 0, 'E', PALETTE.w).setVisible(false);
+    this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
+    this.banner = text(VIEW.w / 2, VIEW.h / 2 - 7, '', PALETTE.n7, 14).setDepth(DEPTH.banner);
+    this.sub = text(VIEW.w / 2, VIEW.h / 2 + 10, '', PALETTE.n7).setDepth(DEPTH.banner);
+    text(VIEW.w / 2, VIEW.h - 5, 'WASD MOVE  E FIRE  R RESTART', PALETTE.n6);
   }
 
   update(w: World, t: number): void {
     const U = atlasOf(this.scene).sheets.ui;
-    this.pips.forEach((p, i) => p.setFrame(i < w.hp ? (w.grace > 0.8 && i === w.hp ? U.pip.flash : U.pip.full) : U.pip.empty));
+    this.pips.forEach((p, i) => p.setFrame(i < w.hp ? U.pip.full : w.grace > 0.8 && i === w.hp ? U.pip.flash : U.pip.empty));
     this.bolts.forEach((b, i) => b.setFrame(i < w.shocks ? U.bolt.full : U.bolt.empty));
-
-    let status = '';
-    if (w.phase === 'play') status = w.cooldown > 0 ? `GENERATOR ${w.cooldown.toFixed(1)}` : w.surge ? '' : 'POWER READY';
-    this.status.setText(status).setColor(w.cooldown > 0 ? '#d0402e' : '#8394ad');
-
+    const status = w.phase !== 'play' || w.surge ? '' : w.cooldown > 0 ? `GEN ${w.cooldown.toFixed(1)}` : 'POWER READY';
+    this.status.setText(status).setTint(PALETTE.n7);
     this.prompt.setVisible(false);
     if (w.phase === 'play' && !w.surge && w.cooldown <= 0) {
       for (const r of ROUTES) {
-        const d = Math.hypot(w.player.x - r.switchPos.x, w.player.y - r.switchPos.y);
-        if (d <= CFG.interactRange && !isOffline(w, r.id)) this.prompt.setVisible(true).setPosition(Math.round(px(w.player.x)), Math.round(px(w.player.y)) - 16 + (Math.floor(t * 3) % 2));
+        if (Math.hypot(w.player.x - r.switchPos.x, w.player.y - r.switchPos.y) <= CFG.interactRange && !isOffline(w, r.id)) {
+          this.prompt.setVisible(true).setPosition(Math.round(px(w.player.x)), Math.round(px(w.player.y)) - 17 + Math.floor(t * 3) % 2);
+        }
       }
     }
-
-    let banner = '';
-    let sub = '';
-    if (w.phase === 'won' && !inExit(w.player)) {
-      banner = 'POWER RESTORED';
-      sub = 'EXIT OPEN';
-    } else if (w.phase === 'escaped') {
-      banner = 'OUT';
-      sub = `${w.endTime.toFixed(1)}S    RESTART [R]`;
-    } else if (w.phase === 'lost') {
-      banner = 'BLACKED OUT';
-      sub = 'RESTART [R]';
-    }
+    let banner = '', sub = '';
+    if (w.phase === 'won' && !inExit(w.player)) { banner = 'POWER RESTORED'; sub = 'EXIT OPEN'; }
+    else if (w.phase === 'escaped') { banner = 'OUT'; sub = `${w.endTime.toFixed(1)}S  RESTART [R]`; }
+    else if (w.phase === 'lost') { banner = 'BLACKED OUT'; sub = 'RESTART [R]'; }
     this.bar.setVisible(banner !== '');
-    this.banner.setText(banner).setColor(w.phase === 'lost' ? '#d0402e' : '#ffb14a');
+    this.banner.setText(banner).setTint(w.phase === 'lost' ? PALETTE.n7 : PALETTE.warm);
     this.sub.setText(sub);
   }
 }

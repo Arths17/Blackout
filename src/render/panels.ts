@@ -35,7 +35,7 @@ export class Breakers {
     for (const r of ROUTES) {
       const p = panelPos(r);
       this.sprites.push(scene.add.sprite(p.x, p.y, 'breaker', 0).setOrigin(0, 0).setDepth(DEPTH.ghost - 2));
-      const tex = scene.textures.createCanvas(`screen${r.id}`, W, H)!;
+      const tex = scene.textures.exists(`screen${r.id}`) ? scene.textures.get(`screen${r.id}`) as Phaser.Textures.CanvasTexture : scene.textures.createCanvas(`screen${r.id}`, W, H)!;
       this.textures.push(tex);
       this.screens.push(tex.getContext());
       scene.add.image(p.x, p.y, `screen${r.id}`).setOrigin(0, 0).setDepth(DEPTH.ghost - 1);
@@ -102,7 +102,7 @@ export class Breakers {
     ctx.fillStyle = hexs(PALETTE.n3);
     for (let gx = 0; gx < SCREEN.w; gx += 8) for (let gy = 0; gy < SCREEN.h; gy += 8) ctx.fillRect(SCREEN.x + gx, SCREEN.y + gy, 1, 1);
     const map = (x: number, y: number): [number, number] => [SCREEN.x + (x - ROOM.x) * SC, SCREEN.y + (y - ROOM.y) * SC];
-    const base = state === S.offline ? PALETTE.n4 : state === S.cooling ? PALETTE.r3 : PALETTE.r5;
+    const base = state === S.offline ? PALETTE.n4 : state === S.cooling ? PALETTE.n5 : PALETTE.n7;
     ctx.fillStyle = hexs(base);
     for (let i = 1; i < r.points.length; i++) {
       const [ax, ay] = map(r.points[i - 1].x, r.points[i - 1].y);

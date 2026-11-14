@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { PALETTE } from '../config';
 import type { World } from '../sim/game';
 import { DEPTH } from './layers';
 import { atlasOf, facingOf, px } from './pixel';
@@ -21,8 +22,8 @@ export class PlayerView {
     const y = Math.round(px(p.y)) + 4;
     const hurt = w.grace > 0 && Math.floor(t * 14) % 2 === 0;
     this.spr.setFrame(frame).setFlipX(f.flip).setPosition(x, y).setDepth(DEPTH.y + y).setAlpha(w.phase === 'lost' ? 0.6 : 1);
-    if (hurt) this.spr.setTintMode(Phaser.TintModes.FILL).setTint(0xd0402e);
-    else this.spr.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    if (hurt) this.spr.setTintFill(PALETTE.n7);
+    else this.spr.clearTint();
     this.shadow.setPosition(x, y - 1);
   }
 }

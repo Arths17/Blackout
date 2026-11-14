@@ -53,7 +53,7 @@ export class Fx {
         spr.setFrame(f > 0.75 ? 3 : f > 0.45 ? 2 : f > 0.12 ? 1 : 0);
         if (f > 0) {
           const p = lampPos(id, i);
-          lights.push({ x: px(p.x), y: px(p.y), r: DARK.lampR * (0.55 + 0.45 * f), tint: PALETTE.c2 });
+          lights.push({ x: px(p.x), y: px(p.y), r: DARK.lampR * (0.55 + 0.45 * f), tint: PALETTE.r4 });
         }
       }),
     );
@@ -63,7 +63,7 @@ export class Fx {
       const head = surgeHead(s);
       const hx = px(head.x);
       const hy = px(head.y);
-      const from = Math.max(0, s.dist - VIS.trailLen * 3);
+      const from = Math.max(0, s.dist - VIS.trailLen * VIEW.s);
       const step = 9; // world px per sample, 3 screen px
       const pts: [number, number][] = [];
       const n = Math.max(2, Math.ceil((s.dist - from) / step));

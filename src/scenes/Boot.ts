@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PALETTE, VIEW } from '../config';
+import { DARK, PALETTE, VIEW } from '../config';
 import { EYES, dither, rgb, type Atlas } from '../render/pixel';
 
 export class Boot extends Phaser.Scene {
@@ -8,6 +8,7 @@ export class Boot extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.bitmapFont('stencil', 'assets/stencil.png', 'assets/stencil.xml');
     this.load.json('atlas', 'assets/atlas.json');
     this.load.once('filecomplete-json-atlas', () => {
       const a = this.cache.json.get('atlas') as Atlas;
@@ -57,7 +58,7 @@ export class Boot extends Phaser.Scene {
         const nx = (x - VIEW.w / 2) / (VIEW.w / 2);
         const ny = (y - VIEW.h / 2) / (VIEW.h / 2);
         const d = Math.hypot(nx * 0.92, ny * 1.05) + dither(x, y) * 0.07;
-        const a = d > 1.0 ? 0.62 : d > 0.9 ? 0.4 : d > 0.8 ? 0.22 : d > 0.7 ? 0.1 : 0;
+        const a = DARK.vignette[d > 1 ? 3 : d > 0.85 ? 2 : d > 0.72 ? 1 : 0];
         if (a) {
           ctx.fillStyle = `rgba(${ink},${a})`;
           ctx.fillRect(x, y, 1, 1);

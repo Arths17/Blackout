@@ -1,20 +1,22 @@
 import Phaser from 'phaser';
-import '@fontsource/silkscreen/latin-400.css';
 import { PALETTE, VIEW } from './config';
 import { Boot } from './scenes/Boot';
 import { Game } from './scenes/Game';
 
-// Canvas text can't wait for a web font, so hold the game until the pixel font is in.
-document.fonts.load('8px "Silkscreen"').finally(() => {
-  new Phaser.Game({
-    type: Phaser.WEBGL,
-    width: VIEW.w,
-    height: VIEW.h,
-    parent: 'game',
-    backgroundColor: PALETTE.ink,
-    render: { pixelArt: true, antialias: false, roundPixels: true },
-    // whole-number zoom only; the page background letterboxes the rest
-    scale: { mode: Phaser.Scale.NONE, zoom: Phaser.Scale.MAX_ZOOM, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [Boot, Game],
-  });
+const game = new Phaser.Game({
+  type: Phaser.WEBGL,
+  width: VIEW.w,
+  height: VIEW.h,
+  parent: 'game',
+  backgroundColor: PALETTE.ink,
+  render: { pixelArt: true, antialias: false, roundPixels: true },
+  scale: { mode: Phaser.Scale.NONE, zoom: 1, autoCenter: Phaser.Scale.CENTER_BOTH },
+  scene: [Boot, Game],
 });
+function resize(): void {
+  const zoom = Math.max(1, Math.floor(Math.min(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h)));
+  game.scale.setZoom(zoom);
+}
+window.addEventListener('resize', resize);
+game.events.once('ready', resize);
+game.events.once('destroy', () => window.removeEventListener('resize', resize));

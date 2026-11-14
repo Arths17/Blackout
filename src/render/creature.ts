@@ -39,8 +39,8 @@ export class CreatureView {
     const y = Math.round(px(c.y)) + 6;
     const flip = f.flip && frame < A.death[0];
     this.spr.setFrame(frame).setFlipX(flip).setPosition(x, y).setDepth(DEPTH.y + y);
-    if (c.alive && c.state === 'recoil' && Math.floor(t * 24) % 2 === 0) this.spr.setTintMode(Phaser.TintModes.FILL).setTint(PALETTE.w);
-    else this.spr.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    if (c.alive && c.state === 'recoil' && Math.floor(t * 24) % 2 === 0) this.spr.setTintFill(PALETTE.w);
+    else this.spr.clearTint();
     this.shadow.setPosition(x, y - 1).setVisible(true);
 
     // a lamp or the surge showing the creature for a moment, drawn above the darkness

@@ -57,6 +57,7 @@ export class Game extends Phaser.Scene {
     this.w.listeners.push((e) => this.onEvent(e));
     this.acc = 0;
     this.hitStop = 0;
+    this.pendingInteract = false;
     this.flashUntil = 0;
     this.flashStrongUntil = 0;
     this.lit = false;
@@ -70,8 +71,8 @@ export class Game extends Phaser.Scene {
     this.dark = new Darkness(this);
     this.warm = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.warm, 0).setOrigin(0, 0).setDepth(DEPTH.over + 8);
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(DEPTH.vignette);
-    this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(0.1);
-    this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.r4, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
+    this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(DARK.grainAlpha);
+    this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
     this.hud = new Hud(this);
 
     const kb = this.input.keyboard!;
@@ -155,7 +156,7 @@ export class Game extends Phaser.Scene {
     this.creatureView.update(w, t);
     this.dust.update(dt);
 
-    const lights: Light[] = [{ x: px(w.player.x), y: px(w.player.y), r: DARK.playerR * (this.lit ? 2.4 : 1) }];
+    const lights: Light[] = [{ x: px(w.player.x), y: px(w.player.y), r: DARK.playerR * (this.lit ? 2.4 : 1), facing: this.lit ? undefined : w.player.facing }];
     lights.push(...this.room.update(t, this.lit));
     lights.push(...this.breakers.update(w, t));
     lights.push(...this.fx.update(w, dt));

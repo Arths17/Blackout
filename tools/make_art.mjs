@@ -6,8 +6,14 @@ const OUT = 'public/assets';
 const PREVIEW = process.argv.includes('--preview');
 
 const hex = (h, a = 255) => [(h >> 16) & 255, (h >> 8) & 255, h & 255, a];
-const palette = JSON.parse(fs.readFileSync('tools/palette.json', 'utf8'));
+const config = fs.readFileSync('src/config.ts', 'utf8');
+const entries = [...config.match(/export const PALETTE = \{([\s\S]*?)\};/)[1].matchAll(/(\w+): 0x([0-9a-f]{6})/g)];
+const palette = Object.fromEntries(entries.map(([, key, value]) => [key, '#' + value]));
+fs.writeFileSync('tools/palette.json', JSON.stringify(palette, null, 2) + '\n');
 const P = Object.fromEntries(Object.entries(palette).filter(([k]) => !k.startsWith('_')).map(([k, v]) => [k, hex(parseInt(v.slice(1), 16))]));
+
+const indexed = [[0, 0, 0, 0], ...Object.values(P)];
+const colorIndex = new Map(indexed.map((c, i) => [c.join(','), i]));
 
 function mulberry(seed) {
   let a = seed >>> 0;
@@ -24,22 +30,20 @@ class Img {
   constructor(w, h) {
     this.w = w;
     this.h = h;
-    this.d = new Uint8Array(w * h * 4);
+    this.d = new Uint8Array(w * h);
   }
   set(x, y, c) {
     x = Math.round(x);
     y = Math.round(y);
     if (x < 0 || y < 0 || x >= this.w || y >= this.h || !c) return;
-    const i = (y * this.w + x) * 4;
-    this.d[i] = c[0];
-    this.d[i + 1] = c[1];
-    this.d[i + 2] = c[2];
-    this.d[i + 3] = c[3];
+    const index = colorIndex.get(c.join(','));
+    if (index === undefined) throw new Error('Color outside master palette');
+    this.d[y * this.w + x] = index;
   }
   get(x, y) {
     if (x < 0 || y < 0 || x >= this.w || y >= this.h) return null;
-    const i = (y * this.w + x) * 4;
-    return this.d[i + 3] ? [this.d[i], this.d[i + 1], this.d[i + 2], this.d[i + 3]] : null;
+    const index = this.d[y * this.w + x];
+    return index ? indexed[index] : null;
   }
   rect(x, y, w, h, c) {
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) this.set(x + i, y + j, c);
@@ -105,23 +109,24 @@ function chunk(type, data) {
   return Buffer.concat([len, td, crc]);
 }
 function png(img) {
-  const raw = Buffer.alloc((img.w * 4 + 1) * img.h);
+  const raw = Buffer.alloc((img.w + 1) * img.h);
   for (let y = 0; y < img.h; y++) {
-    raw[y * (img.w * 4 + 1)] = 0;
-    Buffer.from(img.d.buffer, y * img.w * 4, img.w * 4).copy(raw, y * (img.w * 4 + 1) + 1);
+    raw[y * (img.w + 1)] = 0;
+    Buffer.from(img.d.buffer, y * img.w, img.w).copy(raw, y * (img.w + 1) + 1);
   }
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(img.w, 0);
-  ihdr.writeUInt32BE(img.h, 4);
-  ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+  ihdr.writeUInt32BE(img.w, 0); ihdr.writeUInt32BE(img.h, 4);
+  ihdr[8] = 8; ihdr[9] = 3;
+  const plte = Buffer.from(indexed.flatMap(c => c.slice(0, 3)));
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr),
+    chunk('PLTE', plte), chunk('tRNS', Buffer.from([0])), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 function save(name, img) {
   fs.writeFileSync(`${OUT}/${name}.png`, png(img));
   if (PREVIEW) {
-    const s = 4;
+    const s = 8;
     const big = new Img(img.w * s, img.h * s);
-    big.rect(0, 0, big.w, big.h, hex(0x2a2f38));
+    big.rect(0, 0, big.w, big.h, P.n1);
     for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) { const c = img.get(x, y); if (c) big.rect(x * s, y * s, s, s, c); }
     fs.mkdirSync('/tmp/art', { recursive: true });
     fs.writeFileSync(`/tmp/art/${name}.png`, png(big));
@@ -138,18 +143,17 @@ function sheet(cw, ch, cols, frames) {
 
 const bayer = (x, y) => (((x & 1) + (y & 1) * 2) / 4 - 0.375);
 
-// ---------------------------------------------------------------- tiles
 function concrete(seed, kind) {
   const r = mulberry(seed);
   const t = new Img(16, 16);
   t.rect(0, 0, 16, 16, P.n3);
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const v = r();
-    if (v < 0.1) t.set(x, y, P.n2);
-    else if (v > 0.93) t.set(x, y, P.n4);
+    if (v < 0.012) t.set(x, y, P.n2);
+    else if (v > 0.992) t.set(x, y, P.n4);
   }
   for (let i = 0; i < 16; i++) { t.set(i, 0, P.n2); t.set(0, i, P.n2); }
-  for (let i = 1; i < 15; i++) if (r() < 0.4) { t.set(i, 1, P.n4); t.set(1, i, P.n4); }
+  for (let i = 1; i < 15; i++) if ((i + seed) % 9 === 0) { t.set(i, 1, P.n4); t.set(1, i, P.n4); }
   if (kind === 'crack' || kind === 'crack2') {
     let x = 2 + Math.floor(r() * 10), y = 0;
     while (y < 16) {
@@ -194,8 +198,8 @@ function hazardFloor(flip) {
   const t = new Img(16, 16);
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const d = (flip ? x - y : x + y) & 7;
-    t.set(x, y, d < 4 ? P.r3 : P.n1);
-    if (r() < 0.14) t.set(x, y, P.n3);
+    t.set(x, y, d < 4 ? P.n5 : P.n1);
+    if (r() < 0.05) t.set(x, y, P.n3);
   }
   return t;
 }
@@ -206,13 +210,13 @@ function wallCap(seed, variant) {
   t.rect(0, 0, 16, 16, P.n4);
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
     const v = r();
-    if (v < 0.08) t.set(x, y, P.n3);
-    else if (v > 0.94) t.set(x, y, P.n5);
+    if (v < 0.015) t.set(x, y, P.n3);
+    else if (v > 0.99) t.set(x, y, P.n5);
   }
   for (let i = 0; i < 16; i++) { t.set(i, 0, P.n5); t.set(0, i, P.n3); t.set(15, i, P.n3); t.set(i, 15, P.n3); }
   for (const [x, y] of [[2, 2], [13, 2], [2, 13], [13, 13]]) { t.set(x, y, P.n6); t.set(x + 1, y + 1, P.n2); }
   if (variant === 1) for (let i = 0; i < 3; i++) t.rect(4 + i * 3, 5, 2, 7, P.n3);
-  if (variant === 2) { t.rect(0, 7, 16, 2, P.r3); for (let x = 0; x < 16; x += 4) t.rect(x, 7, 2, 2, P.n1); }
+  if (variant === 2) { t.rect(0, 7, 16, 2, P.n2); for (let x = 0; x < 16; x += 4) t.rect(x, 7, 2, 2, P.n1); }
   if (variant === 3) for (let i = 0; i < 9; i++) t.set(3 + Math.floor(r() * 10), 4 + Math.floor(r() * 8), P.rust3);
   return t;
 }
@@ -244,11 +248,11 @@ function wallFace(seed, variant) {
   if (variant === 4) {
     t.rect(2, 5, 12, 8, P.ink);
     t.line(2, 5, 6, 8, P.n4); t.line(14, 5, 10, 9, P.n4);
-    t.line(4, 12, 8, 9, P.r3); t.line(8, 9, 12, 12, P.rust4);
-    t.set(8, 9, P.r5);
+    t.line(4, 12, 8, 9, P.rust3); t.line(8, 9, 12, 12, P.rust4);
+    t.set(8, 9, P.n6);
   }
   if (variant === 5) {
-    for (let y = 5; y < 12; y++) for (let x = 0; x < 16; x++) t.set(x, y, ((x + y) & 7) < 4 ? P.r3 : P.n1);
+    for (let y = 5; y < 12; y++) for (let x = 0; x < 16; x++) t.set(x, y, ((x + y) & 7) < 4 ? P.n5 : P.n1);
     t.rect(0, 5, 16, 1, P.ink); t.rect(0, 11, 16, 1, P.ink);
   }
   return t;
@@ -262,240 +266,132 @@ const tileFrames = [
   wallFace(15, 0), wallFace(16, 1), wallFace(17, 2), wallFace(18, 3), wallFace(19, 4), wallFace(20, 5),
 ];
 
-// ---------------------------------------------------------------- shaded rig (characters)
-// parts: {a:[x,y], b:[x,y], r0, r1, ramp:[dark,mid,light], z}. Painted in array order.
-function rig(w, h, parts, edge = P.ink) {
-  const img = new Img(w, h);
-  const ids = new Int16Array(w * h).fill(-1);
-  parts.forEach((p, idx) => {
-    const x0 = Math.floor(Math.min(p.a[0], p.b[0]) - Math.max(p.r0, p.r1) - 1);
-    const x1 = Math.ceil(Math.max(p.a[0], p.b[0]) + Math.max(p.r0, p.r1) + 1);
-    const y0 = Math.floor(Math.min(p.a[1], p.b[1]) - Math.max(p.r0, p.r1) - 1);
-    const y1 = Math.ceil(Math.max(p.a[1], p.b[1]) + Math.max(p.r0, p.r1) + 1);
-    const abx = p.b[0] - p.a[0], aby = p.b[1] - p.a[1];
-    const l2 = abx * abx + aby * aby;
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-      if (x < 0 || y < 0 || x >= w || y >= h) continue;
-      const t = l2 ? Math.max(0, Math.min(1, ((x - p.a[0]) * abx + (y - p.a[1]) * aby) / l2)) : 0;
-      const cx = p.a[0] + abx * t, cy = p.a[1] + aby * t;
-      const r = p.r0 + (p.r1 - p.r0) * t;
-      const d = Math.hypot(x - cx, y - cy);
-      if (d > r) continue;
-      const nx = (x - cx) / Math.max(r, 0.5), ny = (y - cy) / Math.max(r, 0.5);
-      const lit = nx * -0.6 + ny * -0.8 + bayer(x, y) * 0.5;
-      const c = lit > 0.42 ? p.ramp[2] : lit < -0.12 ? p.ramp[0] : p.ramp[1];
-      img.set(x, y, c);
-      ids[y * w + x] = idx;
+const glyphs = { '#': P.ink, a: P.g1, b: P.g2, c: P.g3, d: P.g4,
+  e: P.bone2, f: P.bone, x: P.g5, n: P.n2, s: P.n4, h: P.n6, w: P.n7 };
+function grid(rows, w, h, x = 0, y = 0) {
+  const image = new Img(w, h);
+  rows.forEach((row, j) => [...row].forEach((key, i) => {
+    if (key !== '.') {
+      if (!glyphs[key]) throw new Error('Unknown grid index ' + key);
+      image.set(x + i, y + j, glyphs[key]);
     }
-  });
-  const inner = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const a = ids[y * w + x];
-    if (a < 0) continue;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-      const b = ids[ny * w + nx];
-      if (b > a && parts[b].sep !== false) { inner.push([x, y, parts[a].ramp[0]]); break; }
-    }
-  }
-  for (const [x, y, c] of inner) img.set(x, y, c);
-  img.outline(edge);
-  return img;
+  }));
+  return image;
 }
-
-// ---------------------------------------------------------------- player
-const SKIN = [P.bone2, P.bone, P.bone];
-const JACKET = [P.n3, P.n5, P.n7];
-const PANTS = [P.n1, P.n2, P.n2];
-const BOOT = [P.n1, P.n1, P.n2];
-const HAIR = [P.rust1, P.rust1, P.rust2];
-const STRIPE = [P.n7, P.n7, P.n7];
-
-function player(dir, frame) {
-  const W = 16, H = 16, cx = 8, gy = 15.5;
-  const phase = [0, 1, 0, -1][frame % 4];
-  const walking = frame > 0;
-  const bob = walking && phase === 0 ? -1 : 0;
-  const proj = (u, v, h) => {
-    if (dir === 'down') return [cx + v, gy + u * 0.5 - h + bob, u];
-    if (dir === 'up') return [cx - v, gy - u * 0.5 - h + bob, -u];
-    return [cx + u, gy + v * 0.5 - h + bob, v];
-  };
-  const J = proj;
-  const parts = [];
-  const sw = phase * 2.6;
-  for (const s of [-1, 1]) {
-    const lift = walking && (s > 0 ? phase > 0 : phase < 0) ? 1.3 : 0;
-    const hip = J(0, s * 1.5, 4.2), foot = J(s > 0 ? sw : -sw, s * 1.7, 0.3 + lift);
-    parts.push({ a: hip.slice(0, 2), b: foot.slice(0, 2), r0: 1.4, r1: 1.2, ramp: PANTS, z: hip[2] + (s > 0 ? 0.01 : 0) - 1 });
-    parts.push({ a: foot.slice(0, 2), b: foot.slice(0, 2), r0: 1.5, r1: 1.5, ramp: BOOT, z: hip[2] - 0.5 });
-  }
-  const torsoA = J(0, 0, 4.6), torsoB = J(0, 0, 8);
-  parts.push({ a: torsoA.slice(0, 2), b: torsoB.slice(0, 2), r0: 3.3, r1: 3.4, ramp: JACKET, z: 0 });
-  const stripeA = J(-3.1, -2.4, 6.8), stripeB = J(-3.1, 2.4, 6.8);
-  parts.push({ a: stripeA.slice(0, 2), b: stripeB.slice(0, 2), r0: 0.8, r1: 0.8, ramp: STRIPE, z: -3.1, sep: false });
-  const head = J(0.5, 0, 10.4);
-  parts.push({ a: head.slice(0, 2), b: head.slice(0, 2), r0: 3, r1: 3, ramp: SKIN, z: 1 });
-  const hairc = J(-0.5, 0, 11.2);
-  parts.push({ a: hairc.slice(0, 2), b: hairc.slice(0, 2), r0: 2.8, r1: 2.8, ramp: HAIR, z: dir === 'up' ? 3 : -1, sep: false });
-  const armSw = -sw * 0.8;
-  for (const s of [-1, 1]) {
-    const sh = J(0, s * 3.9, 7.6), hand = J(s > 0 ? armSw : -armSw, s * 4.3, 4.6);
-    parts.push({ a: sh.slice(0, 2), b: hand.slice(0, 2), r0: 1.2, r1: 1.1, ramp: JACKET, z: sh[2] + (s > 0 ? 0.2 : -0.2) });
-  }
-  parts.sort((p, q) => p.z - q.z);
-  const img = rig(W, H, parts, P.n1);
-  if (dir === 'down') { img.set(Math.round(head[0] - 1.2), Math.round(head[1] + 0.6), P.n1); img.set(Math.round(head[0] + 1.2), Math.round(head[1] + 0.6), P.n1); }
-  if (dir === 'right') img.set(Math.round(head[0] + 1.8), Math.round(head[1] + 0.4), P.n1);
-  return img;
-}
-
-// ---------------------------------------------------------------- creature
-const FLESH = [P.g2, P.g3, P.g4];
-const FLESH_D = [P.g1, P.g2, P.g3];
-const BONE = [P.bone2, P.bone, P.bone];
-const SPIKE = [P.g1, P.g3, P.bone2];
-const MAW = [P.r2, P.r2, P.r2];
-
-// pose: lean, crouch, reach, spread, jaw, swing, lunge, curl, flare
-function creature(dir, pose) {
-  const W = 32, H = 32, cx = 16, gy = 24;
-  const o = { lean: 0, crouch: 0, reach: 5, spread: 0, jaw: 0.2, swing: 0, lunge: 0, curl: 0, flare: 0, eyes: 1, ...pose };
-  const proj = (u, v, h) => {
-    if (dir === 'down') return [cx + v, gy + u * 0.55 - h * 0.95, u];
-    if (dir === 'up') return [cx - v, gy - u * 0.55 - h * 0.95, -u];
-    return [cx - 2 + u, gy + v * 0.5 - h * 0.95, v];
-  };
-  const J = (u, v, h) => proj(u, v, h);
-  const parts = [];
-  const add = (a, b, r0, r1, ramp, z, sep) => parts.push({ a: a.slice(0, 2), b: b.slice(0, 2), r0, r1, ramp, z, sep });
-  const c = o.crouch;
-  const pelvis = J(-6 + o.lean * 0.5, 0, 6.5 - 3 * c);
-  const chest = J(2 + o.lean + o.lunge * 2, 0, 9 - 4.5 * c - o.curl * 2);
-  const neck = J(6 + o.lean + o.lunge * 3, 0, 9.5 - 3.5 * c - o.curl);
-  const head = J(10.5 + o.lean + o.lunge * 4, 0, 9.2 - 3.5 * c - o.curl * 1.5);
-  // legs: thin and wrong, knees bent backwards
-  for (const s of [-1, 1]) {
-    const hip = J(-6, s * 3.5, 5.5 - 3 * c);
-    const sw = (s > 0 ? o.swing : -o.swing) * 2.6;
-    const knee = J(-9 + sw * 0.4 - o.lunge * 2, s * (6.5 + o.spread * 0.6), 4 - c);
-    const foot = J(-6.5 + sw - o.lunge * 4, s * (7 + o.spread * 0.8), 0.3);
-    add(hip, knee, 1.7, 1.2, FLESH_D, hip[2] - 3 + (s > 0 ? 0.1 : 0));
-    add(knee, foot, 1.2, 0.9, FLESH_D, hip[2] - 3 + (s > 0 ? 0.2 : 0.1));
-  }
-  // spine spikes along the back
-  const spikes = [];
-  for (let i = 0; i < 5; i++) {
-    const u = -7 + i * 2.8 + o.lean * (i / 4);
-    const top = 9.5 - 4.5 * c - o.curl * 2 + 2.8 - Math.abs(i - 2) * 0.6;
-    const base = J(u, 0, top - 1.3), tip = J(u - 0.6, 0, top + 3 + o.flare * 3 - Math.abs(i - 2) * 0.3);
-    spikes.push({ a: base.slice(0, 2), b: tip.slice(0, 2), r0: 1.3, r1: 0.1, ramp: SPIKE, z: -1 - base[2] * 0 + (dir === 'up' ? 6 : -6) });
-  }
-  add(pelvis, chest, 4.1, 3.3, FLESH, 0);
-  parts[parts.length - 1].z = 0;
-  // ribs
-  const rib = (k) => {
-    const a = J(-3 + k * 2.6, -2.8, 9 - 4.5 * c), b = J(-3 + k * 2.6, 2.8, 9 - 4.5 * c);
-    return { a: a.slice(0, 2), b: b.slice(0, 2), r0: 0.5, r1: 0.5, ramp: [P.ink, FLESH[0], FLESH[0]], z: 0.5, sep: false };
-  };
-  const ribs = dir === 'right' ? [] : [rib(0), rib(1), rib(2)];
-  // arms, long, knuckles down
-  const armParts = [];
-  const clawPix = [];
-  for (const s of [-1, 1]) {
-    const sh = J(2 + o.lean, s * 4.2, 9 - 4.5 * c - o.curl * 2);
-    const el = J(4 + o.lean + o.reach * 0.35, s * (7 + o.spread), 5.2 - 2 * c);
-    const hand = J(5 + o.lean + o.reach + o.lunge * 4, s * (7.5 + o.spread * 1.3), 0.6 + o.curl);
-    armParts.push({ a: sh.slice(0, 2), b: el.slice(0, 2), r0: 1.9, r1: 1.3, ramp: FLESH, z: sh[2] + (s > 0 ? 0.3 : -0.3) });
-    armParts.push({ a: el.slice(0, 2), b: hand.slice(0, 2), r0: 1.3, r1: 1, ramp: FLESH, z: sh[2] + (s > 0 ? 0.4 : -0.2) });
-    for (const k of [-1, 0, 1]) clawPix.push({ from: hand, to: J(5 + o.lean + o.reach + o.lunge * 4 + 3.4, s * (7.5 + o.spread * 1.3) + k * 1.6, 0.4), z: sh[2] + 0.5 });
-  }
-  const neckPart = { a: chest.slice(0, 2), b: neck.slice(0, 2), r0: 2.4, r1: 2, ramp: FLESH, z: 1 };
-  const skull = { a: head.slice(0, 2), b: head.slice(0, 2), r0: 4.6, r1: 4.6, ramp: FLESH, z: 2 };
-  const jawEnd = J(10.5 + o.lean + o.lunge * 4 + 2.5, 0, 9.2 - 3.5 * c - o.curl * 1.5 - 1 - o.jaw * 4.5);
-  const jaw = { a: head.slice(0, 2), b: jawEnd.slice(0, 2), r0: 2.6, r1: 2.2, ramp: MAW, z: 1.5 };
-  const horns = [];
-  for (const s of [-1, 1]) {
-    const hb = J(9 + o.lean + o.lunge * 4, s * 3, 12 - 3.5 * c - o.curl * 1.5);
-    const ht = J(7 + o.lean + o.lunge * 4, s * 5.2, 15.5 - 3.5 * c - o.curl * 1.5 + o.flare * 2);
-    horns.push({ a: hb.slice(0, 2), b: ht.slice(0, 2), r0: 1.2, r1: 0.1, ramp: BONE, z: 2.5 });
-  }
-  const bodyAll = [...parts, ...spikes, ...ribs, ...armParts, neckPart, jaw, skull, ...horns];
-  bodyAll.sort((p, q) => p.z - q.z);
-  const img = rig(W, H, bodyAll, P.g1);
-  for (const cl of clawPix) img.line(cl.from[0], cl.from[1], cl.to[0], cl.to[1], P.bone);
-  // eyes and teeth are painted last, on top of the silhouette
-  if (dir !== 'up') {
-    const e = (s) => J(10.5 + o.lean + o.lunge * 4 + (dir === 'right' ? 3.3 : 3.8), s * (dir === 'right' ? 1.5 : 2.2), 9.2 - 3.5 * c - o.curl * 1.5 + 1.4);
-    const eyeC = o.eyes > 1 ? P.g5 : P.g5;
-    for (const s of dir === 'right' ? [1] : [-1, 1]) {
-      const ee = e(s);
-      img.set(ee[0], ee[1], eyeC);
-      if (o.eyes > 1) { img.set(ee[0] + 1, ee[1], P.g5); img.set(ee[0], ee[1] + 1, P.g4); }
-    }
-    const t0 = J(10.5 + o.lean + o.lunge * 4 + 3.8, -2.4, 9.2 - 3.5 * c - o.curl * 1.5 - 0.5 - o.jaw * 1.6);
-    if (o.jaw > 0.4) for (let k = 0; k < 5; k++) img.set(t0[0] + (dir === 'right' ? 0 : k), t0[1] + (dir === 'right' ? k - 2 : 0), P.bone);
-  }
-  return img;
-}
-
-const POSES = {
-  stalk: [
-    { swing: 0, reach: 5, jaw: 0.2 },
-    { swing: 1, reach: 6, jaw: 0.25, lean: 0.5 },
-    { swing: 0, reach: 5, jaw: 0.2 },
-    { swing: -1, reach: 6, jaw: 0.25, lean: 0.5 },
+const worker = {
+  down: [
+    '......#####.....', '.....#ssshh#....', '.....#hwhss#....', '.....#ffffs#....',
+    '.....#enene#....', '.....#eeee#.....', '....#shhhhs#....', '...#sshsshss#...',
+    '...#swsnssns#...', '...#snssssss#...', '...#ennsnsee#...', '....#snnnss#....',
+    '.....#snsns#....', '.....#nn#nn#....', '....#nn#.#nn#...', '....###...###...',
   ],
-  windup: [
-    { crouch: 0.55, spread: 2, reach: 3, jaw: 0.6, flare: 0.5, eyes: 2 },
-    { crouch: 0.8, spread: 3, reach: 2, jaw: 0.9, flare: 1, eyes: 2, lean: -1 },
-    { crouch: 1, spread: 3.5, reach: 1, jaw: 1, flare: 1.4, eyes: 2, lean: -1.5 },
+  up: [
+    '......#####.....', '.....#hsssh#....', '.....#hssss#....', '.....#ssssn#....',
+    '.....#snnnn#....', '......#nnn#.....', '....#shhssh#....', '...#shssssss#...',
+    '...#sswwwnss#...', '...#sssssnnn#...', '...#enhsnsee#...', '....#snnnss#....',
+    '.....#snsns#....', '.....#nn#nn#....', '....#nn#.#nn#...', '....###...###...',
   ],
-  lunge: [
-    { lunge: 1, reach: 8, jaw: 1, swing: 1, flare: -0.5, eyes: 2, lean: 1 },
-    { lunge: 1.2, reach: 9, jaw: 1, swing: -1, flare: -0.5, eyes: 2, lean: 1.5 },
-  ],
-  recoil: [
-    { curl: 1, crouch: 0.5, jaw: 0.8, reach: 2, spread: 1, flare: 1.5, lean: -1.5 },
-    { curl: 1.4, crouch: 0.7, jaw: 1, reach: 1, spread: 2, flare: 1.2, lean: -2 },
+  right: [
+    '......#####.....', '.....#hsssh#....', '.....#hshhhh#...', '.....#seffee#...',
+    '.....#snenef#...', '......#eee#.....', '.....#shss#.....', '....#shshss#....',
+    '....#swsnss#....', '....#sshnsss#...', '....#sneness#...', '.....#snnns#....',
+    '.....#snsns#....', '.....#nn#nn#....', '....#nn#..#nn#..', '....###....###..',
   ],
 };
-
+function player(dir, frame) {
+  const rows = worker[dir];
+  const t = new Img(16, 16);
+  const step = [0, -1, 0, 1, 0][frame];
+  rows.forEach((row, y) => {
+    const dx = y > 11 ? step * (y % 2 ? 1 : -1) : 0;
+    t.blit(grid([row], 16, 1), dx, y);
+  });
+  return t;
+}
+// A collapsed maintenance suit: raised left scapula, one trailing arm, exposed ribs and a split jaw.
+const body = {
+  down: [
+    '...........ee..........', '......ee..#ed#.........', '.....#dc##dcb#.........',
+    '....#dcdddcba#.........', '...#edccdcba##.........', '...#dcccbbba#bc#.......',
+    '..#dcbbbfebba#bc#......', '..#dcbbfefbba#bc#......', '..#cbbbfebbba#c#.......',
+    '..#cbbaabbbb##dc#......', '.#cbba.#dcddcbb#.......', '.#cba..#dfxbxdcb#......',
+    '.#cba..#edaaadcb#......', '.#ba...#baffaab#.......', '.#ba....#abfa#.........',
+    '.#b#.....#ab#..#b#.....', '.#b#...#bcbb#..#be#....', '.#be#.#bc#bb#..#ef#....',
+    '.#be#.#ba.#bb#..f......', '.#ef#.#ba..#bc#........', '..ff..#be...#be#.......',
+    '......#ef#...#ef#......', '.......ff.....fff.....', '......................',
+  ],
+  up: [
+    '.........ee...........', '......e.#ed#..........', '.....#dccdc#..........',
+    '....#ddcccba#.........', '...#edcbbbaa#.........', '...#dcbeccba#bc#.......',
+    '..#dcbbecbbba#bc#......', '..#dcbbecbbba#bc#......', '..#cbbbeabbba#c#.......',
+    '..#cbbaebbbb##dc#......', '.#cbba.#bcbbaa#........', '.#cba..#abbbba#........',
+    '.#cba..#acbcba#........', '.#ba....#cbba#.........', '.#ba....#baba#.........',
+    '.#b#.....#ab#..#b#.....', '.#b#...#bcbb#..#be#....', '.#be#.#bc#bb#..#ef#....',
+    '.#be#.#ba.#bb#..f......', '.#ef#.#ba..#bc#........', '..ff..#be...#be#.......',
+    '......#ef#...#ef#......', '.......ff.....fff.....', '......................',
+  ],
+  right: [
+    '........e.................', '.......#de#...............', '......#dcc#..ee...........',
+    '.....#dcbb#.#de#..........', '....#dcdbb##dcb#..........', '...#dcdbbcddcbb#..........',
+    '..#dcbbbedcbbbaa#.........', '..#cbbbedccbbbaa#.........', '.#cbbbedcbbbaaa#..........',
+    '.#cbbedcbb#bbb##dc#.......', '.#cbbeccb#.#bcdfxdc#......', '.#cbbaab#..#bdaaadc#......',
+    '.#cbaab#...#aaaafeb#......', '.#cbaa#.....#aaffa#.......', '.#cba#..#b#..#aa#.........',
+    '.#ba#..#bc#...##..........', '.#ba#..#bc#.#b#...........', '.#be#..#ba#.#bc#..........',
+    '.#be#..#ba#.#bc#..........', '.#ef#..#ba#..#bb#.........', '..ff...#be#...#bb#........',
+    '.......#ef#....#be#.......', '........fff.....#efff.....', '..........................',
+  ],
+};
+function creature(dir, frame) {
+  const t = new Img(32, 32);
+  const wind = frame >= 4 && frame <= 6;
+  const strike = frame === 7 || frame === 8;
+  const recoil = frame === 9 || frame === 10;
+  const rows = body[dir];
+  rows.forEach((row, y) => {
+    let dx = 0, dy = 0;
+    if (wind) { dy = y < 15 ? frame - 3 : 0; dx = y < 15 ? -(frame - 3) : 0; }
+    if (strike) { dx = y < 15 ? 3 : -1; dy = y < 15 ? 1 : 0; }
+    if (recoil) { dx = y < 14 ? -2 : 0; dy = y < 14 ? 2 : 0; }
+    if (frame < 4 && y > 15) dx = [0, 1, 0, -1][frame] * (y % 2 ? 1 : -1);
+    t.blit(grid([row], 28, 1), 3 + dx, 2 + y + dy);
+  });
+  if (wind) {
+    t.line(5, 24, 7, 24, P.bone2);
+    t.set(12 - (frame - 4), 9 + frame - 4, P.bone);
+    t.set(16 - (frame - 4), 18 + frame - 4, P.g5);
+  }
+  return t;
+}
 const creatureFrames = [];
-for (const dir of ['down', 'up', 'right']) {
-  for (const k of ['stalk', 'windup', 'lunge', 'recoil']) for (const p of POSES[k]) creatureFrames.push(creature(dir, p));
+for (const dir of ['down', 'up', 'right']) for (let f = 0; f < 11; f++) creatureFrames.push(creature(dir, f));
+for (let frame = 0; frame < 4; frame++) {
+  const corpse = new Img(32, 32);
+  const source = creature('down', 9);
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+    const c = source.get(x, y);
+    if (c) corpse.set(x, 19 + Math.floor((y - 2) / (2 + frame)), c === P.g5 ? P.g2 : c);
+  }
+  creatureFrames.push(corpse);
 }
-// death: collapses to the floor, eyes out
-const deathPoses = [
-  { crouch: 0.9, curl: 1.2, jaw: 1, reach: 1, spread: 2, eyes: 1, lean: -2 },
-  { crouch: 1.3, curl: 1.8, jaw: 0.8, reach: 0, spread: 3, eyes: 0, lean: -2.5, flare: 0 },
-  { crouch: 1.6, curl: 2.4, jaw: 0.4, reach: -1, spread: 4, eyes: 0, lean: -3, flare: -1 },
-  { crouch: 1.8, curl: 2.8, jaw: 0.2, reach: -1, spread: 4.5, eyes: 0, lean: -3, flare: -1 },
-];
-for (const p of deathPoses) {
-  const f = creature('down', p);
-  // dead eyes: clear the glow pixels
-  for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) { const c = f.get(x, y); if (c && (c[0] === P.g5[0] && c[1] === P.g5[1] && c[2] === P.g5[2])) f.set(x, y, P.g1); }
-  creatureFrames.push(f);
-}
-// sleeping: curled up
-creatureFrames.push(creature('down', { crouch: 1, curl: 1.5, jaw: 0.1, reach: 1, spread: 2, eyes: 1, lean: -2 }));
+creatureFrames.push(creature('down', 4));
 
-// ---------------------------------------------------------------- props
 function crate(w, h, top, seed) {
   const r = mulberry(seed);
   const t = new Img(32, 32);
   const x0 = Math.floor((32 - w) / 2), y0 = 32 - h - 3;
   t.rect(x0, y0 + top, w, h - top, P.rust2);
   t.rect(x0, y0, w, top, P.rust3);
-  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (r() < 0.12) t.set(x, y, y < y0 + top ? P.rust2 : P.rust1);
+  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (r() < 0.025) t.set(x, y, y < y0 + top ? P.rust2 : P.rust1);
   for (let x = x0; x < x0 + w; x += 5) t.rect(x, y0 + top, 1, h - top, P.rust1);
   t.rect(x0, y0 + top, w, 1, P.rust1);
   t.rect(x0, y0 + h - 2, w, 2, P.rust1);
   t.rect(x0, y0, w, 1, P.rust4);
   t.line(x0 + 1, y0 + 1, x0 + w - 2, y0 + top - 1, P.rust2);
   t.line(x0 + w - 2, y0 + 1, x0 + 1, y0 + top - 1, P.rust2);
+  t.rect(x0 + 3, y0 + top + 2, 6, 4, P.bone2);
+  t.set(x0 + 3, y0 + top + 2, P.rust2); t.set(x0 + 8, y0 + top + 5, P.rust2);
+  t.line(x0 + 4, y0 + top + 3, x0 + 7, y0 + top + 3, P.n2);
+  t.line(x0 + w - 5, y0 + 2, x0 + w - 2, y0 + 5, P.n5);
   t.outline(P.ink);
   return t;
 }
@@ -529,6 +425,9 @@ function locker() {
   t.rect(19, 21, 2, 1, P.n7);
   t.line(12, 20, 17, 25, P.rust3); t.set(14, 22, P.rust4);
   t.rect(9, 26, 14, 2, P.n1);
+  t.rect(11, 18, 5, 3, P.bone2); t.set(15, 18, P.n3); t.set(12, 20, P.n3);
+  t.line(17, 8, 20, 8, P.n2); t.set(20, 9, P.n2);
+  t.rect(8, 23, 2, 4, P.n2); t.set(9, 23, P.n5);
   t.outline(P.ink);
   return t;
 }
@@ -543,6 +442,10 @@ function generator() {
   t.rect(25, 14, 3, 2, P.r4); t.set(26, 14, P.r5);
   t.rect(4, 14, 1, 10, P.n2);
   t.rect(2, 12, 28, 1, P.n2);
+  t.rect(3, 9, 8, 2, P.bone2); t.set(4, 10, P.n2); t.set(9, 9, P.n3);
+  t.line(22, 17, 25, 20, P.n1); t.line(25, 20, 23, 24, P.n1);
+  t.rect(17, 15, 3, 2, P.n4); t.set(18, 15, P.n6);
+  t.set(5, 25, P.n6); t.set(28, 25, P.n4);
   t.outline(P.ink);
   return t;
 }
@@ -555,7 +458,10 @@ function bench() {
   t.rect(4, 22, 2, 5, P.n2); t.rect(26, 22, 2, 5, P.n2);
   t.rect(7, 10, 5, 4, P.rust3); t.rect(7, 10, 5, 1, P.rust4);
   t.rect(16, 11, 3, 3, P.n6); t.line(20, 12, 25, 10, P.n7);
-  t.set(23, 13, P.r4);
+  t.set(23, 13, P.n7);
+  t.rect(4, 12, 4, 2, P.bone2); t.set(4, 12, P.n2);
+  t.line(20, 15, 25, 17, P.n2); t.set(27, 14, P.n3);
+  t.rect(4, 23, 2, 2, P.n5);
   t.outline(P.ink);
   return t;
 }
@@ -609,7 +515,6 @@ const propFrames = [
   crate(24, 20, 9, 1), crate(16, 15, 7, 2), barrel(false), barrel(true), locker(), generator(), bench(), drainProp(), deadLamp(0), deadLamp(1), skull(), toolchest(),
 ];
 
-// ---------------------------------------------------------------- decals
 function decal(kind, seed) {
   const r = mulberry(seed);
   const t = new Img(16, 16);
@@ -659,7 +564,6 @@ const decalFrames = [
   decal('rustdrip', 9), decal('puddle', 10), decal('slime', 11), decal('cable', 12),
 ];
 
-// ---------------------------------------------------------------- lamps, breakers, ui, fx
 function lamp(level) {
   const t = new Img(16, 16);
   // floor fixture: small caged ring, lit frames add a ring of sparks
@@ -667,7 +571,7 @@ function lamp(level) {
   t.ellipse(8, 8, 3.6, 3.6, P.n5);
   t.ellipse(8, 8, 2.6, 2.6, P.n2);
   t.set(4, 8, P.n6); t.set(12, 8, P.n6); t.set(8, 4, P.n6); t.set(8, 12, P.n6);
-  const cols = [P.n2, P.c3, P.c2, P.w];
+  const cols = [P.n2, P.r3, P.r4, P.r5];
   t.ellipse(8, 8, 1.6, 1.6, cols[level]);
   if (level >= 2) { t.set(8, 3, P.c1); t.set(8, 13, P.c1); t.set(3, 8, P.c1); t.set(13, 8, P.c1); }
   if (level === 3) for (const [x, y] of [[5, 5], [11, 5], [5, 11], [11, 11]]) t.set(x, y, P.c1);
@@ -678,8 +582,8 @@ function breaker(state, dent) {
   const t = new Img(36, 28);
   t.rect(0, 0, 36, 28, P.n3);
   t.rect(0, 0, 36, 1, P.n6); t.rect(0, 0, 1, 28, P.n5); t.rect(35, 0, 1, 28, P.n1); t.rect(0, 27, 36, 1, P.ink);
-  t.rect(1, 1, 34, 7, state === 2 ? P.n2 : state === 1 ? P.r1 : state === 3 ? P.n6 : P.r2);
-  t.rect(1, 1, 34, 1, state === 2 ? P.n3 : state === 3 ? P.w : P.r3);
+  t.rect(1, 1, 34, 7, state === 2 ? P.n2 : state === 1 ? P.r1 : state === 3 ? P.n5 : P.n3);
+  t.rect(1, 1, 34, 1, state === 2 ? P.n3 : state === 3 ? P.n6 : P.n4);
   t.rect(3, 2, 14, 5, P.n1);
   t.rect(21, 2, 7, 5, P.ink);
   const up = state !== 2;
@@ -702,7 +606,7 @@ function door(open) {
   t.rect(0, 0, 32, 15, P.n4);
   t.rect(0, 0, 32, 2, P.n6);
   t.rect(0, 14, 32, 1, P.ink);
-  for (let x = 0; x < 4; x++) for (let y = 3; y < 14; y++) { t.set(x, y, ((x + y) & 3) < 2 ? P.r3 : P.n1); t.set(31 - x, y, ((x + y) & 3) < 2 ? P.r3 : P.n1); }
+  for (let x = 0; x < 4; x++) for (let y = 3; y < 14; y++) { t.set(x, y, ((x + y) & 3) < 2 ? P.n5 : P.n1); t.set(31 - x, y, ((x + y) & 3) < 2 ? P.n5 : P.n1); }
   t.rect(5, 3, 22, 11, P.n2);
   t.rect(5, 3, 22, 1, P.n3);
   if (open) {
@@ -723,7 +627,7 @@ for (const dent of [false, true]) for (let s = 0; s < 4; s++) breakerFrames.push
 function pip(state) {
   const t = new Img(9, 9);
   t.rect(0, 0, 9, 9, P.ink);
-  if (state === 0) { t.rect(1, 1, 7, 7, P.r3); t.rect(1, 1, 7, 2, P.r4); t.rect(1, 1, 7, 1, P.r5); t.rect(1, 7, 7, 1, P.r2); }
+  if (state === 0) { t.rect(1, 1, 7, 7, P.n5); t.rect(1, 1, 7, 2, P.n7); t.rect(1, 1, 7, 1, P.bone); t.rect(1, 7, 7, 1, P.n3); }
   if (state === 1) { t.rect(1, 1, 7, 7, P.n1); t.rect(1, 1, 7, 1, P.n2); t.rect(1, 7, 7, 1, P.r1); }
   if (state === 2) { t.rect(1, 1, 7, 7, P.w); }
   return t;
@@ -753,7 +657,6 @@ function shadow(w, h) {
   return t;
 }
 
-// ---------------------------------------------------------------- write
 fs.mkdirSync(OUT, { recursive: true });
 save('tiles', sheet(16, 16, 8, tileFrames));
 save('decals', sheet(16, 16, 6, decalFrames));
@@ -787,3 +690,59 @@ const atlas = {
   },
 };
 fs.writeFileSync(`${OUT}/atlas.json`, JSON.stringify(atlas, null, 1));
+
+const alphabet = {
+  ' ': '00000/00000/00000/00000/00000/00000/00000',
+  A: '01110/11011/11011/11011/11111/11011/11011',
+  B: '11110/11011/11011/11110/11011/11011/11110',
+  C: '01111/11000/11000/11000/11000/11000/01111',
+  D: '11110/11011/11011/11011/11011/11011/11110',
+  E: '11111/11000/11000/11110/11000/11000/11111',
+  F: '11111/11000/11000/11110/11000/11000/11000',
+  G: '01111/11000/11000/11011/11011/11011/01111',
+  H: '11011/11011/11011/11111/11011/11011/11011',
+  I: '11111/00100/00100/00100/00100/00100/11111',
+  J: '00111/00011/00011/00011/00011/11011/01110',
+  K: '11011/11011/11110/11100/11110/11011/11011',
+  L: '11000/11000/11000/11000/11000/11000/11111',
+  M: '10001/11011/11111/10101/10001/10001/10001',
+  N: '11001/11001/11101/11111/11011/11011/11011',
+  O: '01110/11011/11011/11011/11011/11011/01110',
+  P: '11110/11011/11011/11110/11000/11000/11000',
+  Q: '01110/11011/11011/11011/11111/01110/00011',
+  R: '11110/11011/11011/11110/11100/11010/11011',
+  S: '01111/11000/11000/01110/00011/00011/11110',
+  T: '11111/00100/00100/00100/00100/00100/00100',
+  U: '11011/11011/11011/11011/11011/11011/01110',
+  V: '11011/11011/11011/11011/11011/01110/00100',
+  W: '10001/10001/10001/10101/11111/11011/10001',
+  X: '11011/11011/01110/00100/01110/11011/11011',
+  Y: '11011/11011/01110/00100/00100/00100/00100',
+  Z: '11111/00011/00110/00100/01100/11000/11111',
+  '0': '01110/11011/11011/11011/11011/11011/01110',
+  '1': '00100/01100/00100/00100/00100/00100/01110',
+  '2': '11110/00011/00011/01110/11000/11000/11111',
+  '3': '11110/00011/00011/01110/00011/00011/11110',
+  '4': '11011/11011/11011/11111/00011/00011/00011',
+  '5': '11111/11000/11000/11110/00011/00011/11110',
+  '6': '01111/11000/11000/11110/11011/11011/01110',
+  '7': '11111/00011/00011/00110/00100/01100/01100',
+  '8': '01110/11011/11011/01110/11011/11011/01110',
+  '9': '01110/11011/11011/01111/00011/00011/11110',
+  '[': '01110/01100/01100/01100/01100/01100/01110',
+  ']': '01110/00110/00110/00110/00110/00110/01110',
+  '.': '00000/00000/00000/00000/00000/00100/00100',
+  ':': '00000/00100/00100/00000/00100/00100/00000',
+  '-': '00000/00000/00000/01110/00000/00000/00000',
+};
+const font = new Img(96, 32);
+const chars = Object.entries(alphabet).map(([char, rows], i) => {
+  const x = (i % 16) * 6, y = Math.floor(i / 16) * 8;
+  rows.split('/').forEach((row, j) => [...row].forEach((v, k) => {
+    // A missing pixel in tall stems gives the face its stencil cut.
+    if (v === '1' && !(j === 3 && k === 1 && /[ABDGOPQR0689]/.test(char))) font.set(x + k, y + j, P.w);
+  }));
+  return `<char id="${char.charCodeAt(0)}" x="${x}" y="${y}" width="5" height="7" xoffset="0" yoffset="0" xadvance="6" page="0" chnl="15"/>`;
+});
+save('stencil', font);
+fs.writeFileSync(`${OUT}/stencil.xml`, `<font><info face="Blackout stencil" size="7"/><common lineHeight="8" base="7" scaleW="96" scaleH="32" pages="1"/><pages><page id="0" file="stencil.png"/></pages><chars count="${chars.length}">${chars.join('')}</chars></font>`);

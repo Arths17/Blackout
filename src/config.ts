@@ -14,49 +14,53 @@ export const LURES = {
   late: { x: 880, y: 324 },
 };
 
-// Master palette, mirrored from tools/palette.json (tools/check_palette.py compares them).
-// Reds are the emergency strips and breaker lamps, cold white-blue is the surge; warm and warm2 only appear at the win.
+// Master art palette. The art script exports tools/palette.json from these values.
+// Amber is reserved for working lamps, emergency strips, surges and restored power.
 export const PALETTE = {
-  ink: 0x080b10,
-  n1: 0x10161f,
-  n2: 0x171f2c,
-  n3: 0x202b3b,
-  n4: 0x2e3b50,
-  n5: 0x43526b,
-  n6: 0x5f708b,
-  n7: 0x8394ad,
-  g1: 0x0f1a13,
-  g2: 0x1b2e20,
-  g3: 0x2b432c,
-  g4: 0x4c7340,
-  g5: 0xa6dc3c,
-  rust1: 0x241410,
-  rust2: 0x3d2217,
-  rust3: 0x5e3520,
-  rust4: 0x83502c,
-  r1: 0x2c0c0d,
-  r2: 0x561513,
-  r3: 0x8c2620,
-  r4: 0xd0402e,
-  r5: 0xf08a6a,
-  w: 0xeaf3ff,
-  c1: 0xb8d4ff,
-  c2: 0x6f9be0,
-  c3: 0x3c5f9e,
-  bone: 0xb4ab92,
-  bone2: 0x7d7662,
-  warm: 0xffb14a,
-  warm2: 0xffd98a,
+  ink: 0x080d12,
+  n1: 0x101922,
+  n2: 0x19252e,
+  n3: 0x24323b,
+  n4: 0x35454e,
+  n5: 0x4d6068,
+  n6: 0x71838a,
+  n7: 0x9ba9ad,
+  g1: 0x121e21,
+  g2: 0x263739,
+  g3: 0x3d5252,
+  g4: 0x617671,
+  g5: 0xb0c1b0,
+  rust1: 0x1a2029,
+  rust2: 0x2c333e,
+  rust3: 0x47505b,
+  rust4: 0x65727d,
+  r1: 0x1d202e,
+  r2: 0x383747,
+  r3: 0x754d39,
+  r4: 0xc28d55,
+  r5: 0xe2bd82,
+  w: 0xe1e8e3,
+  c1: 0xc2d2d5,
+  c2: 0x8faeb7,
+  c3: 0x527582,
+  bone: 0xbac0bd,
+  bone2: 0x7b8585,
+  warm: 0xd4aa70,
+  warm2: 0xf1d8a1,
 };
 
 // The game renders at VIEW.w x VIEW.h and is scaled up by a whole number. The sim stays in world units.
-export const VIEW = { w: 384, h: 216, s: 3 }; // s = world px per screen px
+export const VIEW = { w: 320, h: 180, s: 3.6 }; // s = world px per screen px
 
 export const DARK = {
   cell: 2, // darkness is painted in flat 2 px cells
   alpha: [0, 0.2, 0.42, 0.7], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
   ambient: 3,
-  playerR: 46, // light radii in screen px
+  vignette: [0, 0.04, 0.09, 0.16],
+  grainAlpha: 0.035,
+  playerR: 52, // light radii in screen px
+  playerHalo: 17,
+  coneCos: 0.72,
   stripR: 14,
   lampR: 34,
   surgeR: 58,
