@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CFG, EXIT } from '../src/config';
-import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stepWorld, type World } from '../src/sim/game';
+import { createWorld, currentWindup, damagePlayer, fire, interact, missCooldown, stepWorld, type World } from '../src/sim/game';
 import { ROUTES } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
 import { snapshot } from './helpers';
@@ -135,25 +135,26 @@ describe('determinism', () => {
 
 describe('bounce back', () => {
   const touching = () => createWorld({ player: { x: 600, y: 324 }, creature: { x: 610, y: 324 }, asleep: false });
-
-  it('a creature hit can throw the player into a bounce, and the roll is seeded', () => {
-    const old = CFG.bounceChance;
-    CFG.bounceChance = 1;
-    const w = touching();
+  const takeHit = (w: World) => {
+    w.bounce = null;
+    w.creature.state = 'stalk';
+    w.creature.x = w.player.x + 5;
+    w.creature.y = w.player.y;
+    w.grace = 0;
     stepWorld(w, idle, DT);
-    expect(w.hp).toBe(CFG.healthPips - 1);
-    expect(w.bounce).not.toBeNull();
-    CFG.bounceChance = 0;
-    const n = touching();
-    stepWorld(n, idle, DT);
-    expect(n.hp).toBe(CFG.healthPips - 1);
-    expect(n.bounce).toBeNull();
-    CFG.bounceChance = old;
+  };
+
+  it('every other creature hit throws the player into a bounce', () => {
+    const w = touching();
+    const seen: boolean[] = [];
+    for (let i = 0; i < 3; i++) {
+      takeHit(w);
+      seen.push(w.bounce !== null);
+    }
+    expect(seen).toEqual([true, false, true]);
   });
 
   it('a bounce that hits the creature scores a shock, and the next creature hit cannot bounce', () => {
-    const old = CFG.bounceChance;
-    CFG.bounceChance = 1;
     const w = createWorld({ player: { x: 600, y: 324 }, creature: { x: 900, y: 324 }, asleep: true });
     w.bounce = { vx: CFG.bounceSpeed, vy: 0, left: CFG.bounceSeconds, armed: true };
     for (let i = 0; i < 120 && w.bounce; i++) stepWorld(w, idle, DT);
@@ -162,19 +163,9 @@ describe('bounce back', () => {
     expect(w.bounceLocked).toBe(true);
     expect(w.lastHitBreaker).toBe(-1);
 
-    w.creature.state = 'stalk';
-    w.creature.x = w.player.x + 5;
-    w.creature.y = w.player.y;
-    w.grace = 0;
-    stepWorld(w, idle, DT);
-    expect(w.hp).toBe(CFG.healthPips - 1);
+    takeHit(w);
     expect(w.bounce).toBeNull();
     expect(w.bounceLocked).toBe(false);
-
-    w.grace = 0;
-    stepWorld(w, idle, DT);
-    expect(w.bounce).not.toBeNull();
-    CFG.bounceChance = old;
   });
 
   it('a bounce that misses does not lock the next one', () => {
@@ -183,5 +174,41 @@ describe('bounce back', () => {
     for (let i = 0; i < 30; i++) stepWorld(w, idle, DT);
     expect(w.bounce).toBeNull();
     expect(w.bounceLocked).toBe(false);
+  });
+});
+
+describe('held charge', () => {
+  const atSwitch = (b: number) => createWorld({ player: ROUTES[b].switchPos, creature: { x: 1000, y: 560 }, asleep: true });
+
+  it('the first press charges and holds, the next press releases from anywhere', () => {
+    const w = atSwitch(0);
+    expect(interact(w)).toBe('charged');
+    expect(w.charged).toBe(0);
+    expect(w.surge).toBeNull();
+    w.player.x = 700;
+    w.player.y = 300;
+    expect(interact(w)).toBe('ok');
+    expect(w.charged).toBe(-1);
+    expect(w.surge?.route.id).toBe(0);
+  });
+
+  it('the charge is kept while the generator is cooling or a surge is live', () => {
+    const w = atSwitch(1);
+    interact(w);
+    w.cooldown = 1;
+    expect(interact(w)).toBe('cooling');
+    expect(w.charged).toBe(1);
+  });
+
+  it('an offline breaker cannot be charged', () => {
+    const w = atSwitch(0);
+    w.lastHitBreaker = 0;
+    expect(interact(w)).toBe('offline');
+    expect(w.charged).toBe(-1);
+  });
+
+  it('pressing away from every breaker with no charge does nothing', () => {
+    const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 1000, y: 560 }, asleep: true });
+    expect(interact(w)).toBe('none');
   });
 });

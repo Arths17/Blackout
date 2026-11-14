@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
 import { CFG, DARK, LURES, PALETTE, VIEW, VIS } from '../config';
-import { createWorld, stepWorld, tryInteract, type SimEvent, type World } from '../sim/game';
+import { createWorld, stepWorld, interact, tryInteract, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
@@ -138,6 +138,10 @@ export class Game extends Phaser.Scene {
         this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
+      case 'charge':
+        play('charge_up');
+        this.playerView.interact(this.w.time);
+        break;
       case 'bounceStart':
         play('bounce_launch');
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
@@ -203,7 +207,7 @@ export class Game extends Phaser.Scene {
     const dx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const dy = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     if (this.pendingInteract) {
-      tryInteract(w);
+      interact(w);
       this.pendingInteract = false;
     }
     if (this.autoFireAt >= 0 && w.time >= this.autoFireAt) {
@@ -248,6 +252,7 @@ export class Game extends Phaser.Scene {
     lights.push(...atmosphere.lights);
     lights.push(...this.breakers.update(w, t));
     lights.push(...this.fx.update(w, dt));
+    if (w.charged >= 0 && !w.bounce) lights.push({ ...pl, r: 22, tint: PALETTE.c1 });
     if (w.creature.alive && w.creature.state === 'windup') lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: 13, tint: PALETTE.g3 });
 
     const ambient = this.lit ? 1 : t < this.flashStrongUntil ? 0 : t < this.flashUntil ? 1 : DARK.ambient;

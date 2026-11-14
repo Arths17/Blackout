@@ -14,7 +14,7 @@ registerHooks({
   },
 });
 const { CFG, ROOM } = await import('../src/config.ts');
-const { createWorld, stepWorld, tryInteract } = await import('../src/sim/game.ts');
+const { createWorld, stepWorld, interact: press, fire, tryInteract } = await import('../src/sim/game.ts');
 const { ROUTES } = await import('../src/sim/routes.ts');
 const { distToSegment } = await import('../src/sim/surge.ts');
 const dt = 1 / CFG.stepHz;
@@ -32,6 +32,7 @@ function rng(seed: number) {
     return n / 4294967296;
   };
 }
+const isOfflineNow = (w: World, b: number) => w.lastHitBreaker === b;
 const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
 function towards(w: World, target: Vec) {
   return distance(w.player, target) < CFG.playerSpeed * dt
@@ -42,7 +43,7 @@ function predictsHit(w: World) {
   // Look ahead only on a detached copy; the actual game receives movement and interact.
   const copy = { ...w, player: { ...w.player }, creature: { ...w.creature, target: { ...w.creature.target } },
     lampLitAt: w.lampLitAt.map(row => [...row]), listeners: [] } as World;
-  if (tryInteract(copy) !== 'ok') return false;
+  if (copy.charged < 0 || fire(copy, copy.charged) !== 'ok') return false;
   while (copy.surge && copy.phase === 'play') stepWorld(copy, { dx: 0, dy: 0 }, dt);
   return copy.shocks > w.shocks;
 }
@@ -108,7 +109,7 @@ function play(strategy: Strategy, seed: number, spamBreaker = 0) {
         closest = r.id; d = distance(w.player, r.switchPos);
       }
       if (closest >= 0) attempts[closest]++;
-      return tryInteract(w);
+      return press(w);
     };
     if (strategy === 'spam') {
       target = ROUTES[spamBreaker].switchPos;
@@ -127,10 +128,17 @@ function play(strategy: Strategy, seed: number, spamBreaker = 0) {
       if (tick === 0) interact();
       if (tick % 12 === 0) {
         const near = distance(w.player, ROUTES[destination].switchPos) <= CFG.interactRange;
-        if (near && !w.surge && w.cooldown <= 0 && predictsHit(w)) {
+        if (w.charged >= 0) {
+          if (!w.surge && w.cooldown <= 0 && predictsHit(w)) {
+            interact();
+            destination = (destination + 1 + Math.floor(random() * 2)) % ROUTES.length;
+            arrivedAt = w.time;
+          } else if (w.time - arrivedAt > 25) {
+            interact();
+            arrivedAt = w.time;
+          }
+        } else if (near && !w.surge && !isOfflineNow(w, destination)) {
           interact();
-          destination = (destination + 1 + Math.floor(random() * 2)) % ROUTES.length;
-          arrivedAt = w.time;
         } else if (destination === w.lastHitBreaker || (near && w.time - arrivedAt > 3) || w.time - arrivedAt > 18) {
           destination = (destination + 1 + Math.floor(random() * 2)) % ROUTES.length;
           arrivedAt = w.time;

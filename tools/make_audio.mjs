@@ -241,6 +241,16 @@ function heartbeat() {
   });
 }
 
+// Held charge building: a rising whine with a flutter.
+function chargeUp() {
+  const spark = lowpass(5000);
+  return shot(0.6, (t) => {
+    const rise = Math.min(1, t / 0.5);
+    const tone = sweep(t, 180, 1100, 0.5) * (0.7 + 0.3 * Math.sin(2 * Math.PI * 30 * t));
+    return 0.6 * tone * (0.25 + 0.75 * rise) + 0.15 * sat(4 * spark(noise())) * rise * rise;
+  });
+}
+
 async function wav(name, data, peak) {
   const mean = data.reduce((sum, x) => sum + x, 0) / data.length;
   let max = 0;
@@ -286,5 +296,6 @@ await wav('lamp', lamp(), 0.6);
 await wav('power_back', powerBack(), 0.7);
 await wav('fizzle', fizzle(), 0.7);
 await wav('blackout', blackout(), 0.85);
+await wav('charge_up', chargeUp(), 0.7);
 await wav('music_loop', music(), 0.6);
 await wav('heartbeat', heartbeat(), 0.8);

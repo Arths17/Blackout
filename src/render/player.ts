@@ -26,6 +26,16 @@ export class PlayerView {
     const p = w.player;
     const x = Math.round(px(p.x)), y = Math.round(px(p.y)) + 3;
     this.ball.clear();
+    if (w.charged >= 0 && !w.bounce) {
+      const pulse = Math.sin(t * 10);
+      const cy = y - 7;
+      this.ball.lineStyle(1, PALETTE.c1, 0.9).strokeCircle(x, cy, 11 + pulse);
+      this.ball.lineStyle(1, PALETTE.w, 0.5).strokeCircle(x, cy, 14 - pulse);
+      for (let i = 0; i < 3; i++) {
+        const a = t * 6 + (i * Math.PI * 2) / 3;
+        this.ball.fillStyle(PALETTE.w, 1).fillRect(Math.round(x + Math.cos(a) * 12), Math.round(cy + Math.sin(a) * 12), 1, 1);
+      }
+    }
     if (w.bounce) {
       this.spr.setVisible(false);
       const pulse = 5 + Math.sin(t * 18) * 1.2;

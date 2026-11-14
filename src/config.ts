@@ -98,7 +98,7 @@ export const CFG = {
   surgeSpeed: 650, // faster = harder to read
   surgeHitRadius: 24, // bigger = wider hit band, easier to land and to get hit
 
-  bounceChance: 0.5, // chance a creature hit sends the player bouncing; lower = harder to get free damage
+  bounceEvery: 2, // every Nth creature hit on the player sends them bouncing
   bounceSpeed: 480,
   bounceSeconds: 2.5,
 

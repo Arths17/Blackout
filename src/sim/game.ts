@@ -13,6 +13,7 @@ export type SimEvent =
   | { type: 'miss'; breaker: number }
   | { type: 'powerBack' }
   | { type: 'playerHit' }
+  | { type: 'charge'; breaker: number }
   | { type: 'bounceStart' }
   | { type: 'bounceHit' }
   | { type: 'ballBounce'; x: number; y: number }
@@ -40,6 +41,9 @@ export interface World {
   endTime: number;
   listeners: ((e: SimEvent) => void)[];
   rng: number;
+  // Breaker whose charge the player is holding, or -1. Released from anywhere.
+  charged: number;
+  hitsTaken: number;
   bounce: Bounce | null;
   // Set when a bounce damaged the creature: the next creature hit on the player can't start another.
   bounceLocked: boolean;
@@ -81,6 +85,8 @@ export function createWorld(opts: WorldOpts = {}): World {
     endTime: 0,
     listeners: [],
     rng: 12345,
+    charged: -1,
+    hitsTaken: 0,
     bounce: null,
     bounceLocked: false,
   };
@@ -135,6 +141,33 @@ export function tryInteract(w: World): FireResult | 'none' {
   return best >= 0 ? fire(w, best) : 'none';
 }
 
+// First press at an online breaker charges it and the charge is held; the next press releases it from anywhere.
+export function interact(w: World): FireResult | 'charged' | 'none' {
+  if (w.phase !== 'play') return 'over';
+  if (w.charged >= 0) {
+    const result = fire(w, w.charged);
+    if (result === 'ok') w.charged = -1;
+    return result;
+  }
+  let best = -1;
+  let bestD = CFG.interactRange;
+  for (const r of ROUTES) {
+    const d = Math.hypot(w.player.x - r.switchPos.x, w.player.y - r.switchPos.y);
+    if (d <= bestD) {
+      best = r.id;
+      bestD = d;
+    }
+  }
+  if (best < 0) return 'none';
+  if (isOffline(w, best)) {
+    emit(w, { type: 'deadClick', breaker: best });
+    return 'offline';
+  }
+  w.charged = best;
+  emit(w, { type: 'charge', breaker: best });
+  return 'charged';
+}
+
 export function damagePlayer(w: World): boolean {
   if (w.phase !== 'play' || w.grace > 0) return false;
   w.hp--;
@@ -178,15 +211,17 @@ function roll(w: World): number {
   return w.rng / 4294967296;
 }
 
-// The creature's hit can throw the player into a ricochet. A bounce that scored locks the next one out.
+// The creature's hit throws the player into a ricochet every bounceEvery-th time. A bounce that
+// scored locks out the next one.
 // ASSUMPTION: a bounce hit counts as a shock but leaves lastHitBreaker alone, and the player can't steer mid-bounce.
 function maybeBounce(w: World): void {
   if (w.phase !== 'play' || w.bounce) return;
+  w.hitsTaken++;
   if (w.bounceLocked) {
     w.bounceLocked = false;
     return;
   }
-  if (roll(w) >= CFG.bounceChance) return;
+  if (w.hitsTaken % CFG.bounceEvery !== 1 % CFG.bounceEvery) return;
   const c = w.creature;
   const away = Math.atan2(w.player.y - c.y, w.player.x - c.x) + (roll(w) - 0.5) * 1.0;
   w.bounce = { vx: Math.cos(away) * CFG.bounceSpeed, vy: Math.sin(away) * CFG.bounceSpeed, left: CFG.bounceSeconds, armed: false };

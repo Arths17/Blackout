@@ -1,7 +1,7 @@
 export type SoundName = 'relay_click' | 'surge_crack' | 'wall_crack' | 'step_player'
   | 'step_creature' | 'hum_loop' | 'power_return' | 'bounce_launch' | 'bounce_wall' | 'bounce_hit'
   | 'player_hurt' | 'windup' | 'lunge' | 'dead_click' | 'lamp' | 'power_back' | 'fizzle' | 'blackout'
-  | 'music_loop' | 'heartbeat';
+  | 'music_loop' | 'heartbeat' | 'charge_up';
 
 const levels: Record<SoundName, number> = {
   relay_click: 0.7,
@@ -24,6 +24,7 @@ const levels: Record<SoundName, number> = {
   blackout: 0.85,
   music_loop: 0.34,
   heartbeat: 0.7,
+  charge_up: 0.55,
 };
 
 let context: AudioContext | undefined;

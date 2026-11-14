@@ -7,7 +7,7 @@ Lure the creature into a route, throw the breaker, then move clear. The surge hu
 ## Controls
 
 - WASD or arrow keys: move.
-- E or Space: use a nearby breaker.
+- E or Space: charge a nearby breaker, then press again to release the held charge from anywhere.
 - R: restart immediately.
 
 Click the game to focus it, then press a key to enable audio.
