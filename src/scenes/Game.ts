@@ -32,8 +32,8 @@ export class Game extends Phaser.Scene {
   private grain!: Phaser.GameObjects.Image;
   private hurt!: Phaser.GameObjects.Rectangle;
   private warm!: Phaser.GameObjects.Rectangle;
-  private flash = 0;
-  private flashStrong = false;
+  private flashUntil = 0; // sim time
+  private flashStrongUntil = 0;
   private lit = false;
   private autoFireAt = -1;
   private freezeAt = -1;
@@ -57,7 +57,8 @@ export class Game extends Phaser.Scene {
     this.w.listeners.push((e) => this.onEvent(e));
     this.acc = 0;
     this.hitStop = 0;
-    this.flash = 0;
+    this.flashUntil = 0;
+    this.flashStrongUntil = 0;
     this.lit = false;
 
     this.room = new Room(this);
@@ -84,19 +85,19 @@ export class Game extends Phaser.Scene {
     const cam = this.cameras.main;
     switch (e.type) {
       case 'relayClick':
-        this.flash = VIS.flashMs / 1000 * 1.6;
-        this.flashStrong = true;
+        this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.6;
+        this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.9;
         break;
       case 'bounce':
         this.fx.burst(e.x, e.y, 14);
-        if (this.flash <= 0) this.flash = VIS.flashMs / 1000 * 0.7;
+        this.flashUntil = Math.max(this.flashUntil, this.w.time + (VIS.flashMs / 1000) * 0.7);
         cam.shake(VIS.bounceShake.ms, VIS.bounceShake.amp);
         break;
       case 'shock':
         if (e.counted) {
           this.hitStop = VIS.hitStop;
-          this.flash = VIS.flashMs / 1000 * 1.4;
-          this.flashStrong = true;
+          this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.4;
+          this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.8;
           this.fx.burst(this.w.creature.x, this.w.creature.y, 22);
           cam.shake(VIS.shockShake.ms, VIS.shockShake.amp);
         }
@@ -150,9 +151,6 @@ export class Game extends Phaser.Scene {
   private render(dt: number): void {
     const w = this.w;
     const t = w.time;
-    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
-    else this.flashStrong = false;
-
     this.playerView.update(w, t);
     this.creatureView.update(w, t);
     this.dust.update(dt);
@@ -163,7 +161,7 @@ export class Game extends Phaser.Scene {
     lights.push(...this.fx.update(w, dt));
     if (w.creature.alive && w.creature.state === 'windup') lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: 13, tint: PALETTE.g3 });
 
-    const ambient = this.lit ? 1 : this.flash > 0 ? (this.flashStrong && this.flash > (VIS.flashMs / 1000) * 0.55 ? 0 : 1) : DARK.ambient;
+    const ambient = this.lit ? 1 : t < this.flashStrongUntil ? 0 : t < this.flashUntil ? 1 : DARK.ambient;
     this.dark.render(lights, ambient);
     this.grain.setPosition(-Math.floor(Math.random() * 8), -Math.floor(Math.random() * 8));
     this.hud.update(w, t);
