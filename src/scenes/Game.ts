@@ -198,18 +198,6 @@ export class Game extends Phaser.Scene {
 
     const ambient = this.lit ? 1 : t < this.flashStrongUntil ? 0 : t < this.flashUntil ? 1 : DARK.ambient;
     this.dark.render(lights, ambient);
-    const intro = Math.max(0, Math.min(1, t / CFG.introSeconds));
-    const introZoom = 1.035 - intro * 0.035;
-    this.cameras.main.setZoom(introZoom);
-    if (intro < 1) {
-      const bossX = px(w.creature.x);
-      const bossY = px(w.creature.y);
-      const centerX = VIEW.w / 2 + (bossX - VIEW.w / 2) * (1 - intro) * 0.18;
-      const centerY = VIEW.h / 2 + (bossY - VIEW.h / 2) * (1 - intro) * 0.18;
-      this.cameras.main.centerOn(centerX, centerY);
-    } else {
-      this.cameras.main.centerOn(VIEW.w / 2, VIEW.h / 2);
-    }
     this.grain.setPosition(-Math.floor(Math.random() * 8), -Math.floor(Math.random() * 8));
     this.hud.update(w, t);
   }

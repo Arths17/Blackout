@@ -33,17 +33,17 @@ export class Hud {
     const text = (x: number, y: number, value: string, tint: number, size = 7) =>
       scene.add.bitmapText(x, y, 'stencil', value, size).setTint(tint).setOrigin(0.5).setDepth(DEPTH.text);
     this.frame = scene.add.graphics().setDepth(DEPTH.hud - 1);
-    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 96, 15);
-    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 96, 15);
-    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(236, 1, 82, 15);
-    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(236, 1, 82, 15);
+    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 84, 15);
+    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 84, 15);
+    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(186, 1, 132, 15);
+    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(186, 1, 132, 15);
     this.frame.fillStyle(PALETTE.ink, 0.88).fillRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, VIEW.h - 17, VIEW.w - 4, 15);
-    this.healthCaption = text(49, 5, 'VITAL', PALETTE.n6, 5);
-    this.shockCaption = text(277, 5, 'SHOCKS', PALETTE.n6, 5);
-    this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 6);
+    this.healthCaption = text(66, 8, 'VITAL', PALETTE.n6, 7);
+    this.shockCaption = text(213, 8, 'SHOCKS', PALETTE.n6, 7);
+    this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 7);
     for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
-    for (let i = 0; i < CFG.shocksToWin; i++) this.bolts.push(scene.add.image(240 + i * 15, 8, 'ui', 3).setOrigin(0, 0).setDepth(DEPTH.hud));
+    for (let i = 0; i < CFG.shocksToWin; i++) this.bolts.push(scene.add.image(236 + i * 16, 2, 'ui', 3).setOrigin(0, 0).setDepth(DEPTH.hud));
     this.prompt = text(0, 0, 'E', PALETTE.w).setVisible(false);
     this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
     this.banner = text(VIEW.w / 2, VIEW.h / 2 - 7, '', PALETTE.n7, 14).setDepth(DEPTH.banner);
@@ -52,9 +52,9 @@ export class Hud {
     this.controlsPanel.fillStyle(PALETTE.ink, 0.96).fillRect(68, 43, 184, 91);
     this.controlsPanel.lineStyle(1, PALETTE.c2, 1).strokeRect(68, 43, 184, 91);
     this.controlsPanel.lineStyle(1, PALETTE.n3, 1).strokeRect(72, 47, 176, 83);
-    this.controlsTitle = text(VIEW.w / 2, 55, 'CONTROLS', PALETTE.warm2, 8).setDepth(DEPTH.banner + 1);
+    this.controlsTitle = text(VIEW.w / 2, 55, 'CONTROLS', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
     this.controlsText = text(VIEW.w / 2, 82, 'MOVE   WASD / ARROWS\nE      THROW NEAREST BREAKER\nR      RESTART\n\nLURE IT. THROW. GET CLEAR.', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
-    this.controlsHint = text(VIEW.w / 2, 122, 'PRESS ANY KEY OR CLICK X TO BEGIN', PALETTE.warm2, 5).setDepth(DEPTH.banner + 1);
+    this.controlsHint = text(VIEW.w / 2, 122, 'PRESS ANY KEY TO BEGIN', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
     this.controlsClose = scene.add.rectangle(239, 53, 14, 12, PALETTE.r1, 1)
       .setStrokeStyle(1, PALETTE.c2, 1)
       .setDepth(DEPTH.banner);
