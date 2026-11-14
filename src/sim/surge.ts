@@ -45,7 +45,8 @@ function swept(path: Vec[], c: Circle): boolean {
   return false;
 }
 
-export function stepSurge(s: Surge, dt: number, creature: Circle, player: Circle): SurgeStepResult {
+// canHurt is false while the player is in grace, so a blocked touch doesn't use up the shot's hit.
+export function stepSurge(s: Surge, dt: number, creature: Circle, player: Circle, canHurt = true): SurgeStepResult {
   const r = s.route;
   const res: SurgeStepResult = { lamps: [], bounces: [], hitCreature: false, hitPlayer: false, finished: false };
   const prev = s.dist;
@@ -57,7 +58,7 @@ export function stepSurge(s: Surge, dt: number, creature: Circle, player: Circle
     s.hitCreature = true;
     res.hitCreature = true;
   }
-  if (!s.hitPlayer && swept(path, player)) {
+  if (canHurt && !s.hitPlayer && swept(path, player)) {
     s.hitPlayer = true;
     res.hitPlayer = true;
   }

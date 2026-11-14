@@ -127,6 +127,11 @@ export function damagePlayer(w: World): boolean {
   return true;
 }
 
+// A function call, so TypeScript doesn't keep an earlier phase check's narrowing.
+function isLost(w: World): boolean {
+  return w.phase === 'lost';
+}
+
 function registerShock(w: World, breaker: number): void {
   hitCreature(w.creature);
   // Offline breakers can't be fired, so counted is only false if a surge was injected by hand.
@@ -151,7 +156,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
 
   if (w.cooldown > 0 && !w.surge) {
     w.cooldown -= dt;
-    if (w.cooldown <= 0) {
+    if (w.cooldown <= CFG.timerEpsilon) {
       w.cooldown = 0;
       emit(w, { type: 'powerBack' });
     }
@@ -166,6 +171,8 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
       damagePlayer(w);
     }
   }
+  // A lethal creature touch ends the tick: no shock, lamp or bounce may follow the lose event.
+  if (isLost(w)) return;
   if (w.phase === 'won' && inExit(w.player)) {
     w.phase = 'escaped';
     w.endTime = w.time;
@@ -180,6 +187,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     dt,
     { x: w.creature.x, y: w.creature.y, r: CFG.creatureRadius },
     { x: w.player.x, y: w.player.y, r: CFG.playerRadius },
+    w.grace <= 0,
   );
   for (const i of res.lamps) {
     w.lampLitAt[id][i] = w.time;
@@ -188,8 +196,10 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     emit(w, { type: 'lampLit', breaker: id, lamp: i, x: pos.x, y: pos.y });
   }
   for (const b of res.bounces) emit(w, { type: 'bounce', x: b.x, y: b.y });
-  if (res.hitCreature && w.creature.alive) registerShock(w, id);
+  // Same-tick priority: the player's death beats a shock, even a fifth one.
   if (res.hitPlayer) damagePlayer(w);
+  if (isLost(w)) return;
+  if (res.hitCreature && w.creature.alive) registerShock(w, id);
   if (res.finished) {
     w.surge = null;
     if (s.hitCreature) {

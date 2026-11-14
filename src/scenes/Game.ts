@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
-import { CFG, EXIT, H, LURES, PALETTE, ROOM, VIS, W } from '../config';
+import { CFG, DARK, LURES, PALETTE, VIEW, VIS } from '../config';
 import { createWorld, stepWorld, tryInteract, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
-import { BODY_STYLE, FLASH_STYLE, GHOST_STYLE, drawCreature, drawEyes, drawTelegraph, rimStyle } from '../render/creature';
-import { Sparks, drawLamps, drawSurge } from '../render/fx';
+import { CreatureView } from '../render/creature';
+import { Darkness, type Light } from '../render/darkness';
+import { Dust, Fx } from '../render/fx';
 import { Hud } from '../render/hud';
 import { DEPTH } from '../render/layers';
-import { Lights } from '../render/lights';
-import { Panels } from '../render/panels';
-import { drawPlayer } from '../render/player';
-import { RoomFx, buildRoom, drawExit } from '../render/room';
+import { Breakers } from '../render/panels';
+import { px } from '../render/pixel';
+import { PlayerView } from '../render/player';
+import { Room } from '../render/room';
 
 const STEP = 1 / CFG.stepHz;
 
@@ -20,16 +21,20 @@ export class Game extends Phaser.Scene {
   private slow = 1;
   private pendingInteract = false;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
-  private under!: Phaser.GameObjects.Graphics;
-  private over!: Phaser.GameObjects.Graphics;
-  private light!: Lights;
-  private panels!: Panels;
-  private roomFx!: RoomFx;
+  private room!: Room;
+  private breakers!: Breakers;
+  private playerView!: PlayerView;
+  private creatureView!: CreatureView;
+  private fx!: Fx;
+  private dust!: Dust;
+  private dark!: Darkness;
   private hud!: Hud;
-  private sparks = new Sparks();
-  private flash!: Phaser.GameObjects.Rectangle;
+  private grain!: Phaser.GameObjects.Image;
+  private hurt!: Phaser.GameObjects.Rectangle;
   private warm!: Phaser.GameObjects.Rectangle;
-  private darkLevel: number = CFG.darkness;
+  private flashUntil = 0; // sim time
+  private flashStrongUntil = 0;
+  private lit = false;
   private autoFireAt = -1;
   private freezeAt = -1;
 
@@ -52,17 +57,21 @@ export class Game extends Phaser.Scene {
     this.w.listeners.push((e) => this.onEvent(e));
     this.acc = 0;
     this.hitStop = 0;
-    this.sparks = new Sparks();
-    this.darkLevel = CFG.darkness;
+    this.flashUntil = 0;
+    this.flashStrongUntil = 0;
+    this.lit = false;
 
-    buildRoom(this);
-    this.panels = new Panels(this);
-    this.under = this.add.graphics().setDepth(DEPTH.under);
-    this.light = new Lights(this);
-    this.over = this.add.graphics().setDepth(DEPTH.over);
-    this.roomFx = new RoomFx(this);
-    this.warm = this.add.rectangle(0, 0, W, H, PALETTE.warm, 0).setOrigin(0, 0).setDepth(DEPTH.over + 1);
-    this.flash = this.add.rectangle(0, 0, W, H, 0xff2a1a, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
+    this.room = new Room(this);
+    this.breakers = new Breakers(this);
+    this.playerView = new PlayerView(this);
+    this.creatureView = new CreatureView(this);
+    this.fx = new Fx(this);
+    this.dust = new Dust(this);
+    this.dark = new Darkness(this);
+    this.warm = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.warm, 0).setOrigin(0, 0).setDepth(DEPTH.over + 8);
+    this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(DEPTH.vignette);
+    this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(0.1);
+    this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.r4, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
     this.hud = new Hud(this);
 
     const kb = this.input.keyboard!;
@@ -75,28 +84,36 @@ export class Game extends Phaser.Scene {
   private onEvent(e: SimEvent): void {
     const cam = this.cameras.main;
     switch (e.type) {
+      case 'relayClick':
+        this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.6;
+        this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.9;
+        break;
       case 'bounce':
-        this.sparks.add(e.x, e.y, this.w.time);
+        this.fx.burst(e.x, e.y, 14);
+        this.flashUntil = Math.max(this.flashUntil, this.w.time + (VIS.flashMs / 1000) * 0.7);
         cam.shake(VIS.bounceShake.ms, VIS.bounceShake.amp);
         break;
       case 'shock':
         if (e.counted) {
           this.hitStop = VIS.hitStop;
+          this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.4;
+          this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.8;
+          this.fx.burst(this.w.creature.x, this.w.creature.y, 22);
           cam.shake(VIS.shockShake.ms, VIS.shockShake.amp);
         }
         break;
       case 'playerHit':
-        this.flash.setFillStyle(0xff2a1a).setAlpha(0.4);
-        this.tweens.add({ targets: this.flash, alpha: 0, duration: 350 });
+        this.hurt.setAlpha(0.35);
+        this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
       case 'deadClick':
-        this.panels.deadClick(e.breaker, this.w.time);
+        this.breakers.deadClick(e.breaker, this.w.time);
         break;
       case 'win':
-        this.tweens.add({ targets: cam, zoom: 1.05, duration: 220, yoyo: true, ease: 'Sine.easeOut' });
-        this.tweens.add({ targets: this.warm, alpha: 0.1, duration: 900 });
-        this.tweens.addCounter({ from: this.darkLevel, to: 0.25, duration: 900, onUpdate: (t) => (this.darkLevel = t.getValue() ?? 0.25) });
+        this.lit = true;
+        cam.flash(260, 234, 243, 255);
+        this.tweens.add({ targets: this.warm, alpha: 0.07, duration: 900 });
         break;
       default:
         break;
@@ -111,7 +128,7 @@ export class Game extends Phaser.Scene {
       this.acc -= STEP;
       this.step();
     }
-    this.render();
+    this.render(dt);
   }
 
   private step(): void {
@@ -131,42 +148,22 @@ export class Game extends Phaser.Scene {
     stepWorld(w, { dx, dy }, STEP);
   }
 
-  private render(): void {
+  private render(dt: number): void {
     const w = this.w;
     const t = w.time;
-    const c = w.creature;
-    const lit = w.phase === 'won' || w.phase === 'escaped';
-    const L = this.light;
-    L.begin(this.darkLevel, t);
+    this.playerView.update(w, t);
+    this.creatureView.update(w, t);
+    this.dust.update(dt);
 
-    this.panels.draw(w, t, L);
+    const lights: Light[] = [{ x: px(w.player.x), y: px(w.player.y), r: DARK.playerR * (this.lit ? 2.4 : 1) }];
+    lights.push(...this.room.update(t, this.lit));
+    lights.push(...this.breakers.update(w, t));
+    lights.push(...this.fx.update(w, dt));
+    if (w.creature.alive && w.creature.state === 'windup') lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: 13, tint: PALETTE.g3 });
 
-    const u = this.under;
-    u.clear();
-    const flashing = c.state === 'recoil' && c.alive && Math.floor(t * 30) % 2 === 0;
-    drawCreature(u, c, t, flashing ? FLASH_STYLE : c.alive ? BODY_STYLE : { ...BODY_STYLE, alpha: 0.55 });
-    drawPlayer(u, w.player, t, w.grace > 0 && Math.floor(t * 14) % 2 === 0);
-
-    L.pool(w.player.x, w.player.y, CFG.playerLightRadius * (lit ? 2.2 : 1));
-    L.halo(w.player.x, w.player.y, CFG.playerLightRadius * 1.1, 0.16, 0x8fa6cc);
-    if (lit) L.pool(EXIT.x + EXIT.w / 2, ROOM.y + 60, 260, 0.9);
-
-    const o = this.over;
-    o.clear();
-    drawLamps(o, w, L);
-    drawSurge(o, w, L);
-    this.sparks.draw(o, L, t);
-    if (c.alive) {
-      const reveal = Math.max(0, Math.min(1, (w.revealUntil - t) / CFG.revealSeconds));
-      if (reveal > 0) drawCreature(o, c, t, { ...GHOST_STYLE, alpha: GHOST_STYLE.alpha * reveal });
-      if (!reveal) drawCreature(o, c, t, rimStyle(c));
-      drawTelegraph(o, c);
-      drawEyes(o, c, t);
-    }
-    drawExit(o, lit, t);
-    this.roomFx.draw(t, lit);
-
-    L.end();
-    this.hud.draw(w);
+    const ambient = this.lit ? 1 : t < this.flashStrongUntil ? 0 : t < this.flashUntil ? 1 : DARK.ambient;
+    this.dark.render(lights, ambient);
+    this.grain.setPosition(-Math.floor(Math.random() * 8), -Math.floor(Math.random() * 8));
+    this.hud.update(w, t);
   }
 }

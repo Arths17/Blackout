@@ -1,0 +1,219 @@
+{
+ "sheets": {
+  "tiles": {
+   "frame": [
+    16,
+    16
+   ],
+   "cols": 8,
+   "floor": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "grate": [
+    4,
+    5
+   ],
+   "crack": [
+    6,
+    7
+   ],
+   "wet": 8,
+   "blood": 9,
+   "hazard": [
+    10,
+    11
+   ],
+   "cap": [
+    12,
+    13,
+    14,
+    15
+   ],
+   "face": [
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ]
+  },
+  "decals": {
+   "frame": [
+    16,
+    16
+   ],
+   "cols": 6,
+   "blood": [
+    0,
+    1,
+    2
+   ],
+   "drag": [
+    3,
+    4
+   ],
+   "debris": [
+    5,
+    6
+   ],
+   "paper": 7,
+   "rustdrip": 8,
+   "puddle": 9,
+   "slime": 10,
+   "cable": 11
+  },
+  "props": {
+   "frame": [
+    32,
+    32
+   ],
+   "cols": 6,
+   "crate_a": 0,
+   "crate_b": 1,
+   "barrel": 2,
+   "barrel_toxic": 3,
+   "locker": 4,
+   "generator": 5,
+   "bench": 6,
+   "drain": 7,
+   "lamp_dead": 8,
+   "lamp_flicker": 9,
+   "skull": 10,
+   "toolchest": 11,
+   "relaxed": true
+  },
+  "lamp": {
+   "frame": [
+    16,
+    16
+   ],
+   "cols": 4,
+   "levels": [
+    0,
+    1,
+    2,
+    3
+   ]
+  },
+  "door": {
+   "frame": [
+    32,
+    16
+   ],
+   "cols": 2,
+   "closed": 0,
+   "open": 1
+  },
+  "breaker": {
+   "frame": [
+    36,
+    28
+   ],
+   "cols": 4,
+   "states": {
+    "ready": 0,
+    "cooling": 1,
+    "offline": 2,
+    "busy": 3
+   },
+   "dentOffset": 4
+  },
+  "ui": {
+   "frame": [
+    9,
+    11
+   ],
+   "cols": 5,
+   "pip": {
+    "full": 0,
+    "empty": 1,
+    "flash": 2
+   },
+   "bolt": {
+    "full": 3,
+    "empty": 4
+   }
+  },
+  "shadow": {
+   "frame": [
+    24,
+    10
+   ],
+   "cols": 2,
+   "player": 0,
+   "creature": 1
+  },
+  "player": {
+   "frame": [
+    16,
+    16
+   ],
+   "cols": 5,
+   "anchor": [
+    8,
+    14
+   ],
+   "dirs": {
+    "down": 0,
+    "up": 5,
+    "right": 10
+   },
+   "idle": 0,
+   "walk": [
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  "creature": {
+   "frame": [
+    32,
+    32
+   ],
+   "cols": 11,
+   "anchor": [
+    16,
+    24
+   ],
+   "dirs": {
+    "down": 0,
+    "up": 11,
+    "right": 22
+   },
+   "anims": {
+    "stalk": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "windup": [
+     4,
+     5,
+     6
+    ],
+    "lunge": [
+     7,
+     8
+    ],
+    "recoil": [
+     9,
+     10
+    ]
+   },
+   "death": [
+    33,
+    34,
+    35,
+    36
+   ],
+   "sleep": 37,
+   "relaxed": true
+  }
+ }
+}

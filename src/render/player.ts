@@ -1,25 +1,28 @@
-import type Phaser from 'phaser';
-import { CFG, PALETTE } from '../config';
-import type { PlayerState } from '../sim/player';
+import Phaser from 'phaser';
+import type { World } from '../sim/game';
+import { DEPTH } from './layers';
+import { atlasOf, facingOf, px } from './pixel';
 
-export function drawPlayer(g: Phaser.GameObjects.Graphics, p: PlayerState, t: number, hurt: boolean): void {
-  const bob = p.moving ? Math.sin(t * 18) * 1.5 : 0;
-  const cos = Math.cos(p.facing);
-  const sin = Math.sin(p.facing);
-  const r = CFG.playerRadius;
-  const at = (u: number, v: number): [number, number] => [p.x + u * cos - v * sin, p.y + bob + u * sin + v * cos];
+export class PlayerView {
+  private spr: Phaser.GameObjects.Sprite;
+  private shadow: Phaser.GameObjects.Image;
 
-  const jacket = hurt ? 0x7a3434 : 0x3a475e;
-  const [s1x, s1y] = at(-1, -r);
-  const [s2x, s2y] = at(-1, r);
-  g.lineStyle(7, jacket, 1).lineBetween(s1x, s1y, s2x, s2y);
-  g.fillStyle(jacket, 1).fillCircle(p.x, p.y + bob, r - 1);
-  // reflective stripe across the back so the figure reads in the dark
-  const [b1x, b1y] = at(-5, -r + 2);
-  const [b2x, b2y] = at(-5, r - 2);
-  g.lineStyle(2, hurt ? PALETTE.strip : 0xcfd8e6, 0.9).lineBetween(b1x, b1y, b2x, b2y);
-  const [hx, hy] = at(2, 0);
-  g.fillStyle(hurt ? 0x8a5a5a : 0xd9e1ee, 1).fillCircle(hx, hy, 5.5);
-  const [nx, ny] = at(10, 0);
-  g.fillStyle(PALETTE.surge, 1).fillCircle(nx, ny, 2);
+  constructor(private scene: Phaser.Scene) {
+    this.spr = scene.add.sprite(0, 0, 'player', 0).setOrigin(0.5, 15 / 16);
+    this.shadow = scene.add.image(0, 0, 'shadow', 0).setOrigin(0.5, 0.5).setDepth(DEPTH.shadow);
+  }
+
+  update(w: World, t: number): void {
+    const p = w.player;
+    const A = atlasOf(this.scene).sheets.player;
+    const f = facingOf(p.facing);
+    const frame = A.dirs[f.dir] + (p.moving ? A.walk[Math.floor(t * 9) % 4] : A.idle);
+    const x = Math.round(px(p.x));
+    const y = Math.round(px(p.y)) + 4;
+    const hurt = w.grace > 0 && Math.floor(t * 14) % 2 === 0;
+    this.spr.setFrame(frame).setFlipX(f.flip).setPosition(x, y).setDepth(DEPTH.y + y).setAlpha(w.phase === 'lost' ? 0.6 : 1);
+    if (hurt) this.spr.setTintMode(Phaser.TintModes.FILL).setTint(0xd0402e);
+    else this.spr.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    this.shadow.setPosition(x, y - 1);
+  }
 }

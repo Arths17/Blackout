@@ -1,4 +1,12 @@
-# Asset sources
+# Asset licenses
+
+| Asset | Source | License | Notes |
+| --- | --- | --- | --- |
+| Tiles, decals, props, breakers, door, lamps, player, creature, UI, shadows | Original, `tools/make_art.mjs` | Project license | Exports go to `public/assets/`; `atlas.json` lists frames and anchors |
+| Silkscreen (font) | Jason Kottke, via `@fontsource/silkscreen` | SIL OFL 1.1 | Latin subset, 400 weight |
+
+
+## Earlier sourcing
 
 Checked 2026-11-14. No art from these packs has been imported into the game.
 
