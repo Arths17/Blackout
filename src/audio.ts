@@ -1,5 +1,7 @@
 export type SoundName = 'relay_click' | 'surge_crack' | 'wall_crack' | 'step_player'
-  | 'step_creature' | 'hum_loop' | 'power_return';
+  | 'step_creature' | 'hum_loop' | 'power_return' | 'bounce_launch' | 'bounce_wall' | 'bounce_hit'
+  | 'player_hurt' | 'windup' | 'lunge' | 'dead_click' | 'lamp' | 'power_back' | 'fizzle' | 'blackout'
+  | 'music_loop' | 'heartbeat';
 
 const levels: Record<SoundName, number> = {
   relay_click: 0.7,
@@ -7,15 +9,28 @@ const levels: Record<SoundName, number> = {
   wall_crack: 0.65,
   step_player: 0.4,
   step_creature: 0.85,
-  hum_loop: 0.16,
+  hum_loop: 0.18,
   power_return: 0.85,
+  bounce_launch: 0.7,
+  bounce_wall: 0.5,
+  bounce_hit: 0.9,
+  player_hurt: 0.75,
+  windup: 0.7,
+  lunge: 0.6,
+  dead_click: 0.5,
+  lamp: 0.28,
+  power_back: 0.45,
+  fizzle: 0.5,
+  blackout: 0.85,
+  music_loop: 0.34,
+  heartbeat: 0.7,
 };
 
 let context: AudioContext | undefined;
 let master: GainNode;
 let creature: GainNode;
 let loading: Promise<void> | undefined;
-let ambience: AudioBufferSourceNode | undefined;
+const beds: Partial<Record<SoundName, AudioBufferSourceNode>> = {};
 let wantAmbience = false;
 let distance = Infinity;
 let activated = false;
@@ -40,6 +55,7 @@ export function initAudio(): void {
 
   // Capture runs before scene key handlers, so resume stays inside the first key gesture.
   window.addEventListener('keydown', unlock, { capture: true });
+  window.addEventListener('pointerdown', unlock, { capture: true });
   context.addEventListener('statechange', () => {
     if (context?.state === 'running') beginAmbience();
   });
@@ -89,12 +105,15 @@ export function play(name: SoundName): void {
 }
 
 function beginAmbience(): void {
-  if (!wantAmbience || ambience) return;
-  const node = source('hum_loop');
-  if (!node) return;
-  node.loop = true;
-  node.start();
-  ambience = node;
+  if (!wantAmbience) return;
+  for (const name of ['hum_loop', 'music_loop'] as const) {
+    if (beds[name]) continue;
+    const node = source(name);
+    if (!node) continue;
+    node.loop = true;
+    node.start();
+    beds[name] = node;
+  }
 }
 
 export function startAmbience(): void {

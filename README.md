@@ -42,4 +42,4 @@ npm run zip
 
 This rebuilds the game and writes blackout-html5.zip with index.html at the zip root, alongside assets/ and audio/. The packer uses only Node standard libraries. Upload that zip as an HTML game on itch.io. Page copy and capture plans are in docs/itch_page.md.
 
-To regenerate the seven WAV files, run npm run audio. The generator uses only Node standard libraries. Generated audio is committed; dist/ and the upload zip are not.
+To regenerate the WAV files, run npm run audio. The generator uses only Node standard libraries. Generated audio is committed; dist/ and the upload zip are not.

@@ -43,6 +43,8 @@ export class Game extends Phaser.Scene {
   private playerStepAt = 0;
   private creatureStepAt = 0;
   private lastTremor = -1;
+  private prevCreature = 'stalk';
+  private heartAt = 0;
 
   constructor() {
     super('Game');
@@ -70,6 +72,8 @@ export class Game extends Phaser.Scene {
     this.playerStepAt = 0;
     this.creatureStepAt = 0;
     this.lastTremor = -1;
+    this.prevCreature = 'stalk';
+    this.heartAt = 0;
 
     initAudio();
     startAmbience();
@@ -129,29 +133,42 @@ export class Game extends Phaser.Scene {
         }
         break;
       case 'playerHit':
-        play('surge_crack');
+        play('player_hurt');
         this.hurt.setAlpha(0.35);
         this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
       case 'bounceStart':
-        play('surge_crack');
+        play('bounce_launch');
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
       case 'ballBounce':
-        play('wall_crack');
+        play('bounce_wall');
         this.fx.burst(e.x, e.y, 6);
         cam.shake(VIS.bounceShake.ms, VIS.bounceShake.amp);
         break;
       case 'bounceHit':
-        play('surge_crack');
+        play('bounce_hit');
         this.hitStop = VIS.hitStop;
         this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.4;
         this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.8;
         this.fx.burst(this.w.creature.x, this.w.creature.y, 22);
         cam.shake(VIS.shockShake.ms, VIS.shockShake.amp);
         break;
+      case 'lampLit':
+        play('lamp');
+        break;
+      case 'miss':
+        play('fizzle');
+        break;
+      case 'powerBack':
+        play('power_back');
+        break;
+      case 'lose':
+        play('blackout');
+        break;
       case 'deadClick':
+        play('dead_click');
         this.breakers.deadClick(e.breaker, this.w.time);
         break;
       case 'win':
@@ -201,8 +218,21 @@ export class Game extends Phaser.Scene {
     const t = w.time;
     this.playerView.update(w, t);
     setCreatureDistance(Math.hypot(w.player.x - w.creature.x, w.player.y - w.creature.y));
-    if (w.phase === 'play' && w.player.moving && t >= this.playerStepAt) { play('step_player'); this.playerStepAt = t + VIS.playerStep; }
-    if (w.phase === 'play' && !w.creature.asleep && w.creature.state === 'stalk' && t >= this.creatureStepAt) { play('step_creature'); this.creatureStepAt = t + VIS.creatureStep; }
+    const gap = Math.hypot(w.player.x - w.creature.x, w.player.y - w.creature.y);
+    if (w.phase === 'play' && w.player.moving && !w.bounce && t >= this.playerStepAt) { play('step_player'); this.playerStepAt = t + VIS.playerStep; }
+    if (w.phase === 'play' && w.creature.alive && !w.creature.asleep && w.creature.state === 'stalk' && gap > CFG.creatureRadius + CFG.playerRadius + 4 && t >= this.creatureStepAt) { play('step_creature'); this.creatureStepAt = t + VIS.creatureStep; }
+    const cs = w.creature.state;
+    if (w.phase === 'play' && cs !== this.prevCreature) {
+      if (cs === 'windup') play('windup');
+      else if (cs === 'lunge') play('lunge');
+    }
+    this.prevCreature = cs;
+    // The heartbeat quickens as the creature closes in or health runs low.
+    if (w.phase === 'play' && !w.creature.asleep && t >= this.heartAt) {
+      const fear = Math.max(1 - Math.min(1, gap / 450), (CFG.healthPips - w.hp) / CFG.healthPips);
+      if (fear > 0.15) play('heartbeat');
+      this.heartAt = t + 1.1 - 0.65 * fear;
+    }
     this.creatureView.update(w, t);
     const atmosphere = this.atmosphere.update(w, t);
     if (atmosphere.tremor && this.lastTremor !== Math.floor(t)) {
