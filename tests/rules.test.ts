@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CFG } from '../src/config';
+import { CFG, EXIT } from '../src/config';
 import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stepWorld, type World } from '../src/sim/game';
 import { ROUTES } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
@@ -111,7 +111,7 @@ describe('win', () => {
     for (const b of [0, 1, 0, 1, 2]) forceHit(w, b);
     expect(w.shocks).toBe(CFG.shocksToWin);
     expect(w.phase).toBe('won');
-    w.player.x = 930;
+    w.player.x = EXIT.x + EXIT.w / 2;
     w.player.y = 50;
     stepWorld(w, idle, DT);
     expect(w.phase).toBe('escaped');
