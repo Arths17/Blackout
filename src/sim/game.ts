@@ -14,6 +14,10 @@ export type SimEvent =
   | { type: 'powerBack' }
   | { type: 'playerHit' }
   | { type: 'charge'; breaker: number }
+  | { type: 'parryStart' }
+  | { type: 'parry'; streak: number }
+  | { type: 'superStart' }
+  | { type: 'superHit' }
   | { type: 'bounceStart' }
   | { type: 'bounceHit' }
   | { type: 'ballBounce'; x: number; y: number }
@@ -44,6 +48,10 @@ export interface World {
   // Breaker whose charge the player is holding, or -1. Released from anywhere.
   charged: number;
   hitsTaken: number;
+  parryLeft: number;
+  parryCool: number;
+  parryStreak: number;
+  parryStreakLeft: number;
   bounce: Bounce | null;
   // Set when a bounce damaged the creature: the next creature hit on the player can't start another.
   bounceLocked: boolean;
@@ -53,6 +61,7 @@ export interface Bounce {
   vx: number;
   vy: number;
   left: number;
+  super: boolean;
   // Only live once it has cleared the creature, so the launch itself can't count as the return hit.
   armed: boolean;
 }
@@ -87,6 +96,10 @@ export function createWorld(opts: WorldOpts = {}): World {
     rng: 12345,
     charged: -1,
     hitsTaken: 0,
+    parryLeft: 0,
+    parryCool: 0,
+    parryStreak: 0,
+    parryStreakLeft: 0,
     bounce: null,
     bounceLocked: false,
   };
@@ -226,9 +239,30 @@ function maybeBounce(w: World): void {
   if (w.hitsTaken % CFG.bounceEvery !== 1 % CFG.bounceEvery) return;
   const c = w.creature;
   const away = Math.atan2(w.player.y - c.y, w.player.x - c.x) + (roll(w) - 0.5) * 1.0;
-  w.bounce = { vx: Math.cos(away) * CFG.bounceSpeed, vy: Math.sin(away) * CFG.bounceSpeed, left: CFG.bounceSeconds, armed: false };
+  w.bounce = { vx: Math.cos(away) * CFG.bounceSpeed, vy: Math.sin(away) * CFG.bounceSpeed, left: CFG.bounceSeconds, super: false, armed: false };
   w.player.facing = away;
   emit(w, { type: 'bounceStart' });
+}
+
+// Blocks the boss's touch: no damage, it is thrown back, and two in a row turn into a super bounce.
+function parried(w: World): void {
+  const c = w.creature;
+  const dx = c.x - w.player.x;
+  const dy = c.y - w.player.y;
+  const d = Math.hypot(dx, dy) || 1;
+  hitCreature(c, { x: dx / d, y: dy / d });
+  w.parryLeft = 0;
+  w.grace = Math.max(w.grace, 0.35);
+  w.parryStreak++;
+  w.parryStreakLeft = CFG.parryStreakSeconds;
+  emit(w, { type: 'parry', streak: w.parryStreak });
+  if (w.parryStreak >= CFG.parriesForSuper) {
+    w.parryStreak = 0;
+    const away = Math.atan2(w.player.y - c.y, w.player.x - c.x) + (roll(w) - 0.5) * 0.5;
+    w.bounce = { vx: Math.cos(away) * CFG.superSpeed, vy: Math.sin(away) * CFG.superSpeed, left: CFG.superSeconds, super: true, armed: false };
+    w.player.facing = away;
+    emit(w, { type: 'superStart' });
+  }
 }
 
 function stepBounce(w: World, b: Bounce, dt: number): void {
@@ -251,14 +285,16 @@ function stepBounce(w: World, b: Bounce, dt: number): void {
     }
     const end = { x: p.x + b.vx * t, y: p.y + b.vy * t };
     const c = w.creature;
-    if (!b.armed && Math.hypot(c.x - p.x, c.y - p.y) > r + CFG.creatureRadius + 12) b.armed = true;
-    if (b.armed && c.alive && c.state !== 'recoil' && distToSegment(c, start, end) <= r + CFG.creatureRadius) {
-      hitCreature(c, { x: b.vx / CFG.bounceSpeed, y: b.vy / CFG.bounceSpeed });
-      w.shocks++;
+    const reach = (b.super ? CFG.superRadius : r) + CFG.creatureRadius;
+    const speed = b.super ? CFG.superSpeed : CFG.bounceSpeed;
+    if (!b.armed && Math.hypot(c.x - p.x, c.y - p.y) > reach + 12) b.armed = true;
+    if (b.armed && c.alive && (b.super || c.state !== 'recoil') && distToSegment(c, start, end) <= reach) {
+      hitCreature(c, { x: b.vx / speed, y: b.vy / speed });
+      w.shocks = Math.min(CFG.shocksToWin, w.shocks + (b.super ? CFG.superShocks : 1));
       w.bounceLocked = true;
       w.bounce = null;
       w.grace = Math.max(w.grace, CFG.bounceHitGrace);
-      emit(w, { type: 'bounceHit' });
+      emit(w, { type: b.super ? 'superHit' : 'bounceHit' });
       if (w.shocks >= CFG.shocksToWin) {
         w.phase = 'won';
         w.endTime = w.time;
@@ -310,6 +346,17 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     }
   }
   if (w.creature.asleep && w.time + CFG.timerEpsilon >= CFG.introSeconds) w.creature.asleep = false;
+  w.parryLeft = Math.max(0, w.parryLeft - dt);
+  w.parryCool = Math.max(0, w.parryCool - dt);
+  if (w.parryStreak > 0) {
+    w.parryStreakLeft -= dt;
+    if (w.parryStreakLeft <= 0) w.parryStreak = 0;
+  }
+  if (input.parry && w.parryCool <= 0 && !w.bounce) {
+    w.parryLeft = CFG.parryWindow;
+    w.parryCool = CFG.parryCooldown;
+    emit(w, { type: 'parryStart' });
+  }
 
   if (w.bounce) stepBounce(w, w.bounce, dt);
   else stepPlayer(w.player, input, dt);
@@ -318,7 +365,8 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     stepCreature(w.creature, dt, w.player);
     const c = w.creature;
     if (!w.bounce && c.state !== 'recoil' && Math.hypot(c.x - w.player.x, c.y - w.player.y) < CFG.creatureRadius + CFG.playerRadius) {
-      if (damagePlayer(w)) maybeBounce(w);
+      if (w.parryLeft > 0 && w.grace <= 0) parried(w);
+      else if (damagePlayer(w)) maybeBounce(w);
     }
   }
   // A lethal creature touch ends the tick: no shock, lamp or bounce may follow the lose event.

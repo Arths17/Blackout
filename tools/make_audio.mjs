@@ -283,6 +283,36 @@ function vineGrow() {
   });
 }
 
+// Metallic clang when a parry lands.
+function parryClang() {
+  const bite = lowpass(7000);
+  return shot(0.5, (t) => {
+    const hit = sat(4 * bite(noise())) * burst(t, 0, 260);
+    return 0.5 * hit + 0.7 * ring(t, 1180, 11) + 0.45 * ring(t, 1870, 16) + 0.3 * ring(t, 3100, 24) + 0.25 * ring(t, 310, 18);
+  });
+}
+
+// Quick air swish when Shift is pressed.
+function parrySwing() {
+  let z = 0;
+  return shot(0.16, (t) => {
+    const hz = 1200 + 2600 * Math.sin(Math.PI * Math.min(1, t / 0.14));
+    z += (1 - Math.exp(-2 * Math.PI * hz / rate)) * (noise() - z);
+    return sat(2.5 * z) * Math.sin(Math.PI * Math.min(1, t / 0.14)) * 0.8;
+  });
+}
+
+// Big charged launch for the super bounce: a rising roar over a deep thump.
+function superLaunch() {
+  const low = lowpass(220);
+  return shot(0.9, (t) => {
+    const rise = sweep(t, 70, 980, 0.55) * Math.exp(-t * 3.2);
+    const thump = sat(9 * low(noise())) * Math.exp(-t * 7);
+    const zap = sat(4 * lowpass(5000)(noise())) * burst(t, 0, 90);
+    return 0.7 * rise + 0.8 * thump + 0.35 * zap + 0.35 * ring(t, 48, 5);
+  });
+}
+
 async function wav(name, data, peak) {
   const mean = data.reduce((sum, x) => sum + x, 0) / data.length;
   let max = 0;
@@ -333,5 +363,8 @@ await wav('jump', jumpBlip(), 0.6);
 await wav('dash', dashWhoosh(), 0.7);
 await wav('land', landThud(), 0.6);
 await wav('vines', vineGrow(), 0.6);
+await wav('parry', parryClang(), 0.85);
+await wav('parry_swing', parrySwing(), 0.6);
+await wav('super_launch', superLaunch(), 0.9);
 await wav('music_loop', music(), 0.6);
 await wav('heartbeat', heartbeat(), 0.8);

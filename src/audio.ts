@@ -1,7 +1,7 @@
 export type SoundName = 'relay_click' | 'surge_crack' | 'wall_crack' | 'step_player'
   | 'step_creature' | 'hum_loop' | 'power_return' | 'bounce_launch' | 'bounce_wall' | 'bounce_hit'
   | 'player_hurt' | 'windup' | 'lunge' | 'dead_click' | 'lamp' | 'power_back' | 'fizzle' | 'blackout'
-  | 'music_loop' | 'heartbeat' | 'charge_up' | 'jump' | 'dash' | 'land' | 'vines';
+  | 'music_loop' | 'heartbeat' | 'charge_up' | 'jump' | 'dash' | 'land' | 'vines' | 'parry' | 'parry_swing' | 'super_launch';
 
 const levels: Record<SoundName, number> = {
   relay_click: 0.7,
@@ -29,6 +29,9 @@ const levels: Record<SoundName, number> = {
   dash: 0.55,
   land: 0.4,
   vines: 0.55,
+  parry: 0.8,
+  parry_swing: 0.4,
+  super_launch: 0.9,
 };
 
 let context: AudioContext | undefined;

@@ -4,6 +4,7 @@ import type { World } from '../sim/game';
 import type { Light } from './darkness';
 import { DEPTH } from './layers';
 import { px } from './pixel';
+import { FLOOR, mx, my } from './layout';
 
 interface Root {
   points: [number, number][];
@@ -15,30 +16,30 @@ interface Root {
 export class Atmosphere {
   private g: Phaser.GameObjects.Graphics;
   private roots: Root[] = [
-    { points: [[22, 166], [35, 151], [45, 154], [57, 138]], phase: 0.4, width: 2 },
-    { points: [[299, 158], [282, 145], [274, 128], [257, 117]], phase: 2.1, width: 1 },
-    { points: [[84, 47], [96, 59], [111, 58], [126, 72]], phase: 3.4, width: 1 },
+    { points: [[mx(22), my(166)], [mx(35), my(151)], [mx(45), my(154)], [mx(57), my(138)]], phase: 0.4, width: 2 },
+    { points: [[mx(299), my(158)], [mx(282), my(145)], [mx(274), my(128)], [mx(257), my(117)]], phase: 2.1, width: 1 },
+    { points: [[mx(84), my(47)], [mx(96), my(59)], [mx(111), my(58)], [mx(126), my(72)]], phase: 3.4, width: 1 },
     // Perimeter roots pushing in through the walls, kept clear of the breaker panels and the exit.
-    { points: [[21, 58], [31, 64], [40, 62], [51, 73]], phase: 1.2, width: 2, leaf: true },
-    { points: [[21, 99], [30, 95], [38, 101], [46, 97]], phase: 2.7, width: 1 },
-    { points: [[299, 34], [289, 40], [286, 50], [275, 56]], phase: 0.9, width: 2, leaf: true },
-    { points: [[299, 126], [290, 132], [285, 126], [274, 134]], phase: 3.9, width: 1 },
-    { points: [[299, 147], [291, 150], [283, 158]], phase: 1.7, width: 1 },
-    { points: [[104, 163], [110, 156], [106, 149], [115, 143]], phase: 2.4, width: 2, leaf: true },
-    { points: [[203, 163], [199, 156], [207, 150]], phase: 0.3, width: 1 },
-    { points: [[146, 14], [149, 24], [143, 33], [150, 43]], phase: 4.4, width: 2, leaf: true },
-    { points: [[196, 14], [192, 22], [198, 31], [193, 39]], phase: 5.1, width: 1 },
+    { points: [[mx(21), my(58)], [mx(31), my(64)], [mx(40), my(62)], [mx(51), my(73)]], phase: 1.2, width: 2, leaf: true },
+    { points: [[mx(21), my(99)], [mx(30), my(95)], [mx(38), my(101)], [mx(46), my(97)]], phase: 2.7, width: 1 },
+    { points: [[mx(299), my(34)], [mx(289), my(40)], [mx(286), my(50)], [mx(275), my(56)]], phase: 0.9, width: 2, leaf: true },
+    { points: [[mx(299), my(126)], [mx(290), my(132)], [mx(285), my(126)], [mx(274), my(134)]], phase: 3.9, width: 1 },
+    { points: [[mx(299), my(147)], [mx(291), my(150)], [mx(283), my(158)]], phase: 1.7, width: 1 },
+    { points: [[mx(104), my(163)], [mx(110), my(156)], [mx(106), my(149)], [mx(115), my(143)]], phase: 2.4, width: 2, leaf: true },
+    { points: [[mx(203), my(163)], [mx(199), my(156)], [mx(207), my(150)]], phase: 0.3, width: 1 },
+    { points: [[mx(146), my(14)], [mx(149), my(24)], [mx(143), my(33)], [mx(150), my(43)]], phase: 4.4, width: 2, leaf: true },
+    { points: [[mx(196), my(14)], [mx(192), my(22)], [mx(198), my(31)], [mx(193), my(39)]], phase: 5.1, width: 1 },
   ];
   // Vines hanging from the top wall, with leaves down their length.
   private hanging = [
-    { x: 118, len: 26, phase: 0.5 },
-    { x: 171, len: 18, phase: 2.2 },
-    { x: 222, len: 30, phase: 4.0 },
-    { x: 244, len: 14, phase: 1.1 },
+    { x: mx(118), len: 26, phase: 0.5 },
+    { x: mx(171), len: 18, phase: 2.2 },
+    { x: mx(222), len: 30, phase: 4.0 },
+    { x: mx(244), len: 14, phase: 1.1 },
   ];
   // Moss patches on the floor edges: [x, y, w, h].
   private moss: [number, number, number, number][] = [
-    [22, 15, 10, 5], [286, 15, 12, 5], [22, 156, 12, 6], [286, 118, 12, 6], [150, 160, 14, 5], [22, 72, 5, 8],
+    [mx(22), my(15), 10, 5], [mx(286), my(15), 12, 5], [mx(22), my(156), 12, 6], [mx(286), my(118), 12, 6], [mx(150), my(160), 14, 5], [mx(22), my(72), 5, 8],
   ];
   private nextTremor = 7;
 
@@ -118,7 +119,7 @@ export class Atmosphere {
     for (const v of this.hanging) {
       for (let i = 0; i < v.len; i++) {
         const x = Math.round(v.x + Math.sin(t * 1.1 + v.phase + i * 0.22) * (i * 0.07));
-        const y = 14 + i;
+        const y = FLOOR.y0 - 1 + i;
         g.fillStyle(PALETTE.ink, 0.9).fillRect(x - 1, y, 3, 1);
         g.fillStyle(PALETTE.g2, 1).fillRect(x, y, 1, 1);
         if (i % 5 === 3) {
@@ -147,14 +148,15 @@ export class Atmosphere {
     const g = this.g;
     const flickerA = 0.45 + 0.35 * Math.sin(t * 2.7);
     const flickerB = 0.35 + 0.3 * Math.sin(t * 3.3 + 1.7);
-    g.fillStyle(PALETTE.n2, 0.95).fillRect(28, 27, 21, 12);
-    g.fillStyle(PALETTE.g3, flickerA).fillRect(30, 29, 17, 7);
-    g.fillStyle(PALETTE.g5, flickerA * 0.45).fillRect(32, 31, 11, 1);
-    g.fillStyle(PALETTE.n2, 0.95).fillRect(264, 29, 25, 13);
-    g.fillStyle(PALETTE.r3, flickerB).fillRect(267, 31, 19, 8);
-    g.fillStyle(PALETTE.r4, flickerB * 0.4).fillRect(269, 33, 12, 1);
-    lights.push({ x: 38, y: 33, r: DARK.panelR * 0.8, tint: PALETTE.g3 });
-    lights.push({ x: 276, y: 35, r: DARK.panelR * 0.85, tint: PALETTE.r3 });
+    const ax = mx(28), ay = my(27), bx = mx(264), by = my(29);
+    g.fillStyle(PALETTE.n2, 0.95).fillRect(ax, ay, 21, 12);
+    g.fillStyle(PALETTE.g3, flickerA).fillRect(ax + 2, ay + 2, 17, 7);
+    g.fillStyle(PALETTE.g5, flickerA * 0.45).fillRect(ax + 4, ay + 4, 11, 1);
+    g.fillStyle(PALETTE.n2, 0.95).fillRect(bx, by, 25, 13);
+    g.fillStyle(PALETTE.r3, flickerB).fillRect(bx + 3, by + 2, 19, 8);
+    g.fillStyle(PALETTE.r4, flickerB * 0.4).fillRect(bx + 5, by + 4, 12, 1);
+    lights.push({ x: ax + 10, y: ay + 6, r: DARK.panelR * 0.8, tint: PALETTE.g3 });
+    lights.push({ x: bx + 12, y: by + 6, r: DARK.panelR * 0.85, tint: PALETTE.r3 });
     // Faint green glow at some root tips so the roots read in the dark.
     for (const i of [3, 4, 5, 8, 10, 11]) {
       const r = this.roots[i];

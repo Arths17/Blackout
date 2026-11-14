@@ -50,7 +50,7 @@ export const PALETTE = {
 };
 
 // The game renders at VIEW.w x VIEW.h and is scaled up by a whole number. The sim stays in world units.
-export const VIEW = { w: 320, h: 180, s: 3.6 }; // s = world px per screen px
+export const VIEW = { w: 384, h: 216, s: 3.0 }; // s = world px per screen px
 
 export const DARK = {
   cell: 2, // darkness is painted in flat 2 px cells
@@ -101,6 +101,14 @@ export const CFG = {
   bounceEvery: 2, // every Nth creature hit on the player sends them bouncing
   bounceSpeed: 520,
   bounceSeconds: 4.0,
+  parryWindow: 0.3, // seconds after pressing Shift that a touch from the boss is blocked
+  parryCooldown: 0.75, // whiffing costs you this long before the next try
+  parryStreakSeconds: 6, // a parry streak lapses if the next one takes longer than this
+  parriesForSuper: 2,
+  superSpeed: 640,
+  superSeconds: 5,
+  superRadius: 34, // reach of the super bounce, against bounce's own playerRadius
+  superShocks: 3, // shocks a super bounce deals to the boss
   bounceHitGrace: 1.0, // immunity after a bounce hits the creature, so the player can get away
   shotBounces: 3, // wall contacts on a shot fired from the player's body
   shotLead: 48, // px the shot starts ahead of the body so it can't hit the shooter on frame one
@@ -138,3 +146,24 @@ export const OBBY = {
   fallY: 230, // below this you respawn at the last checkpoint
   maxFall: 420,
 };
+
+// Boss fight difficulty per level. Stalk stays well under playerSpeed so there is always a gap to open.
+export const BOSS_LEVELS = [
+  { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20 },
+  { name: 'THE GNARLED DEEP', stalk: 139, windup: 0.92, lunge: 560, lungeMax: 400, recoil: 0.46, shocks: 5, radius: 21 },
+  { name: 'THE ROTTING GROVE', stalk: 148, windup: 0.84, lunge: 600, lungeMax: 420, recoil: 0.42, shocks: 6, radius: 22 },
+  { name: 'THE STRANGLING ROOTS', stalk: 157, windup: 0.76, lunge: 640, lungeMax: 440, recoil: 0.38, shocks: 6, radius: 23 },
+  { name: 'THE ELDER CANOPY', stalk: 166, windup: 0.7, lunge: 680, lungeMax: 460, recoil: 0.35, shocks: 7, radius: 25 },
+  { name: 'THE HEART OF THE WOOD', stalk: 174, windup: 0.64, lunge: 720, lungeMax: 480, recoil: 0.32, shocks: 7, radius: 27 },
+];
+
+export function applyBossLevel(i: number): void {
+  const b = BOSS_LEVELS[Math.max(0, Math.min(BOSS_LEVELS.length - 1, i))];
+  CFG.creatureStalkSpeed = b.stalk;
+  CFG.windup = b.windup;
+  CFG.lungeSpeed = b.lunge;
+  CFG.lungeMaxDist = b.lungeMax;
+  CFG.recoil = b.recoil;
+  CFG.shocksToWin = b.shocks;
+  CFG.creatureRadius = b.radius;
+}

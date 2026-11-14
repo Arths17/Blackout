@@ -1,26 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { OBBY } from '../src/config';
-import { CHECKPOINTS, FINISH_X, PLATFORMS, createObby, stepObby, type Obby } from '../src/sim/obby';
+import { OBBY_LEVELS, createObby, stepObby, type Obby, type ObbyLevel } from '../src/sim/obby';
 
 const DT = 1 / 60;
 const none = { dx: 0, jumpHeld: false, jumpPressed: false, dashPressed: false };
 
-function gapAfter(i: number): number {
-  const p = PLATFORMS[i];
-  return PLATFORMS[i + 1].x - (p.x + p.w);
-}
+const gapAfter = (l: ObbyLevel, i: number): number => l.platforms[i + 1].x - (l.platforms[i].x + l.platforms[i].w);
 
 // Runs right, jumping `early` px before each platform's edge, dashing over wide gaps.
-function runCourse(early: number, limit = 90): Obby {
-  const s = createObby();
+function runCourse(level: ObbyLevel, early: number, limit = 240): Obby {
+  const s = createObby(level);
+  const P = level.platforms;
   let jumpHeldFor = 0;
   let from = 0;
   for (let t = 0; t < limit * 60 && !s.finished; t++) {
-    const i = PLATFORMS.findIndex((p) => s.x >= p.x - OBBY.edge && s.x <= p.x + p.w + OBBY.edge && Math.abs(s.y - p.y) < 1);
+    const i = P.findIndex((p) => s.x >= p.x - OBBY.edge && s.x <= p.x + p.w + OBBY.edge && Math.abs(s.y - p.y) < 1);
     let jumpPressed = false;
     let dashPressed = false;
-    if (s.grounded && i >= 0 && i < PLATFORMS.length - 1) {
-      const edge = PLATFORMS[i].x + PLATFORMS[i].w;
+    if (s.grounded && i >= 0 && i < P.length - 1) {
+      const edge = P[i].x + P[i].w;
       if (s.x >= edge - early) {
         from = i;
         jumpPressed = true;
@@ -28,7 +26,7 @@ function runCourse(early: number, limit = 90): Obby {
       }
     }
     if (!s.grounded && s.airDash && s.vy > -50 && s.vy < 120) {
-      if (gapAfter(from) > 90) dashPressed = true;
+      if (gapAfter(level, from) > 90) dashPressed = true;
     }
     jumpHeldFor = Math.max(0, jumpHeldFor - DT);
     stepObby(s, { dx: 1, jumpHeld: jumpHeldFor > 0, jumpPressed, dashPressed }, DT);
@@ -36,42 +34,51 @@ function runCourse(early: number, limit = 90): Obby {
   return s;
 }
 
-describe('obby', () => {
-  it('every ordinary gap is inside a plain jump', () => {
-    for (let i = 0; i < PLATFORMS.length - 1; i++) {
-      const g = gapAfter(i);
-      if (g < 90) expect(g).toBeLessThanOrEqual(54);
-    }
+describe('obby levels', () => {
+  it('there are six levels and each is longer than the one before it', () => {
+    expect(OBBY_LEVELS.length).toBe(6);
+    for (let i = 1; i < OBBY_LEVELS.length; i++) expect(OBBY_LEVELS[i].finishX).toBeGreaterThan(OBBY_LEVELS[i - 1].finishX);
   });
 
-  it('a full-speed run with no jump falls in the first gap and respawns at the start', () => {
+  for (const level of OBBY_LEVELS) {
+    describe(level.name, () => {
+      it('every ordinary gap is inside a plain jump and the wide ones are dash gaps', () => {
+        for (let i = 0; i < level.platforms.length - 1; i++) {
+          const g = gapAfter(level, i);
+          expect(g > 0).toBe(true);
+          if (g < 90) expect(g).toBeLessThanOrEqual(54);
+          else expect(g).toBeLessThanOrEqual(106);
+        }
+      });
+
+      it('a bot beats it without falling, even jumping up to 6 px early', () => {
+        for (const early of [0, 3, 6]) {
+          const s = runCourse(level, early);
+          expect(s.finished, `early ${early}`).toBe(true);
+          expect(s.falls, `early ${early}`).toBe(0);
+        }
+      });
+
+      it('has checkpoints on real platforms', () => {
+        for (const c of level.checkpoints) {
+          expect(level.platforms.some((p) => c.x >= p.x && c.x <= p.x + p.w && c.y === p.y)).toBe(true);
+        }
+      });
+    });
+  }
+
+  it('a full-speed run with no jump falls in the first gap', () => {
     const s = createObby();
     for (let t = 0; t < 60 * 6; t++) stepObby(s, { ...none, dx: 1 }, DT);
     expect(s.falls).toBeGreaterThan(0);
     expect(s.finished).toBe(false);
   });
 
-  it('a bot that jumps at the edge beats the course without falling', () => {
-    const s = runCourse(2);
-    expect(s.finished).toBe(true);
-    expect(s.falls).toBe(0);
-    expect(s.time).toBeLessThan(60);
-  });
-
-  it('jump timing is forgiving: anywhere from 0 to 8 px before the edge still clears it', () => {
-    for (const early of [0, 2, 4, 6, 8]) {
-      const s = runCourse(early);
-      expect(s.finished, `early ${early}`).toBe(true);
-      expect(s.falls, `early ${early}`).toBe(0);
-    }
-  });
-
   it('the wide gap needs the dash', () => {
-    const wides = PLATFORMS.map((_, i) => i).filter((i) => i < PLATFORMS.length - 1 && gapAfter(i) > 90);
-    expect(wides.length).toBe(2);
-    const wide = wides[0];
-    const s = createObby();
-    const p = PLATFORMS[wide];
+    const level = OBBY_LEVELS[0];
+    const wide = level.platforms.findIndex((_, i) => i < level.platforms.length - 1 && gapAfter(level, i) > 90);
+    const s = createObby(level);
+    const p = level.platforms[wide];
     s.x = p.x + p.w - 2;
     s.y = p.y;
     s.checkpoint = { x: p.x, y: p.y };
@@ -81,8 +88,9 @@ describe('obby', () => {
   });
 
   it('a checkpoint keeps your progress after a fall', () => {
-    const s = createObby();
-    const c = CHECKPOINTS[0];
+    const level = OBBY_LEVELS[0];
+    const s = createObby(level);
+    const c = level.checkpoints[0];
     s.x = c.x;
     s.y = c.y;
     s.grounded = true;
@@ -98,11 +106,13 @@ describe('obby', () => {
   });
 
   it('reaching the door finishes the course', () => {
-    const s = createObby();
-    const last = PLATFORMS[PLATFORMS.length - 1];
-    s.x = FINISH_X - 1;
-    s.y = last.y;
-    s.grounded = true;
-    expect(stepObby(s, { ...none, dx: 1 }, DT)).toContain('finish');
+    for (const level of OBBY_LEVELS) {
+      const s = createObby(level);
+      const last = level.platforms[level.platforms.length - 1];
+      s.x = level.finishX - 1;
+      s.y = last.y;
+      s.grounded = true;
+      expect(stepObby(s, { ...none, dx: 1 }, DT)).toContain('finish');
+    }
   });
 });

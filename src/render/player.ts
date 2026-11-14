@@ -44,16 +44,22 @@ export class PlayerView {
         this.ball.fillStyle(PALETTE.w, 1).fillRect(Math.round(x + Math.cos(a) * 12), Math.round(cy + Math.sin(a) * 12), 1, 1);
       }
     }
+    if (w.parryLeft > 0 && !w.bounce) {
+      const k = w.parryLeft / CFG.parryWindow;
+      this.ball.lineStyle(2, PALETTE.w, 0.9).strokeCircle(x, y - 7, 10 + (1 - k) * 4);
+      this.ball.lineStyle(1, PALETTE.c1, 0.6).strokeCircle(x, y - 7, 14 + (1 - k) * 4);
+    }
     if (w.bounce) {
       this.spr.setVisible(false);
-      const pulse = 5 + Math.sin(t * 18) * 1.2;
+      const big = w.bounce.super ? 1.9 : 1;
+      const pulse = (5 + Math.sin(t * 18) * 1.2) * big;
       const b = w.bounce;
       const sp = Math.hypot(b.vx, b.vy) || 1;
       for (let i = 4; i >= 1; i--) {
-        this.ball.fillStyle(PALETTE.c2, 0.12 * (5 - i)).fillCircle(x - (b.vx / sp) * i * 5, y - (b.vy / sp) * i * 5, pulse - i * 0.6);
+        this.ball.fillStyle(w.bounce.super ? PALETTE.warm : PALETTE.c2, 0.12 * (5 - i)).fillCircle(x - (b.vx / sp) * i * 5 * big, y - (b.vy / sp) * i * 5 * big, pulse - i * 0.6);
       }
-      this.ball.fillStyle(PALETTE.c2, 0.35).fillCircle(x, y, pulse + 3);
-      this.ball.fillStyle(PALETTE.c1, 1).fillCircle(x, y, pulse);
+      this.ball.fillStyle(w.bounce.super ? PALETTE.warm : PALETTE.c2, 0.35).fillCircle(x, y, pulse + 3);
+      this.ball.fillStyle(w.bounce.super ? PALETTE.warm2 : PALETTE.c1, 1).fillCircle(x, y, pulse);
       this.ball.fillStyle(PALETTE.w, 1).fillCircle(x - 1, y - 1, 2);
       this.shadow.setPosition(x, y - 1);
       return;

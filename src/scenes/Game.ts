@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
-import { CFG, DARK, LURES, PALETTE, VIEW, VIS } from '../config';
+import { BOSS_LEVELS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyBossLevel } from '../config';
+import { progress } from '../progress';
 import { createWorld, stepWorld, interact, tryInteract, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
 import { Atmosphere } from '../render/atmosphere';
 import { Entrance } from '../render/entrance';
+import { Foliage } from '../render/foliage';
 import { ExitCue } from '../render/exitcue';
 import { Dust, Fx } from '../render/fx';
 import { Hud } from '../render/hud';
@@ -24,6 +26,7 @@ export class Game extends Phaser.Scene {
   private hitStop = 0;
   private slow = 1;
   private pendingInteract = false;
+  private pendingParry = false;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private room!: Room;
   private breakers!: Breakers;
@@ -34,6 +37,7 @@ export class Game extends Phaser.Scene {
   private dark!: Darkness;
   private atmosphere!: Atmosphere;
   private entrance!: Entrance;
+  private foliage!: Foliage;
   private exitCue!: ExitCue;
   private title!: Phaser.GameObjects.BitmapText;
   private titleRule!: Phaser.GameObjects.Rectangle;
@@ -60,6 +64,7 @@ export class Game extends Phaser.Scene {
   create(): void {
     // Dev flags: ?lure=early|hit|late replays a Quick bank shot, ?slow=0.25 slows the sim, ?freeze=1.8 stops it at that time.
     const q = new URLSearchParams(window.location.search);
+    applyBossLevel(progress.level);
     this.slow = Number(q.get('slow') ?? 1) || 1;
     this.freezeAt = Number(q.get('freeze') ?? -1);
     const lure = q.get('lure');
@@ -73,6 +78,7 @@ export class Game extends Phaser.Scene {
     this.acc = 0;
     this.hitStop = 0;
     this.pendingInteract = false;
+    this.pendingParry = false;
     this.flashUntil = 0;
     this.flashStrongUntil = 0;
     this.lit = false;
@@ -90,6 +96,7 @@ export class Game extends Phaser.Scene {
     this.creatureView = new CreatureView(this);
     this.atmosphere = new Atmosphere(this);
     this.entrance = new Entrance(this);
+    this.foliage = new Foliage(this);
     this.exitCue = new ExitCue(this);
     this.vinesPlayed = false;
     this.fx = new Fx(this);
@@ -100,21 +107,25 @@ export class Game extends Phaser.Scene {
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(DARK.grainAlpha);
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
     this.hud = new Hud(this, () => undefined);
-    this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', 'THE HOLLOW TREE', 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
+    this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', BOSS_LEVELS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
 
     const kb = this.input.keyboard!;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT') as Record<string, Phaser.Input.Keyboard.Key>;
     kb.on('keydown', () => this.hud.closeControls());
     kb.on('keydown-R', () => this.scene.restart());
     const press = () => {
       if (this.w.phase === 'lost' || this.w.phase === 'escaped') this.scene.restart();
       else this.pendingInteract = true;
     };
+    kb.on('keydown-SHIFT', () => (this.pendingParry = true));
     kb.on('keydown-E', press);
     kb.on('keydown-SPACE', press);
     kb.on('keydown-ENTER', () => {
-      if (this.w.phase === 'escaped') this.scene.start('Obby');
+      if (this.w.phase === 'escaped') {
+        progress.level = (progress.level + 1) % BOSS_LEVELS.length;
+        this.scene.start('Obby');
+      }
       else if (this.w.phase === 'lost') this.scene.restart();
     });
   }
@@ -163,6 +174,30 @@ export class Game extends Phaser.Scene {
         play('bounce_wall');
         this.fx.burst(e.x, e.y, 6);
         cam.shake(VIS.bounceShake.ms, VIS.bounceShake.amp);
+        break;
+      case 'parryStart':
+        play('parry_swing');
+        break;
+      case 'parry':
+        play('parry');
+        this.hitStop = VIS.hitStop;
+        this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 0.9;
+        this.fx.burst(this.w.player.x, this.w.player.y, 14);
+        cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
+        break;
+      case 'superStart':
+        play('super_launch');
+        cam.flash(200, 255, 240, 200);
+        cam.shake(260, 0.01);
+        break;
+      case 'superHit':
+        play('bounce_hit');
+        play('surge_crack');
+        this.hitStop = VIS.hitStop * 2;
+        this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 2;
+        this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 1.4;
+        this.fx.burst(this.w.creature.x, this.w.creature.y, 40);
+        cam.shake(380, 0.014);
         break;
       case 'bounceHit':
         play('bounce_hit');
@@ -227,7 +262,8 @@ export class Game extends Phaser.Scene {
       this.autoFireAt = -1;
       tryInteract(w);
     }
-    stepWorld(w, { dx, dy }, STEP);
+    stepWorld(w, { dx, dy, parry: this.pendingParry }, STEP);
+    this.pendingParry = false;
   }
 
   private render(dt: number): void {
@@ -257,6 +293,7 @@ export class Game extends Phaser.Scene {
       this.cameras.main.shake(120, 0.0015);
     }
     this.dust.update(dt);
+    this.foliage.update(dt);
 
     const pl = { x: px(w.player.x), y: px(w.player.y) };
     const lights: Light[] = [{ ...pl, r: DARK.playerHalo, shadows: true }];

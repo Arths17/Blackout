@@ -1,18 +1,13 @@
 import Phaser from 'phaser';
-import { EXIT, PALETTE, ROOM, VIEW } from '../config';
+import { EXIT, PALETTE, VIEW } from '../config';
 import { ROUTES } from '../sim/routes';
 import { DEPTH } from './layers';
 import type { Light } from './darkness';
 import { panelPos } from './panels';
 import { atlasOf, px } from './pixel';
+import { FLOOR, mx, my } from './layout';
 
-// Floor and wall bounds in screen px. They follow the sim's room rectangle (ROOM / VIEW.s) to within a pixel.
-export const FLOOR = {
-  x0: Math.floor(px(ROOM.x)),
-  y0: Math.ceil(px(ROOM.y)),
-  x1: Math.ceil(px(ROOM.x + ROOM.w)),
-  y1: Math.ceil(px(ROOM.y + ROOM.h)),
-};
+export { FLOOR };
 
 const hash = (a: number, b: number): number => {
   let h = Math.imul(a * 374761393 + b * 668265263, 1274126177) >>> 0;
@@ -91,8 +86,10 @@ export class Room {
     for (const c of [13, 14, 15, 16]) set(c, 8, T.grate[c % 2]);
     for (const c of [4, 5, 6]) set(c, 2, T.grate[0]);
     set(0, 7, T.blood); set(0, 8, T.wet); set(7, 4, T.blood); set(9, 5, T.wet); set(10, 1, T.crack[0]); set(3, 5, T.crack[1]);
-    for (let r = 0; r < 11; r++) {
-      for (let c = 0; c < 19; c++) {
+    const rows = Math.ceil((FLOOR.y1 - FLOOR.y0) / 16);
+    const cols = Math.ceil((FLOOR.x1 - FLOOR.x0) / 16);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
         const x = FLOOR.x0 + c * 16;
         const y = FLOOR.y0 + r * 16;
         const s = special.get(`${c},${r}`);
@@ -144,16 +141,16 @@ export class Room {
       decals.push([D.drag[i % 2], Math.round(from.x + (to.x - from.x) * t) - 8, Math.round(from.y + (to.y - from.y) * t) - 8 + (i % 3) * 2, i % 3 === 0]);
     }
     decals.push(
-      [D.blood[0], from.x - 6, from.y - 12], [D.blood[1], from.x - 22, from.y - 4], [D.blood[2], 100, 140], [D.blood[0], 270, 118], [D.puddle, 120, 40], [D.puddle, 240, 112],
-      [D.slime, 268, 128], [D.debris[0], 70, 100], [D.debris[1], 170, 56], [D.debris[0], 250, 48], [D.debris[1], 50, 70], [D.paper, 80, 140],
-      [D.paper, 225, 96], [D.rustdrip, 136, 12], [D.rustdrip, 214, 12], [D.cable, 84, 150], [D.cable, 100, 150], [D.cable, 116, 152], [D.cable, 128, 152],
-      [D.cable, 270, 80], [D.blood[2], 44, 118],
+      [D.blood[0], from.x - 6, from.y - 12], [D.blood[1], from.x - 22, from.y - 4], [D.blood[2], mx(100), my(140)], [D.blood[0], mx(270), my(118)], [D.puddle, mx(120), my(40)], [D.puddle, mx(240), my(112)],
+      [D.slime, mx(268), my(128)], [D.debris[0], mx(70), my(100)], [D.debris[1], mx(170), my(56)], [D.debris[0], mx(250), my(48)], [D.debris[1], mx(50), my(70)], [D.paper, mx(80), my(140)],
+      [D.paper, mx(225), my(96)], [D.rustdrip, mx(136), 12], [D.rustdrip, mx(214), 12], [D.cable, mx(84), my(150)], [D.cable, mx(100), my(150)], [D.cable, mx(116), my(152)], [D.cable, mx(128), my(152)],
+      [D.cable, mx(270), my(80)], [D.blood[2], mx(44), my(118)],
     );
     for (const [f, x, y, fl] of decals) blit('decals', f, x, y, fl);
     // drain and skull sit on the floor, so they are baked in too
     const P = A.props;
-    blit('props', P.drain, 162 - 16, 92 - 16);
-    blit('props', P.skull, 104 - 16, 156 - 20);
+    blit('props', P.drain, mx(162) - 16, my(92) - 16);
+    blit('props', P.skull, mx(104) - 16, my(156) - 20);
     tex.refresh();
     this.scene.add.image(0, 0, 'room').setOrigin(0, 0).setDepth(DEPTH.room);
   }
@@ -161,17 +158,17 @@ export class Room {
   private props(): void {
     const P = atlasOf(this.scene).sheets.props;
     const list: PropPlacement[] = [
-      { frame: P.crate_a, x: 36, y: 152, feet: 29, fw: 22, fh: 11 },
-      { frame: P.crate_b, x: 31, y: 136, feet: 29, fw: 14, fh: 8 },
-      { frame: P.toolchest, x: 94, y: 166, feet: 26, fw: 16, fh: 7 },
-      { frame: P.generator, x: 283, y: 164, feet: 28, fw: 26, fh: 10 },
-      { frame: P.barrel, x: 276, y: 138, feet: 27, fw: 10, fh: 6 },
-      { frame: P.barrel_toxic, x: 289, y: 134, feet: 27, fw: 10, fh: 6 },
-      { frame: P.barrel, x: 288, y: 44, feet: 27, fw: 10, fh: 6 },
-      { frame: P.locker, x: 36, y: 40, feet: 28, fw: 12, fh: 8 },
-      { frame: P.locker, x: 50, y: 40, feet: 28, fw: 12, fh: 8 },
-      { frame: P.bench, x: 96, y: 38, feet: 27, fw: 26, fh: 8 },
-      { frame: P.barrel_toxic, x: 290, y: 112, feet: 27, fw: 10, fh: 6 },
+      { frame: P.crate_a, x: mx(36), y: my(152), feet: 29, fw: 22, fh: 11 },
+      { frame: P.crate_b, x: mx(31), y: my(136), feet: 29, fw: 14, fh: 8 },
+      { frame: P.toolchest, x: mx(94), y: my(166), feet: 26, fw: 16, fh: 7 },
+      { frame: P.generator, x: mx(283), y: my(164), feet: 28, fw: 26, fh: 10 },
+      { frame: P.barrel, x: mx(276), y: my(138), feet: 27, fw: 10, fh: 6 },
+      { frame: P.barrel_toxic, x: mx(289), y: my(134), feet: 27, fw: 10, fh: 6 },
+      { frame: P.barrel, x: mx(288), y: my(44), feet: 27, fw: 10, fh: 6 },
+      { frame: P.locker, x: mx(36), y: my(40), feet: 28, fw: 12, fh: 8 },
+      { frame: P.locker, x: mx(50), y: my(40), feet: 28, fw: 12, fh: 8 },
+      { frame: P.bench, x: mx(96), y: my(38), feet: 27, fw: 26, fh: 8 },
+      { frame: P.barrel_toxic, x: mx(290), y: my(112), feet: 27, fw: 10, fh: 6 },
     ];
     for (const p of list) this.blockers.push({ x0: p.x - p.fw / 2, y0: p.y - p.fh, x1: p.x + p.fw / 2, y1: p.y });
     for (const p of list) {
@@ -179,7 +176,7 @@ export class Room {
       this.scene.add.image(p.x, p.y, 'shadow', 1).setOrigin(0.5, 0.2).setScale(1).setDepth(DEPTH.shadow).setAlpha(0.7);
     }
     // two dead wall lamps; one of them stutters red
-    for (const [x, seed] of [[125, 1], [196, 2]] as const) {
+    for (const [x, seed] of [[mx(125), 1], [mx(196), 2]] as const) {
       const spr = this.scene.add.sprite(x, 7, 'props', P.lamp_dead).setOrigin(0.5, 15 / 32).setDepth(DEPTH.y + 8);
       this.lamps.push({ spr, x, y: 7, seed });
     }

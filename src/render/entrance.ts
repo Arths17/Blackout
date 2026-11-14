@@ -2,9 +2,10 @@ import Phaser from 'phaser';
 import { PALETTE } from '../config';
 import type { Light } from './darkness';
 import { DEPTH } from './layers';
+import { FLOOR, my } from './layout';
 
 // The door the player came in through, in the left wall. Vines grow over it once the fight starts.
-const DOOR = { x: 3, y: 121, w: 16, h: 32 };
+const DOOR = { x: FLOOR.x0 - 18, y: my(121), w: 16, h: 32 };
 const START = 0.4; // sim seconds before the vines start
 const GROW = 2.4; // seconds for the last vine to finish
 

@@ -13,7 +13,8 @@ registerHooks({
     return next(specifier, context);
   },
 });
-const { CFG, ROOM } = await import('../src/config.ts');
+const { CFG, ROOM, applyBossLevel } = await import('../src/config.ts');
+applyBossLevel(Number(process.env.LEVEL ?? 0));
 const { createWorld, stepWorld, interact: press, tryInteract } = await import('../src/sim/game.ts');
 const { ROUTES } = await import('../src/sim/routes.ts');
 const { distToSegment } = await import('../src/sim/surge.ts');
