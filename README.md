@@ -6,7 +6,7 @@ Each generator's path is always drawn on the floor. When the creature crosses on
 
 ## Controls
 
-There are five boss fights in a row, and the boss gets faster, bigger and tougher each time. Its health shows as a bar over its head. The boss starts in the top-right corner guarding the exit, and the first boss freezes while your surge is travelling. From the second fight on it starts attacking by itself: timed lunges, then bouncing seeds in a fan, and it speeds up when badly hurt. After each boss you open a chest: the faster you killed it, the more coins you get, and it holds a piece of the story of the Thornwood Clan, trees the Rot infected, that you have to kill to get home. After the fifth boss a results screen shows your total time and coins.
+There are five boss fights in a row, and the boss gets faster, bigger and tougher each time. Its health shows as a bar over its head. The boss starts in the top-right corner guarding the exit, and the first boss freezes while your surge is travelling. The other bosses only wind up and lunge at a generator about half the time, chosen at random each shot. From the second fight on it starts attacking by itself: timed lunges, then bouncing seeds in a fan, and it speeds up when badly hurt. After each boss you open a chest: the faster you killed it, the more coins you get, and it holds a piece of the story of the Thornwood Clan, trees the Rot infected, that you have to kill to get home. After the fifth boss a results screen shows your total time and coins.
 
 - WASD or arrow keys: move.
 - 1, 2 or 3: fire that generator from where it stands. You can be anywhere in the room.

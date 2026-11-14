@@ -336,6 +336,7 @@ describe('boss levels', () => {
     expect(CFG.freezeOnFire).toBe(false);
     applyBossLevel(0);
     CFG.freezeOnFire = false;
+    CFG.reactChance = 1;
   });
 });
 
@@ -343,7 +344,7 @@ describe('boss attacks', () => {
   const far = { player: { x: 300, y: 300 }, creature: { x: 800, y: 300 }, asleep: false };
   const withLevel = (i: number, fn: () => void) => {
     applyBossLevel(i);
-    try { fn(); } finally { applyBossLevel(0); CFG.freezeOnFire = false; }
+    try { fn(); } finally { applyBossLevel(0); CFG.freezeOnFire = false; CFG.reactChance = 1; }
   };
 
   it('level 1 never attacks on its own', () => {
@@ -472,6 +473,7 @@ describe('boss 1 freeze', () => {
 
   it('later bosses still wind up and lunge toward the generator', () => {
     applyBossLevel(1);
+    CFG.reactChance = 1;
     try {
       const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 800, y: 300 }, asleep: false });
       expect(fire(w, 0)).toBe('ok');
@@ -479,6 +481,7 @@ describe('boss 1 freeze', () => {
     } finally {
       applyBossLevel(0);
       CFG.freezeOnFire = false;
+      CFG.reactChance = 1;
     }
   });
 });
@@ -531,5 +534,44 @@ describe('parry pushback', () => {
     stepWorld(w, { dx: 0, dy: 0, parry: true }, DT);
     for (let i = 0; i < 40; i++) stepWorld(w, { dx: 0, dy: 0 }, DT);
     expect(w.player.x).toBeGreaterThan(px0 + 30);
+  });
+});
+
+describe('the boss does not answer every shot', () => {
+  const reacts = (seed: number): boolean => {
+    const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 800, y: 300 }, asleep: false, seed });
+    fire(w, 0);
+    return w.creature.state === 'windup';
+  };
+
+  it('with a 50% chance it lunges at some shots and ignores others', () => {
+    applyBossLevel(1);
+    try {
+      let yes = 0;
+      const n = 400;
+      for (let s = 1; s <= n; s++) if (reacts(s * 7919)) yes++;
+      expect(yes).toBeGreaterThan(n * 0.38);
+      expect(yes).toBeLessThan(n * 0.62);
+    } finally {
+      applyBossLevel(0);
+      CFG.freezeOnFire = false;
+      CFG.reactChance = 1;
+    }
+  });
+
+  it('a shot the boss ignores still fires normally and the boss keeps stalking', () => {
+    CFG.reactChance = 0;
+    try {
+      const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 800, y: 300 }, asleep: false });
+      expect(fire(w, 0)).toBe('ok');
+      expect(w.surge).not.toBeNull();
+      expect(w.creature.state).toBe('stalk');
+    } finally {
+      CFG.reactChance = 1;
+    }
+  });
+
+  it('every level uses the same 50% reaction chance', () => {
+    expect(BOSS_LEVELS.map((b) => b.react)).toEqual([0.5, 0.5, 0.5, 0.5, 0.5]);
   });
 });

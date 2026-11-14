@@ -84,6 +84,7 @@ export interface WorldOpts {
   player?: Vec;
   creature?: Vec;
   asleep?: boolean;
+  seed?: number; // for the dice rolls; the game passes a random one, tests keep the default
 }
 
 export function createWorld(opts: WorldOpts = {}): World {
@@ -107,7 +108,7 @@ export function createWorld(opts: WorldOpts = {}): World {
     grace: 0,
     endTime: 0,
     listeners: [],
-    rng: 12345,
+    rng: opts.seed ?? 12345,
     shots: [],
     nextLunge: CFG.introSeconds + CFG.autoLungeEvery,
     nextShot: CFG.introSeconds + CFG.bossShotEvery,
@@ -153,8 +154,9 @@ function startFire(w: World, route: Route, breaker: number): FireResult {
   }
   w.creature.asleep = false;
   // Click, windup and surge all start on this one call so their timing can't drift apart.
+  // The boss doesn't answer every shot: each one is a coin flip (boss 1 always freezes instead).
   if (CFG.freezeOnFire) freezeCreature(w.creature, route.total / CFG.surgeSpeed + 0.4);
-  else startWindup(w.creature, route.switchPos, currentWindup(w));
+  else if (CFG.reactChance >= 1 || roll(w) < CFG.reactChance) startWindup(w.creature, route.switchPos, currentWindup(w));
   w.surge = makeSurge(route);
   emit(w, { type: 'relayClick', breaker });
   return 'ok';

@@ -116,6 +116,7 @@ export const CFG = {
   dashSeconds: 0.1,
   dashCooldown: 0.9,
   freezeOnFire: false, // set per level: boss 1 stands still while a surge is live
+  reactChance: 1, // chance the boss winds up and lunges at a generator when it fires; set per level
   superSpeed: 640,
   superSeconds: 5,
   superRadius: 34, // reach of the super bounce, against bounce's own playerRadius
@@ -150,11 +151,11 @@ export const CFG = {
 // lungeEvery / shotEvery are seconds between the boss's own attacks (0 = never); enrage speeds the
 // boss up once it is down to its last 40% of health.
 export const BOSS_LEVELS = [
-  { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20, lungeEvery: 0, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1, freeze: true },
-  { name: 'THE GNARLED DEEP', stalk: 140, windup: 0.92, lunge: 560, lungeMax: 410, recoil: 0.46, shocks: 5, radius: 21, lungeEvery: 9, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1, freeze: false },
-  { name: 'THE ROTTING GROVE', stalk: 150, windup: 0.84, lunge: 610, lungeMax: 430, recoil: 0.42, shocks: 6, radius: 23, lungeEvery: 7.5, shotEvery: 9.5, shots: 1, shotSpeed: 350, enrage: 1.05, freeze: false },
-  { name: 'THE STRANGLING ROOTS', stalk: 158, windup: 0.78, lunge: 650, lungeMax: 455, recoil: 0.38, shocks: 6, radius: 25, lungeEvery: 6.5, shotEvery: 8.5, shots: 2, shotSpeed: 390, enrage: 1.08, freeze: false },
-  { name: 'THE ELDER CANOPY', stalk: 174, windup: 0.64, lunge: 760, lungeMax: 520, recoil: 0.3, shocks: 8, radius: 28, lungeEvery: 4.2, shotEvery: 5.5, shots: 3, shotSpeed: 460, enrage: 1.15, freeze: false },
+  { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20, lungeEvery: 0, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1, freeze: true, react: 0.5 },
+  { name: 'THE GNARLED DEEP', stalk: 140, windup: 0.92, lunge: 560, lungeMax: 410, recoil: 0.46, shocks: 5, radius: 21, lungeEvery: 9, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1, freeze: false, react: 0.5 },
+  { name: 'THE ROTTING GROVE', stalk: 150, windup: 0.84, lunge: 610, lungeMax: 430, recoil: 0.42, shocks: 6, radius: 23, lungeEvery: 7.5, shotEvery: 9.5, shots: 1, shotSpeed: 350, enrage: 1.05, freeze: false, react: 0.5 },
+  { name: 'THE STRANGLING ROOTS', stalk: 158, windup: 0.78, lunge: 650, lungeMax: 455, recoil: 0.38, shocks: 6, radius: 25, lungeEvery: 6.5, shotEvery: 8.5, shots: 2, shotSpeed: 390, enrage: 1.08, freeze: false, react: 0.5 },
+  { name: 'THE ELDER CANOPY', stalk: 174, windup: 0.64, lunge: 760, lungeMax: 520, recoil: 0.3, shocks: 8, radius: 28, lungeEvery: 4.2, shotEvery: 5.5, shots: 3, shotSpeed: 460, enrage: 1.15, freeze: false, react: 0.5 },
 ];
 
 export function applyBossLevel(i: number): void {
@@ -172,6 +173,7 @@ export function applyBossLevel(i: number): void {
   CFG.bossShotSpeed = b.shotSpeed;
   CFG.enrage = b.enrage;
   CFG.freezeOnFire = b.freeze;
+  CFG.reactChance = b.react;
 }
 
 // Coins from a chest depend on how fast the boss fell. At or under `fast` seconds is the maximum,

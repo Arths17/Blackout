@@ -77,7 +77,7 @@ export class Game extends Phaser.Scene {
     const lured = lure !== null && lure in LURES;
     this.w = lured
       ? createWorld({ creature: LURES[lure as keyof typeof LURES], player: ROUTES[0].switchPos, asleep: true })
-      : createWorld();
+      : createWorld({ seed: (Math.random() * 4294967296) >>> 0 });
     this.autoFireAt = lured ? 0.6 : -1;
     (window as unknown as { __blackout: World }).__blackout = this.w;
     this.w.listeners.push((e) => this.onEvent(e));
