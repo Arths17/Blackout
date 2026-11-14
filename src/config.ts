@@ -14,36 +14,62 @@ export const LURES = {
   late: { x: 880, y: 324 },
 };
 
-// Six working colors plus a few neutrals for steel and grime. Warm is only used once the lights come back.
+// Master palette, mirrored from tools/palette.json (tools/check_palette.py compares them).
+// Reds are the emergency strips and breaker lamps, cold white-blue is the surge; warm and warm2 only appear at the win.
 export const PALETTE = {
-  floor: 0x121a29,
-  wall: 0x1b2537,
-  strip: 0x9a2a22,
-  surge: 0xf4fbff,
-  creature: 0x9bd13a,
+  ink: 0x080b10,
+  n1: 0x10161f,
+  n2: 0x171f2c,
+  n3: 0x202b3b,
+  n4: 0x2e3b50,
+  n5: 0x43526b,
+  n6: 0x5f708b,
+  n7: 0x8394ad,
+  g1: 0x0f1a13,
+  g2: 0x1b2e20,
+  g3: 0x2b432c,
+  g4: 0x4c7340,
+  g5: 0xa6dc3c,
+  rust1: 0x241410,
+  rust2: 0x3d2217,
+  rust3: 0x5e3520,
+  rust4: 0x83502c,
+  r1: 0x2c0c0d,
+  r2: 0x561513,
+  r3: 0x8c2620,
+  r4: 0xd0402e,
+  r5: 0xf08a6a,
+  w: 0xeaf3ff,
+  c1: 0xb8d4ff,
+  c2: 0x6f9be0,
+  c3: 0x3c5f9e,
+  bone: 0xb4ab92,
+  bone2: 0x7d7662,
   warm: 0xffb14a,
-  ink: 0x05070b,
-  steel: 0x2b3650,
-  grime: 0x0a0d14,
-  stencil: 0x4a5870,
+  warm2: 0xffd98a,
+};
+
+// The game renders at VIEW.w x VIEW.h and is scaled up by a whole number. The sim stays in world units.
+export const VIEW = { w: 384, h: 216, s: 3 }; // s = world px per screen px
+
+export const DARK = {
+  cell: 2, // darkness is painted in flat 2 px cells
+  alpha: [0, 0.2, 0.42, 0.7], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
+  ambient: 3,
+  playerR: 46, // light radii in screen px
+  stripR: 14,
+  lampR: 34,
+  surgeR: 58,
+  panelR: 26,
 };
 
 export const VIS = {
-  font: '"Saira Stencil One", Impact, "Arial Narrow", sans-serif',
   hitStop: 0.07, // seconds the sim freezes on a counted shock
-  shockShake: { ms: 220, amp: 0.009 },
-  bounceShake: { ms: 70, amp: 0.002 },
-  hurtShake: { ms: 170, amp: 0.006 },
-  trailLen: 160, // px of surge trail behind the head
-  surgeHaloR: 80, // additive glow around the head; bigger = brighter blob
-  surgeHaloA: 0.28,
-  surgePoolR: 150, // how much dark the head clears
-  lampPoolR: 125,
-  lampHaloR: 60,
-  panelW: 104,
-  panelH: 72,
-  diagramScale: 0.09,
-  vignetteA: 0.78,
+  shockShake: { ms: 200, amp: 0.008 },
+  bounceShake: { ms: 60, amp: 0.003 },
+  hurtShake: { ms: 150, amp: 0.006 },
+  trailLen: 70, // screen px of jagged trail behind the surge head
+  flashMs: 120, // how long a surge flash keeps the whole room lit
 };
 
 export const CFG = {
@@ -78,6 +104,4 @@ export const CFG = {
   lampFade: 0.3,
   revealSeconds: 0.3,
 
-  darkness: 0.94, // higher = harder to see
-  playerLightRadius: 130,
 };
