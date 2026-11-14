@@ -1,7 +1,7 @@
 import { CFG, EXIT, FIRST_HIT_SPAWN, PLAYER_START, ROOM } from '../config';
 import { hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
-import { ROUTES, pointAt, type Route, type Vec } from './routes';
+import { ROUTES, dirAt, pointAt, type Route, type Vec } from './routes';
 import { makeSurge, stepSurge, type Surge } from './surge';
 
 export type SimEvent =
@@ -136,7 +136,7 @@ function isLost(w: World): boolean {
 }
 
 function registerShock(w: World, breaker: number): void {
-  hitCreature(w.creature);
+  hitCreature(w.creature, w.surge ? dirAt(w.surge.route, w.surge.dist) : { x: 0, y: 0 });
   // Offline breakers can't be fired, so counted is only false if a surge was injected by hand.
   const counted = breaker !== w.lastHitBreaker;
   if (counted) {

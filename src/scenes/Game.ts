@@ -91,8 +91,15 @@ export class Game extends Phaser.Scene {
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
     kb.on('keydown', () => this.hud.closeControls());
     kb.on('keydown-R', () => this.scene.restart());
-    kb.on('keydown-E', () => (this.pendingInteract = true));
-    kb.on('keydown-SPACE', () => (this.pendingInteract = true));
+    const press = () => {
+      if (this.w.phase === 'lost' || this.w.phase === 'escaped') this.scene.restart();
+      else this.pendingInteract = true;
+    };
+    kb.on('keydown-E', press);
+    kb.on('keydown-SPACE', press);
+    kb.on('keydown-ENTER', () => {
+      if (this.w.phase === 'lost' || this.w.phase === 'escaped') this.scene.restart();
+    });
   }
 
   private onEvent(e: SimEvent): void {

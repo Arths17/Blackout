@@ -93,6 +93,7 @@ export const CFG = {
   lungeSpeed: 520,
   lungeMaxDist: 380,
   recoil: 0.5, // shorter = harder
+  recoilKnock: 150, // px/s the creature is thrown back along the surge during recoil
 
   surgeSpeed: 650, // faster = harder to read
   surgeHitRadius: 24, // bigger = wider hit band, easier to land and to get hit

@@ -108,3 +108,13 @@ export function pathBetween(r: Route, d0: number, d1: number): Vec[] {
   out.push(pointAt(r, d1));
   return out;
 }
+
+// Unit direction of the leg the head is on at distance d.
+export function dirAt(r: Route, d: number): Vec {
+  let i = 0;
+  while (i < r.points.length - 2 && r.cum[i + 1] < d) i++;
+  const a = r.points[i];
+  const b = r.points[i + 1];
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+}

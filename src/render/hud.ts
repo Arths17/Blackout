@@ -8,6 +8,17 @@ import { atlasOf, px } from './pixel';
 // The controls window opens once per page load; restarting with R skips it.
 let controlsSeen = false;
 
+function bestTime(t: number): number {
+  try {
+    const old = Number(localStorage.getItem('blackout-best')) || Infinity;
+    const best = Math.min(old, t);
+    localStorage.setItem('blackout-best', String(best));
+    return best;
+  } catch {
+    return t;
+  }
+}
+
 export class Hud {
   private pips: Phaser.GameObjects.Image[] = [];
   private bolts: Phaser.GameObjects.Image[] = [];
@@ -27,6 +38,7 @@ export class Hud {
   private controlsCloseLabel: Phaser.GameObjects.BitmapText;
   private controlsOpen = !controlsSeen;
   private onClose: () => void;
+  private best = 0;
 
   constructor(private scene: Phaser.Scene, onControlsClose: () => void) {
     this.onClose = onControlsClose;
@@ -96,7 +108,11 @@ export class Hud {
     this.status.setText(status);
     let banner = '', sub = '';
     if (w.phase === 'won' && !inExit(w.player)) { banner = 'POWER RESTORED'; sub = 'EXIT OPEN'; }
-    else if (w.phase === 'escaped') { banner = 'OUT'; sub = `${w.endTime.toFixed(1)}S  RESTART [R]`; }
+    else if (w.phase === 'escaped') {
+      if (this.best === 0) this.best = bestTime(w.endTime);
+      banner = 'OUT';
+      sub = `${w.endTime.toFixed(1)}S  BEST ${this.best.toFixed(1)}S  [R]`;
+    }
     else if (w.phase === 'lost') { banner = 'BLACKED OUT'; sub = 'RESTART [R]'; }
     this.bar.setVisible(banner !== '');
     this.banner.setText(banner).setTint(w.phase === 'lost' ? PALETTE.n7 : PALETTE.warm);

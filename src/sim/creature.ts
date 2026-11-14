@@ -30,9 +30,11 @@ export function startWindup(c: Creature, target: Vec, windup: number): void {
   c.facing = Math.atan2(target.y - c.y, target.x - c.x);
 }
 
-export function hitCreature(c: Creature): void {
+export function hitCreature(c: Creature, dir: Vec): void {
   c.state = 'recoil';
   c.timer = CFG.recoil;
+  c.dirX = dir.x;
+  c.dirY = dir.y;
 }
 
 function clampToRoom(c: Creature): void {
@@ -82,6 +84,9 @@ export function stepCreature(c: Creature, dt: number, player: Vec): void {
       break;
     }
     case 'recoil': {
+      c.x += c.dirX * CFG.recoilKnock * dt;
+      c.y += c.dirY * CFG.recoilKnock * dt;
+      clampToRoom(c);
       c.timer -= dt;
       if (c.timer <= CFG.timerEpsilon) { c.timer = 0; c.state = 'stalk'; }
       break;
