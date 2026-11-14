@@ -4,11 +4,11 @@
 
 The power is out. You are in a maintenance room with a creature and three breakers. Each breaker sends a surge around the room. Lamps flash as it passes, giving you a brief look at what is moving in the dark.
 
-Lure the creature into the route, charge a breaker, hold it until the creature lines up, release, and get clear before the surge comes back. It can hurt you too. Five shocks restore power and open the exit. Made for the jam theme "Bounce Back".
+Lure the creature into the route, charge a breaker, hold it, aim by moving, fire when the creature lines up, and get clear before the surge comes back. It can hurt you too. Five shocks restore power and open the exit. Made for the jam theme "Bounce Back".
 
 ## Controls
 
-WASD or arrow keys to move. E or Space to charge a nearby breaker, then again to release it from anywhere. Every other hit from the creature bounces you around the room. R to restart. Click the game to focus it; the first key enables sound.
+WASD or arrow keys to move. E or Space to charge a nearby breaker, then again to fire it from your body in the direction you face. A bounce that hits the creature gives you a second of immunity. Every other hit from the creature bounces you around the room. R to restart. Click the game to focus it; the first key enables sound.
 
 ## How to win
 

@@ -1,7 +1,7 @@
 import { CFG, EXIT, FIRST_HIT_SPAWN, PLAYER_START, ROOM } from '../config';
 import { hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
-import { ROUTES, dirAt, pointAt, type Route, type Vec } from './routes';
+import { ROUTES, bodyRoute, dirAt, pointAt, type Route, type Vec } from './routes';
 import { distToSegment, makeSurge, stepSurge, type Surge } from './surge';
 
 export type SimEvent =
@@ -141,11 +141,12 @@ export function tryInteract(w: World): FireResult | 'none' {
   return best >= 0 ? fire(w, best) : 'none';
 }
 
-// First press at an online breaker charges it and the charge is held; the next press releases it from anywhere.
+// First press at an online breaker charges it and the charge is held; the next press shoots it from the player's body.
 export function interact(w: World): FireResult | 'charged' | 'none' {
   if (w.phase !== 'play') return 'over';
   if (w.charged >= 0) {
-    const result = fire(w, w.charged);
+    const route = bodyRoute({ x: w.player.x, y: w.player.y }, w.player.facing, w.charged, CFG.shotBounces, CFG.shotLead);
+    const result = startFire(w, route, w.charged);
     if (result === 'ok') w.charged = -1;
     return result;
   }
@@ -255,6 +256,7 @@ function stepBounce(w: World, b: Bounce, dt: number): void {
       w.shocks++;
       w.bounceLocked = true;
       w.bounce = null;
+      w.grace = Math.max(w.grace, CFG.bounceHitGrace);
       emit(w, { type: 'bounceHit' });
       if (w.shocks >= CFG.shocksToWin) {
         w.phase = 'won';
@@ -337,7 +339,10 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     const pos = lampPos(id, i);
     emit(w, { type: 'lampLit', breaker: id, lamp: i, x: pos.x, y: pos.y });
   }
-  for (const b of res.bounces) emit(w, { type: 'bounce', x: b.x, y: b.y });
+  for (const b of res.bounces) {
+    emit(w, { type: 'bounce', x: b.x, y: b.y });
+    w.revealUntil = w.time + CFG.revealSeconds;
+  }
   // Same-tick priority: the player's death beats a shock, even a fifth one.
   if (res.hitPlayer) damagePlayer(w);
   if (isLost(w)) return;

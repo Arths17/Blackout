@@ -14,7 +14,7 @@ registerHooks({
   },
 });
 const { CFG, ROOM } = await import('../src/config.ts');
-const { createWorld, stepWorld, interact: press, fire, tryInteract } = await import('../src/sim/game.ts');
+const { createWorld, stepWorld, interact: press, tryInteract } = await import('../src/sim/game.ts');
 const { ROUTES } = await import('../src/sim/routes.ts');
 const { distToSegment } = await import('../src/sim/surge.ts');
 const dt = 1 / CFG.stepHz;
@@ -43,7 +43,7 @@ function predictsHit(w: World) {
   // Look ahead only on a detached copy; the actual game receives movement and interact.
   const copy = { ...w, player: { ...w.player }, creature: { ...w.creature, target: { ...w.creature.target } },
     lampLitAt: w.lampLitAt.map(row => [...row]), listeners: [] } as World;
-  if (copy.charged < 0 || fire(copy, copy.charged) !== 'ok') return false;
+  if (copy.charged < 0 || press(copy) !== 'ok') return false;
   while (copy.surge && copy.phase === 'play') stepWorld(copy, { dx: 0, dy: 0 }, dt);
   return copy.shocks > w.shocks;
 }

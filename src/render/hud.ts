@@ -65,7 +65,7 @@ export class Hud {
     this.controlsPanel.lineStyle(1, PALETTE.c2, 1).strokeRect(68, 43, 184, 91);
     this.controlsPanel.lineStyle(1, PALETTE.n3, 1).strokeRect(72, 47, 176, 83);
     this.controlsTitle = text(VIEW.w / 2, 55, 'CONTROLS', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
-    this.controlsText = text(VIEW.w / 2, 88, 'MOVE   WASD / ARROWS\nE      CHARGE / RELEASE\nR      RESTART\n\nCHARGE, HOLD, THEN RELEASE.\nEVERY OTHER HIT BOUNCES YOU.', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
+    this.controlsText = text(VIEW.w / 2, 88, 'MOVE   WASD / ARROWS\nE      CHARGE / FIRE\nR      RESTART\n\nCHARGE, AIM WITH MOVE, FIRE.\nEVERY OTHER HIT BOUNCES YOU.', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
     this.controlsHint = text(VIEW.w / 2, 122, 'PRESS ANY KEY TO BEGIN', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
     this.controlsClose = scene.add.rectangle(239, 53, 14, 12, PALETTE.r1, 1)
       .setStrokeStyle(1, PALETTE.c2, 1)
@@ -106,7 +106,7 @@ export class Hud {
     if (w.phase !== 'play') status = '';
     else if (w.bounce) status = 'BOUNCING  HIT IT BACK';
     else if (w.surge) status = 'SURGE LIVE';
-    else if (w.charged >= 0) status = w.cooldown > 0 ? 'CHARGED  GENERATOR RECOVERING' : `BREAKER ${w.charged + 1} CHARGED  RELEASE [E]`;
+    else if (w.charged >= 0) status = w.cooldown > 0 ? 'CHARGED  GENERATOR RECOVERING' : `BREAKER ${w.charged + 1} CHARGED  FIRE [E]`;
     else if (w.cooldown > 0) status = 'GENERATOR RECOVERING';
     else if (w.shocks === 0 && w.missStreak > 0) status = 'MISSED  LURE IT FIRST';
     else if (w.lastHitBreaker >= 0) status = `BREAKER ${w.lastHitBreaker + 1} OFFLINE`;

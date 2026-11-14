@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CFG, EXIT } from '../src/config';
+import { CFG, EXIT, ROOM } from '../src/config';
 import { createWorld, currentWindup, damagePlayer, fire, interact, missCooldown, stepWorld, type World } from '../src/sim/game';
-import { ROUTES } from '../src/sim/routes';
+import { ROUTES, bodyRoute } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
 import { snapshot } from './helpers';
 
@@ -162,6 +162,15 @@ describe('bounce back', () => {
     expect(w.bounce).toBeNull();
     expect(w.bounceLocked).toBe(true);
     expect(w.lastHitBreaker).toBe(-1);
+    expect(w.grace).toBeGreaterThanOrEqual(CFG.bounceHitGrace - 0.05);
+
+    // Immune right after the hit, so the creature touching them costs nothing.
+    w.creature.state = 'stalk';
+    w.creature.x = w.player.x + 5;
+    w.creature.y = w.player.y;
+    stepWorld(w, idle, DT);
+    expect(w.hp).toBe(CFG.healthPips);
+    w.grace = 0;
 
     takeHit(w);
     expect(w.bounce).toBeNull();
@@ -180,16 +189,34 @@ describe('bounce back', () => {
 describe('held charge', () => {
   const atSwitch = (b: number) => createWorld({ player: ROUTES[b].switchPos, creature: { x: 1000, y: 560 }, asleep: true });
 
-  it('the first press charges and holds, the next press releases from anywhere', () => {
+  it('the first press charges and holds, the next press shoots from the body wherever it is', () => {
     const w = atSwitch(0);
     expect(interact(w)).toBe('charged');
     expect(w.charged).toBe(0);
     expect(w.surge).toBeNull();
     w.player.x = 700;
     w.player.y = 300;
+    w.player.facing = Math.PI / 6;
     expect(interact(w)).toBe('ok');
     expect(w.charged).toBe(-1);
-    expect(w.surge?.route.id).toBe(0);
+    const route = w.surge!.route;
+    expect(route.id).toBe(0);
+    expect(Math.hypot(route.points[0].x - 700, route.points[0].y - 300)).toBeCloseTo(CFG.shotLead);
+    expect(route.contacts.length).toBe(CFG.shotBounces);
+    expect(route.switchPos).toEqual({ x: 700, y: 300 });
+  });
+
+  it('a body shot stays inside the room and bounces', () => {
+    for (let a = 0; a < 16; a++) {
+      const r = bodyRoute({ x: 500, y: 300 }, (a * Math.PI) / 8, 1, CFG.shotBounces, CFG.shotLead);
+      for (const p of r.points) {
+        expect(p.x).toBeGreaterThanOrEqual(ROOM.x - 1e-6);
+        expect(p.x).toBeLessThanOrEqual(ROOM.x + ROOM.w + 1e-6);
+        expect(p.y).toBeGreaterThanOrEqual(ROOM.y - 1e-6);
+        expect(p.y).toBeLessThanOrEqual(ROOM.y + ROOM.h + 1e-6);
+      }
+      expect(r.points.length).toBeGreaterThan(2);
+    }
   });
 
   it('the charge is kept while the generator is cooling or a surge is live', () => {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { CFG, PALETTE } from '../config';
 import type { World } from '../sim/game';
+import { bodyRoute } from '../sim/routes';
 import { DEPTH } from './layers';
 import { atlasOf, facingOf, px } from './pixel';
 
@@ -31,6 +32,13 @@ export class PlayerView {
       const cy = y - 7;
       this.ball.lineStyle(1, PALETTE.c1, 0.9).strokeCircle(x, cy, 11 + pulse);
       this.ball.lineStyle(1, PALETTE.w, 0.5).strokeCircle(x, cy, 14 - pulse);
+      // Faint preview of the shot: where it will run and ricochet if released now.
+      const route = bodyRoute({ x: p.x, y: p.y }, p.facing, w.charged, CFG.shotBounces, CFG.shotLead);
+      for (let i = 1; i < route.points.length; i++) {
+        const a = route.points[i - 1];
+        const b = route.points[i];
+        this.ball.lineStyle(1, PALETTE.c2, 0.28).lineBetween(Math.round(px(a.x)), Math.round(px(a.y)), Math.round(px(b.x)), Math.round(px(b.y)));
+      }
       for (let i = 0; i < 3; i++) {
         const a = t * 6 + (i * Math.PI * 2) / 3;
         this.ball.fillStyle(PALETTE.w, 1).fillRect(Math.round(x + Math.cos(a) * 12), Math.round(cy + Math.sin(a) * 12), 1, 1);
@@ -51,6 +59,7 @@ export class PlayerView {
       return;
     }
     this.spr.setVisible(true);
+    this.spr.setAlpha(w.grace > 0 && Math.floor(t * 18) % 2 === 0 ? 0.4 : 1);
     const anims = atlasOf(this.scene).sheets.player.anims;
     const facing = facingOf(p.facing);
     const dir = facing.flip ? 'left' : facing.dir;
