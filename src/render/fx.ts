@@ -27,7 +27,7 @@ export class Fx {
       this.lampSprites.push(
         r.lampDists.map((_, i) => {
           const p = lampPos(r.id, i);
-          return scene.add.sprite(Math.round(px(p.x)), Math.round(px(p.y)), 'lamp', 0).setDepth(DEPTH.over);
+          return scene.add.sprite(Math.round(px(p.x)), Math.round(px(p.y)), 'lamp', 0).setDepth(DEPTH.y + 1);
         }),
       );
     }

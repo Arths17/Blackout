@@ -9,7 +9,7 @@ The art pipeline (master palette, palette check script, preview and contact-shee
 the method of the Ashgrove project, which is the same author's. No Ashgrove art or code was copied.
 
 ## Font
-Silkscreen by Jason Kottke, SIL Open Font License 1.1, loaded from the `@fontsource/silkscreen` npm package.
+The text is a 5x7 stencil bitmap font drawn for this game (`src/render/font.ts`). No font files are loaded.
 
 ## Code
 Phaser 4 (MIT), Vite (MIT), TypeScript (Apache-2.0), Vitest (MIT).

@@ -373,14 +373,14 @@ function creature(dir, pose) {
   const c = o.crouch;
   const pelvis = J(-6 + o.lean * 0.5, 0, 6.5 - 3 * c);
   const chest = J(2 + o.lean + o.lunge * 2, 0, 9 - 4.5 * c - o.curl * 2);
-  const neck = J(6 + o.lean + o.lunge * 3, 0, 9.5 - 3.5 * c - o.curl);
-  const head = J(10.5 + o.lean + o.lunge * 4, 0, 9.2 - 3.5 * c - o.curl * 1.5);
+  const neck = J(6 + o.lean + o.lunge * 3, 0.8, 9.5 - 3.5 * c - o.curl);
+  const head = J(10.5 + o.lean + o.lunge * 4, 1.4, 9.2 - 3.5 * c - o.curl * 1.5);
   // legs: thin and wrong, knees bent backwards
   for (const s of [-1, 1]) {
     const hip = J(-6, s * 3.5, 5.5 - 3 * c);
     const sw = (s > 0 ? o.swing : -o.swing) * 2.6;
     const knee = J(-9 + sw * 0.4 - o.lunge * 2, s * (6.5 + o.spread * 0.6), 4 - c);
-    const foot = J(-6.5 + sw - o.lunge * 4, s * (7 + o.spread * 0.8), 0.3);
+    const foot = J(-6.5 + sw * (s > 0 ? 0.4 : 1) - o.lunge * 4 - (s > 0 ? 3.2 : 0), s * (7 + o.spread * 0.8) + (s > 0 ? 1.5 : 0), 0.3);
     add(hip, knee, 1.7, 1.2, FLESH_D, hip[2] - 3 + (s > 0 ? 0.1 : 0));
     add(knee, foot, 1.2, 0.9, FLESH_D, hip[2] - 3 + (s > 0 ? 0.2 : 0.1));
   }
@@ -388,8 +388,9 @@ function creature(dir, pose) {
   const spikes = [];
   for (let i = 0; i < 5; i++) {
     const u = -7 + i * 2.8 + o.lean * (i / 4);
+    const uneven = [0.2, 1.4, 0.7, 1.9, 0.5][i];
     const top = 9.5 - 4.5 * c - o.curl * 2 + 2.8 - Math.abs(i - 2) * 0.6;
-    const base = J(u, 0, top - 1.3), tip = J(u - 0.6, 0, top + 3 + o.flare * 3 - Math.abs(i - 2) * 0.3);
+    const base = J(u, 0.6 + i * 0.15, top - 1.3), tip = J(u - 0.6 - i * 0.2, 0.8 + i * 0.3, top + 1.2 + uneven * 1.6 + o.flare * 3);
     spikes.push({ a: base.slice(0, 2), b: tip.slice(0, 2), r0: 1.3, r1: 0.1, ramp: SPIKE, z: -1 - base[2] * 0 + (dir === 'up' ? 6 : -6) });
   }
   add(pelvis, chest, 4.1, 3.3, FLESH, 0);
@@ -405,20 +406,20 @@ function creature(dir, pose) {
   const clawPix = [];
   for (const s of [-1, 1]) {
     const sh = J(2 + o.lean, s * 4.2, 9 - 4.5 * c - o.curl * 2);
-    const el = J(4 + o.lean + o.reach * 0.35, s * (7 + o.spread), 5.2 - 2 * c);
-    const hand = J(5 + o.lean + o.reach + o.lunge * 4, s * (7.5 + o.spread * 1.3), 0.6 + o.curl);
-    armParts.push({ a: sh.slice(0, 2), b: el.slice(0, 2), r0: 1.9, r1: 1.3, ramp: FLESH, z: sh[2] + (s > 0 ? 0.3 : -0.3) });
+    const el = J(4 + o.lean + o.reach * (s < 0 ? 0.45 : 0.25), s * (7 + o.spread), 5.2 - 2 * c + (s > 0 ? 1.2 : 0));
+    const hand = J(5 + o.lean + o.reach * (s < 0 ? 1.45 : 0.6) + o.lunge * 4, s * (7.5 + o.spread * 1.3), 0.6 + o.curl + (s > 0 ? 2.2 : 0));
+    armParts.push({ a: sh.slice(0, 2), b: el.slice(0, 2), r0: s < 0 ? 2.3 : 1.6, r1: s < 0 ? 1.6 : 1.1, ramp: FLESH, z: sh[2] + (s > 0 ? 0.3 : -0.3) });
     armParts.push({ a: el.slice(0, 2), b: hand.slice(0, 2), r0: 1.3, r1: 1, ramp: FLESH, z: sh[2] + (s > 0 ? 0.4 : -0.2) });
-    for (const k of [-1, 0, 1]) clawPix.push({ from: hand, to: J(5 + o.lean + o.reach + o.lunge * 4 + 3.4, s * (7.5 + o.spread * 1.3) + k * 1.6, 0.4), z: sh[2] + 0.5 });
+    for (const k of s < 0 ? [-1, 0, 1] : [0, 1]) clawPix.push({ from: hand, to: J(5 + o.lean + o.reach * (s < 0 ? 1.45 : 0.6) + o.lunge * 4 + (s < 0 ? 4.4 : 2.6), s * (7.5 + o.spread * 1.3) + k * 1.6, 0.4 + (s > 0 ? 2.2 : 0)), z: sh[2] + 0.5 });
   }
   const neckPart = { a: chest.slice(0, 2), b: neck.slice(0, 2), r0: 2.4, r1: 2, ramp: FLESH, z: 1 };
   const skull = { a: head.slice(0, 2), b: head.slice(0, 2), r0: 4.6, r1: 4.6, ramp: FLESH, z: 2 };
-  const jawEnd = J(10.5 + o.lean + o.lunge * 4 + 2.5, 0, 9.2 - 3.5 * c - o.curl * 1.5 - 1 - o.jaw * 4.5);
+  const jawEnd = J(10.5 + o.lean + o.lunge * 4 + 2.5, 2.8, 9.2 - 3.5 * c - o.curl * 1.5 - 1 - o.jaw * 4.5);
   const jaw = { a: head.slice(0, 2), b: jawEnd.slice(0, 2), r0: 2.6, r1: 2.2, ramp: MAW, z: 1.5 };
   const horns = [];
   for (const s of [-1, 1]) {
-    const hb = J(9 + o.lean + o.lunge * 4, s * 3, 12 - 3.5 * c - o.curl * 1.5);
-    const ht = J(7 + o.lean + o.lunge * 4, s * 5.2, 15.5 - 3.5 * c - o.curl * 1.5 + o.flare * 2);
+    const hb = J(9 + o.lean + o.lunge * 4, 1.4 + s * 3, 12 - 3.5 * c - o.curl * 1.5);
+    const ht = J(7 + o.lean + o.lunge * 4, 1.4 + s * 5.2, (s > 0 ? 12.8 : 16.8) - 3.5 * c - o.curl * 1.5 + o.flare * 2);
     horns.push({ a: hb.slice(0, 2), b: ht.slice(0, 2), r0: 1.2, r1: 0.1, ramp: BONE, z: 2.5 });
   }
   const bodyAll = [...parts, ...spikes, ...ribs, ...armParts, neckPart, jaw, skull, ...horns];
@@ -427,7 +428,7 @@ function creature(dir, pose) {
   for (const cl of clawPix) img.line(cl.from[0], cl.from[1], cl.to[0], cl.to[1], P.bone);
   // eyes and teeth are painted last, on top of the silhouette
   if (dir !== 'up') {
-    const e = (s) => J(10.5 + o.lean + o.lunge * 4 + (dir === 'right' ? 3.3 : 3.8), s * (dir === 'right' ? 1.5 : 2.2), 9.2 - 3.5 * c - o.curl * 1.5 + 1.4);
+    const e = (s) => J(10.5 + o.lean + o.lunge * 4 + (dir === 'right' ? 3.3 : 3.8), 1.4 + s * (dir === 'right' ? 1.5 : 2.2), 9.2 - 3.5 * c - o.curl * 1.5 + 1.4);
     const eyeC = o.eyes > 1 ? P.g5 : P.g5;
     for (const s of dir === 'right' ? [1] : [-1, 1]) {
       const ee = e(s);

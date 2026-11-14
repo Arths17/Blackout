@@ -75,7 +75,7 @@ export class Boot extends Phaser.Scene {
     for (let y = 0; y < VIEW.h + 8; y++) {
       for (let x = 0; x < VIEW.w + 8; x++) {
         s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
-        if (s / 4294967296 < 0.05) ctx.fillRect(x, y, 1, 1);
+        if (s / 4294967296 < 0.03) ctx.fillRect(x, y, 1, 1);
       }
     }
     t.refresh();

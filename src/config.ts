@@ -50,13 +50,15 @@ export const PALETTE = {
 };
 
 // The game renders at VIEW.w x VIEW.h and is scaled up by a whole number. The sim stays in world units.
-export const VIEW = { w: 384, h: 216, s: 3 }; // s = world px per screen px
+export const VIEW = { w: 320, h: 180, s: 3.6 }; // s = world px per screen px (1152 / 320)
 
 export const DARK = {
   cell: 2, // darkness is painted in flat 2 px cells
-  alpha: [0, 0.2, 0.42, 0.7], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
+  alpha: [0, 0.14, 0.36, 0.76], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
   ambient: 3,
-  playerR: 46, // light radii in screen px
+  playerR: 12, // small glow around the player; the flashlight cone does the real work
+  coneR: 104, // flashlight length in screen px
+  coneHalf: 0.6, // flashlight half-angle in radians
   stripR: 14,
   lampR: 34,
   surgeR: 58,

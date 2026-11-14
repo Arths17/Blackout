@@ -10,7 +10,7 @@ import { DEPTH } from '../render/layers';
 import { Breakers } from '../render/panels';
 import { px } from '../render/pixel';
 import { PlayerView } from '../render/player';
-import { Room } from '../render/room';
+import { FLOOR, Room } from '../render/room';
 
 const STEP = 1 / CFG.stepHz;
 
@@ -68,10 +68,10 @@ export class Game extends Phaser.Scene {
     this.creatureView = new CreatureView(this);
     this.fx = new Fx(this);
     this.dust = new Dust(this);
-    this.dark = new Darkness(this);
+    this.dark = new Darkness(this, { floor: { x0: FLOOR.x0, y0: FLOOR.y0, x1: FLOOR.x1, y1: FLOOR.y1 }, blockers: this.room.blockers });
     this.warm = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.warm, 0).setOrigin(0, 0).setDepth(DEPTH.over + 8);
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(DEPTH.vignette);
-    this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(0.1);
+    this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(0.07);
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.r4, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
     this.hud = new Hud(this);
 
@@ -156,7 +156,9 @@ export class Game extends Phaser.Scene {
     this.creatureView.update(w, t);
     this.dust.update(dt);
 
-    const lights: Light[] = [{ x: px(w.player.x), y: px(w.player.y), r: DARK.playerR * (this.lit ? 2.4 : 1) }];
+    const pl = { x: px(w.player.x), y: px(w.player.y) };
+    const lights: Light[] = [{ ...pl, r: DARK.playerR }];
+    if (w.phase !== 'lost') lights.push({ ...pl, r: DARK.coneR * (this.lit ? 1.6 : 1), cone: { angle: w.player.facing, half: DARK.coneHalf * (this.lit ? 1.4 : 1) }, shadows: true });
     lights.push(...this.room.update(t, this.lit));
     lights.push(...this.breakers.update(w, t));
     lights.push(...this.fx.update(w, dt));

@@ -15,7 +15,6 @@
     "check:art": "python3 tools/check_palette.py"
   },
   "dependencies": {
-    "@fontsource/silkscreen": "^5.3.0",
     "phaser": "^4.2.1"
   },
   "devDependencies": {
