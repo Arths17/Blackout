@@ -2,7 +2,7 @@ export const W = 1152;
 export const H = 648;
 
 export const ROOM = { x: 76, y: 44, w: 1000, h: 560 };
-export const EXIT = { x: 880, w: 100 }; // door in the top wall
+export const EXIT = { x: 960, w: 100 }; // door in the top wall
 
 export const PLAYER_START = { x: 190, y: 560 };
 // Sweep result for Quick bank: pressing at the start from here lands the opening hit on leg 2.
@@ -14,14 +14,36 @@ export const LURES = {
   late: { x: 880, y: 324 },
 };
 
+// Six working colors plus a few neutrals for steel and grime. Warm is only used once the lights come back.
 export const PALETTE = {
-  floor: 0x0a0f18,
-  wall: 0x141c2b,
-  strip: 0x8a1f1f,
+  floor: 0x121a29,
+  wall: 0x1b2537,
+  strip: 0x9a2a22,
   surge: 0xf4fbff,
   creature: 0x9bd13a,
   warm: 0xffb14a,
   ink: 0x05070b,
+  steel: 0x2b3650,
+  grime: 0x0a0d14,
+  stencil: 0x4a5870,
+};
+
+export const VIS = {
+  font: '"Saira Stencil One", Impact, "Arial Narrow", sans-serif',
+  hitStop: 0.07, // seconds the sim freezes on a counted shock
+  shockShake: { ms: 220, amp: 0.009 },
+  bounceShake: { ms: 70, amp: 0.002 },
+  hurtShake: { ms: 170, amp: 0.006 },
+  trailLen: 160, // px of surge trail behind the head
+  surgeHaloR: 80, // additive glow around the head; bigger = brighter blob
+  surgeHaloA: 0.28,
+  surgePoolR: 150, // how much dark the head clears
+  lampPoolR: 125,
+  lampHaloR: 60,
+  panelW: 104,
+  panelH: 72,
+  diagramScale: 0.09,
+  vignetteA: 0.78,
 };
 
 export const CFG = {

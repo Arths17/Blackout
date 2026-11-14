@@ -13,6 +13,7 @@
     "zip": "npm run build && node tools/zip_dist.mjs"
   },
   "dependencies": {
+    "@fontsource/saira-stencil-one": "^5.3.0",
     "phaser": "^4.2.1"
   },
   "devDependencies": {
