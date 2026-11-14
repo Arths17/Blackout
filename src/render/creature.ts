@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { CFG, PALETTE } from '../config';
 import type { World } from '../sim/game';
 import { DEPTH } from './layers';
-import { facingOf, pixLine, px } from './pixel';
+import { TREE_EYES, facingOf, pixLine, px } from './pixel';
 
 export class CreatureView {
   private spr: Phaser.GameObjects.Sprite;
@@ -48,23 +48,24 @@ export class CreatureView {
     const g = this.eyes;
     g.clear();
     if (c.alive) {
-      this.drawEyes(g, w, t, x, y);
+      this.drawEyes(g, w, t, x, y, frame, flip);
       this.telegraph(g, w);
     }
   }
 
-  private drawEyes(g: Phaser.GameObjects.Graphics, w: World, t: number, x: number, y: number): void {
+  private drawEyes(g: Phaser.GameObjects.Graphics, w: World, t: number, x: number, y: number, frame: number, flip: boolean): void {
     const reveal = w.creature.asleep ? Math.max(0, Math.min(1, (t - Math.max(0, CFG.introSeconds - 1)) / 1)) : 1;
-    if (reveal <= 0) return;
+    const cells = TREE_EYES.get(frame);
+    if (reveal <= 0 || !cells || cells.length === 0) return;
     const pulse = 0.72 + Math.sin(t * 7) * 0.18;
-    const eyeY = y - 29;
-    for (const eyeX of [x - 6, x + 6]) {
-      g.fillStyle(0xff1d32, 0.18 * reveal);
-      g.fillRect(eyeX - 3, eyeY - 2, 7, 5);
-      g.fillStyle(0xff3548, pulse * reveal);
-      g.fillRect(eyeX - 2, eyeY - 1, 5, 3);
-      g.fillStyle(PALETTE.w, reveal);
-      g.fillRect(eyeX - 1, eyeY, 2, 1);
+    // The sprite is drawn 64 px wide with its origin at (0.5, 0.82); the cells are in that 64 px space.
+    const left = Math.round(x - 32);
+    const top = Math.round(y - 64 * 0.82);
+    for (const [cx, cy] of cells) {
+      const ex = left + (flip ? 63 - cx : cx);
+      const ey = top + cy;
+      g.fillStyle(0xff8a1f, 0.2 * reveal).fillRect(ex - 1, ey - 1, 3, 3);
+      g.fillStyle(0xffb347, pulse * reveal).fillRect(ex, ey, 1, 1);
     }
   }
 

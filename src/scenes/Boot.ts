@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { DARK, PALETTE, VIEW } from '../config';
-import { EYES, dither, rgb, type Atlas } from '../render/pixel';
+import { EYES, TREE_EYES, dither, rgb, type Atlas } from '../render/pixel';
 
 export class Boot extends Phaser.Scene {
   constructor() {
@@ -22,10 +22,43 @@ export class Boot extends Phaser.Scene {
 
   create(): void {
     this.scanEyes();
+    this.scanTreeEyes();
     this.makeVignette();
     this.makeGrain();
     // ?boss=1 skips the platforming section and goes straight to the fight.
     this.scene.start(new URLSearchParams(window.location.search).has('boss') ? 'Game' : 'Obby');
+  }
+
+  // The monster sheet draws its own orange eyes. Find them per frame so the glow lands on them exactly.
+  private scanTreeEyes(): void {
+    const img = this.textures.get('tree-monster').getSourceImage() as HTMLImageElement;
+    const c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+    const ctx = c.getContext('2d')!;
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, c.width, c.height).data;
+    const cols = Math.floor(c.width / 256);
+    const rows = Math.floor(c.height / 256);
+    const k = 256 / 64;
+    for (let f = 0; f < cols * rows; f++) {
+      const x0 = (f % cols) * 256;
+      const y0 = Math.floor(f / cols) * 256;
+      const count = new Map<number, number>();
+      for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+          const i = ((y0 + y) * c.width + x0 + x) * 4;
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          if (data[i + 3] > 200 && r > 200 && g > 110 && b < 150 && r - b > 100) {
+            const key = Math.floor(y / k) * 64 + Math.floor(x / k);
+            count.set(key, (count.get(key) ?? 0) + 1);
+          }
+        }
+      }
+      const cells: [number, number][] = [];
+      for (const [key, n] of count) if (n >= 3) cells.push([key % 64, Math.floor(key / 64)]);
+      TREE_EYES.set(f, cells);
+    }
   }
 
   private scanEyes(): void {

@@ -269,6 +269,20 @@ function landThud() {
   return shot(0.12, (t) => sat(6 * low(noise())) * Math.exp(-t * 40) + 0.4 * ring(t, 90, 30));
 }
 
+// Vines creeping over the door: a papery rustle with creaks and sparse crackles.
+function vineGrow() {
+  const hi = lowpass(2600);
+  const lo = lowpass(450);
+  return shot(1.9, (t) => {
+    const n = noise();
+    const env = Math.min(1, t / 0.25) * Math.exp(-Math.max(0, t - 1.1) * 3);
+    const rustle = (hi(n) - lo(n)) * (0.6 + 0.4 * Math.sin(2 * Math.PI * 7 * t));
+    const creak = sweep(t, 150, 85, 1.6) * 0.3 * (0.5 + 0.5 * Math.sin(2 * Math.PI * 9 * t));
+    const crackle = noise() > 0.992 ? noise() * 0.8 : 0;
+    return env * (1.6 * rustle + creak) + crackle * env;
+  });
+}
+
 async function wav(name, data, peak) {
   const mean = data.reduce((sum, x) => sum + x, 0) / data.length;
   let max = 0;
@@ -318,5 +332,6 @@ await wav('charge_up', chargeUp(), 0.7);
 await wav('jump', jumpBlip(), 0.6);
 await wav('dash', dashWhoosh(), 0.7);
 await wav('land', landThud(), 0.6);
+await wav('vines', vineGrow(), 0.6);
 await wav('music_loop', music(), 0.6);
 await wav('heartbeat', heartbeat(), 0.8);

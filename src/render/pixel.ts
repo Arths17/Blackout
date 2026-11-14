@@ -43,3 +43,6 @@ export const atlasOf = (scene: Phaser.Scene): Atlas => scene.cache.json.get('atl
 // Where each creature frame has glowing eye pixels, read once from the sheet at boot so the eyes
 // can be drawn above the darkness exactly where the sprite has them.
 export const EYES = new Map<number, [number, number][]>();
+
+// Cells (in the 64 px display) where each tree-monster frame has its own glowing eye pixels.
+export const TREE_EYES = new Map<number, [number, number][]>();

@@ -6,6 +6,7 @@ import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
 import { Atmosphere } from '../render/atmosphere';
+import { Entrance } from '../render/entrance';
 import { Dust, Fx } from '../render/fx';
 import { Hud } from '../render/hud';
 import { DEPTH } from '../render/layers';
@@ -31,6 +32,8 @@ export class Game extends Phaser.Scene {
   private dust!: Dust;
   private dark!: Darkness;
   private atmosphere!: Atmosphere;
+  private entrance!: Entrance;
+  private vinesPlayed = false;
   private hud!: Hud;
   private grain!: Phaser.GameObjects.Image;
   private hurt!: Phaser.GameObjects.Rectangle;
@@ -82,6 +85,8 @@ export class Game extends Phaser.Scene {
     this.playerView = new PlayerView(this);
     this.creatureView = new CreatureView(this);
     this.atmosphere = new Atmosphere(this);
+    this.entrance = new Entrance(this);
+    this.vinesPlayed = false;
     this.fx = new Fx(this);
     this.dust = new Dust(this);
     this.dark = new Darkness(this, { floor: FLOOR, blockers: this.room.blockers });
@@ -250,6 +255,11 @@ export class Game extends Phaser.Scene {
     if (w.phase !== 'lost') lights.push({ ...pl, r: DARK.coneR, cone: { angle: w.player.facing, half: DARK.coneHalf }, shadows: true });
     lights.push(...this.room.update(t, this.lit));
     lights.push(...atmosphere.lights);
+    lights.push(...this.entrance.update(t));
+    if (!this.vinesPlayed && t >= 0.4) {
+      this.vinesPlayed = true;
+      play('vines');
+    }
     lights.push(...this.breakers.update(w, t));
     lights.push(...this.fx.update(w, dt));
     if (w.charged >= 0 && !w.bounce) lights.push({ ...pl, r: 22, tint: PALETTE.c1 });
