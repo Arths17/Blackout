@@ -2,7 +2,7 @@ import { CFG, EXIT, FIRST_HIT_SPAWN, PLAYER_START, ROOM } from '../config';
 import { hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
 import { ROUTES, dirAt, pointAt, type Route, type Vec } from './routes';
-import { makeSurge, stepSurge, type Surge } from './surge';
+import { distToSegment, makeSurge, stepSurge, type Surge } from './surge';
 
 export type SimEvent =
   | { type: 'relayClick'; breaker: number }
@@ -13,6 +13,9 @@ export type SimEvent =
   | { type: 'miss'; breaker: number }
   | { type: 'powerBack' }
   | { type: 'playerHit' }
+  | { type: 'bounceStart' }
+  | { type: 'bounceHit' }
+  | { type: 'ballBounce'; x: number; y: number }
   | { type: 'win' }
   | { type: 'lose' }
   | { type: 'escape' };
@@ -36,6 +39,18 @@ export interface World {
   grace: number;
   endTime: number;
   listeners: ((e: SimEvent) => void)[];
+  rng: number;
+  bounce: Bounce | null;
+  // Set when a bounce damaged the creature: the next creature hit on the player can't start another.
+  bounceLocked: boolean;
+}
+
+export interface Bounce {
+  vx: number;
+  vy: number;
+  left: number;
+  // Only live once it has cleared the creature, so the launch itself can't count as the return hit.
+  armed: boolean;
 }
 
 export interface WorldOpts {
@@ -65,6 +80,9 @@ export function createWorld(opts: WorldOpts = {}): World {
     grace: 0,
     endTime: 0,
     listeners: [],
+    rng: 12345,
+    bounce: null,
+    bounceLocked: false,
   };
 }
 
@@ -155,6 +173,79 @@ function registerShock(w: World, breaker: number): void {
   }
 }
 
+function roll(w: World): number {
+  w.rng = (Math.imul(w.rng, 1664525) + 1013904223) >>> 0;
+  return w.rng / 4294967296;
+}
+
+// The creature's hit can throw the player into a ricochet. A bounce that scored locks the next one out.
+// ASSUMPTION: a bounce hit counts as a shock but leaves lastHitBreaker alone, and the player can't steer mid-bounce.
+function maybeBounce(w: World): void {
+  if (w.phase !== 'play' || w.bounce) return;
+  if (w.bounceLocked) {
+    w.bounceLocked = false;
+    return;
+  }
+  if (roll(w) >= CFG.bounceChance) return;
+  const c = w.creature;
+  const away = Math.atan2(w.player.y - c.y, w.player.x - c.x) + (roll(w) - 0.5) * 1.0;
+  w.bounce = { vx: Math.cos(away) * CFG.bounceSpeed, vy: Math.sin(away) * CFG.bounceSpeed, left: CFG.bounceSeconds, armed: false };
+  w.player.facing = away;
+  emit(w, { type: 'bounceStart' });
+}
+
+function stepBounce(w: World, b: Bounce, dt: number): void {
+  const r = CFG.playerRadius;
+  const p = w.player;
+  let remaining = dt;
+  while (remaining > 0 && w.bounce) {
+    const start = { x: p.x, y: p.y };
+    let t = remaining;
+    let axis: 'x' | 'y' | undefined;
+    const wallX = b.vx > 0 ? ROOM.x + ROOM.w - r : ROOM.x + r;
+    const wallY = b.vy > 0 ? ROOM.y + ROOM.h - r : ROOM.y + r;
+    if (b.vx !== 0) {
+      const tx = (wallX - p.x) / b.vx;
+      if (tx >= 0 && tx < t) { t = tx; axis = 'x'; }
+    }
+    if (b.vy !== 0) {
+      const ty = (wallY - p.y) / b.vy;
+      if (ty >= 0 && ty < t) { t = ty; axis = 'y'; }
+    }
+    const end = { x: p.x + b.vx * t, y: p.y + b.vy * t };
+    const c = w.creature;
+    if (!b.armed && Math.hypot(c.x - p.x, c.y - p.y) > r + CFG.creatureRadius + 12) b.armed = true;
+    if (b.armed && c.alive && c.state !== 'recoil' && distToSegment(c, start, end) <= r + CFG.creatureRadius) {
+      hitCreature(c, { x: b.vx / CFG.bounceSpeed, y: b.vy / CFG.bounceSpeed });
+      w.shocks++;
+      w.bounceLocked = true;
+      w.bounce = null;
+      emit(w, { type: 'bounceHit' });
+      if (w.shocks >= CFG.shocksToWin) {
+        w.phase = 'won';
+        w.endTime = w.time;
+        c.alive = false;
+        w.surge = null;
+        w.cooldown = 0;
+        w.grace = 0;
+        emit(w, { type: 'win' });
+      }
+      return;
+    }
+    p.x = end.x;
+    p.y = end.y;
+    remaining -= t;
+    if (!axis) break;
+    if (axis === 'x') b.vx *= -1;
+    else b.vy *= -1;
+    p.facing = Math.atan2(b.vy, b.vx);
+    emit(w, { type: 'ballBounce', x: p.x, y: p.y });
+  }
+  p.moving = true;
+  b.left -= dt;
+  if (b.left <= 0) w.bounce = null;
+}
+
 export function stepWorld(w: World, input: MoveInput, dt: number): void {
   w.time += dt;
   if (w.phase === 'lost' || w.phase === 'escaped') return;
@@ -182,12 +273,14 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   }
   if (w.creature.asleep && w.time + CFG.timerEpsilon >= CFG.introSeconds) w.creature.asleep = false;
 
-  stepPlayer(w.player, input, dt);
+  if (w.bounce) stepBounce(w, w.bounce, dt);
+  else stepPlayer(w.player, input, dt);
+  if (w.phase !== 'play') return;
   if (w.creature.alive) {
     stepCreature(w.creature, dt, w.player);
     const c = w.creature;
-    if (c.state !== 'recoil' && Math.hypot(c.x - w.player.x, c.y - w.player.y) < CFG.creatureRadius + CFG.playerRadius) {
-      damagePlayer(w);
+    if (!w.bounce && c.state !== 'recoil' && Math.hypot(c.x - w.player.x, c.y - w.player.y) < CFG.creatureRadius + CFG.playerRadius) {
+      if (damagePlayer(w)) maybeBounce(w);
     }
   }
   // A lethal creature touch ends the tick: no shock, lamp or bounce may follow the lose event.

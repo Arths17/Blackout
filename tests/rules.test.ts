@@ -132,3 +132,56 @@ describe('determinism', () => {
     expect(play()).toBe(play());
   });
 });
+
+describe('bounce back', () => {
+  const touching = () => createWorld({ player: { x: 600, y: 324 }, creature: { x: 610, y: 324 }, asleep: false });
+
+  it('a creature hit can throw the player into a bounce, and the roll is seeded', () => {
+    const old = CFG.bounceChance;
+    CFG.bounceChance = 1;
+    const w = touching();
+    stepWorld(w, idle, DT);
+    expect(w.hp).toBe(CFG.healthPips - 1);
+    expect(w.bounce).not.toBeNull();
+    CFG.bounceChance = 0;
+    const n = touching();
+    stepWorld(n, idle, DT);
+    expect(n.hp).toBe(CFG.healthPips - 1);
+    expect(n.bounce).toBeNull();
+    CFG.bounceChance = old;
+  });
+
+  it('a bounce that hits the creature scores a shock, and the next creature hit cannot bounce', () => {
+    const old = CFG.bounceChance;
+    CFG.bounceChance = 1;
+    const w = createWorld({ player: { x: 600, y: 324 }, creature: { x: 900, y: 324 }, asleep: true });
+    w.bounce = { vx: CFG.bounceSpeed, vy: 0, left: CFG.bounceSeconds, armed: true };
+    for (let i = 0; i < 120 && w.bounce; i++) stepWorld(w, idle, DT);
+    expect(w.shocks).toBe(1);
+    expect(w.bounce).toBeNull();
+    expect(w.bounceLocked).toBe(true);
+    expect(w.lastHitBreaker).toBe(-1);
+
+    w.creature.state = 'stalk';
+    w.creature.x = w.player.x + 5;
+    w.creature.y = w.player.y;
+    w.grace = 0;
+    stepWorld(w, idle, DT);
+    expect(w.hp).toBe(CFG.healthPips - 1);
+    expect(w.bounce).toBeNull();
+    expect(w.bounceLocked).toBe(false);
+
+    w.grace = 0;
+    stepWorld(w, idle, DT);
+    expect(w.bounce).not.toBeNull();
+    CFG.bounceChance = old;
+  });
+
+  it('a bounce that misses does not lock the next one', () => {
+    const w = createWorld({ player: { x: 600, y: 100 }, creature: { x: 1000, y: 560 }, asleep: true });
+    w.bounce = { vx: CFG.bounceSpeed, vy: 0, left: 0.1, armed: true };
+    for (let i = 0; i < 30; i++) stepWorld(w, idle, DT);
+    expect(w.bounce).toBeNull();
+    expect(w.bounceLocked).toBe(false);
+  });
+});

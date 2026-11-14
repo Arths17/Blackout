@@ -7,6 +7,7 @@ import { atlasOf, facingOf, px } from './pixel';
 export class PlayerView {
   private spr: Phaser.GameObjects.Sprite;
   private shadow: Phaser.GameObjects.Image;
+  private ball: Phaser.GameObjects.Graphics;
   private hp = CFG.healthPips;
   private hurtAt = -Infinity;
   private interactAt = -Infinity;
@@ -14,6 +15,7 @@ export class PlayerView {
   constructor(private scene: Phaser.Scene) {
     this.spr = scene.add.sprite(0, 0, 'player', 0).setOrigin(0.5, 23 / 24);
     this.shadow = scene.add.image(0, 0, 'shadow', 0).setOrigin(0.5, 0.5).setDepth(DEPTH.shadow);
+    this.ball = scene.add.graphics().setDepth(DEPTH.over + 2);
   }
 
   interact(t: number): void {
@@ -23,6 +25,21 @@ export class PlayerView {
   update(w: World, t: number): void {
     const p = w.player;
     const x = Math.round(px(p.x)), y = Math.round(px(p.y)) + 3;
+    this.ball.clear();
+    if (w.bounce) {
+      this.spr.setVisible(false);
+      const pulse = 5 + Math.sin(t * 18) * 1.2;
+      const b = w.bounce;
+      const sp = Math.hypot(b.vx, b.vy) || 1;
+      for (let i = 4; i >= 1; i--) {
+        this.ball.fillStyle(PALETTE.c2, 0.12 * (5 - i)).fillCircle(x - (b.vx / sp) * i * 5, y - (b.vy / sp) * i * 5, pulse - i * 0.6);
+      }
+      this.ball.fillStyle(PALETTE.c2, 0.35).fillCircle(x, y, pulse + 3);
+      this.ball.fillStyle(PALETTE.c1, 1).fillCircle(x, y, pulse);
+      this.ball.fillStyle(PALETTE.w, 1).fillCircle(x - 1, y - 1, 2);
+      this.shadow.setPosition(x, y - 1);
+      return;
+    }
     this.spr.setVisible(true);
     const anims = atlasOf(this.scene).sheets.player.anims;
     const facing = facingOf(p.facing);

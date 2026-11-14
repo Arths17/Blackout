@@ -134,6 +134,23 @@ export class Game extends Phaser.Scene {
         this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
+      case 'bounceStart':
+        play('surge_crack');
+        cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
+        break;
+      case 'ballBounce':
+        play('wall_crack');
+        this.fx.burst(e.x, e.y, 6);
+        cam.shake(VIS.bounceShake.ms, VIS.bounceShake.amp);
+        break;
+      case 'bounceHit':
+        play('surge_crack');
+        this.hitStop = VIS.hitStop;
+        this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.4;
+        this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.8;
+        this.fx.burst(this.w.creature.x, this.w.creature.y, 22);
+        cam.shake(VIS.shockShake.ms, VIS.shockShake.amp);
+        break;
       case 'deadClick':
         this.breakers.deadClick(e.breaker, this.w.time);
         break;
