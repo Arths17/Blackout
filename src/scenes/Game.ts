@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
 import { CFG, DARK, LURES, PALETTE, VIEW, VIS } from '../config';
-import { createWorld, stepWorld, useEnergy, type SimEvent, type World } from '../sim/game';
+import { createWorld, stepWorld, tryInteract, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
@@ -42,7 +42,6 @@ export class Game extends Phaser.Scene {
   private freezeAt = -1;
   private playerStepAt = 0;
   private creatureStepAt = 0;
-  private shieldUntil = 0;
   private lastTremor = -1;
 
   constructor() {
@@ -70,7 +69,6 @@ export class Game extends Phaser.Scene {
     this.lit = false;
     this.playerStepAt = 0;
     this.creatureStepAt = 0;
-    this.shieldUntil = 0;
     this.lastTremor = -1;
 
     initAudio();
@@ -87,14 +85,12 @@ export class Game extends Phaser.Scene {
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(DEPTH.vignette);
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(DARK.grainAlpha);
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
-    this.hud = new Hud(this, () => this.cameras.main.flash(120, 225, 232, 227));
+    this.hud = new Hud(this, () => undefined);
 
     const kb = this.input.keyboard!;
-    this.keys = kb.addKeys('W,A,S,D,Z,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
+    kb.on('keydown', () => this.hud.closeControls());
     kb.on('keydown-R', () => this.scene.restart());
-    kb.on('keydown-Z', (event: KeyboardEvent) => {
-      if (!event.repeat && this.w.shockwave) this.shieldUntil = this.w.time + 2;
-    });
     kb.on('keydown-E', () => (this.pendingInteract = true));
     kb.on('keydown-SPACE', () => (this.pendingInteract = true));
   }
@@ -108,10 +104,6 @@ export class Game extends Phaser.Scene {
         this.playerView.interact(this.w.time);
         this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.6;
         this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.9;
-        break;
-      case 'energyGain':
-        play('relay_click');
-        this.playerView.interact(this.w.time);
         break;
       case 'bounce':
         play('wall_crack');
@@ -128,16 +120,6 @@ export class Game extends Phaser.Scene {
           this.fx.burst(this.w.creature.x, this.w.creature.y, 22);
           cam.shake(VIS.shockShake.ms, VIS.shockShake.amp);
         }
-        break;
-      case 'bossShot':
-        this.fx.burst(this.w.creature.x, this.w.creature.y, 8);
-        break;
-      case 'ballStart':
-        play('surge_crack');
-        break;
-      case 'ballHit':
-        play('surge_crack');
-        this.fx.burst(this.w.creature.x, this.w.creature.y, 18);
         break;
       case 'playerHit':
         play('surge_crack');
@@ -180,14 +162,14 @@ export class Game extends Phaser.Scene {
     const dx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const dy = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     if (this.pendingInteract) {
-      useEnergy(w);
+      tryInteract(w);
       this.pendingInteract = false;
     }
     if (this.autoFireAt >= 0 && w.time >= this.autoFireAt) {
       this.autoFireAt = -1;
-      useEnergy(w);
+      tryInteract(w);
     }
-    stepWorld(w, { dx, dy, shield: this.shieldUntil > w.time && w.shockwave !== null }, STEP);
+    stepWorld(w, { dx, dy }, STEP);
   }
 
   private render(dt: number): void {

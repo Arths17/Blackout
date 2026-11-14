@@ -57,7 +57,7 @@ describe('first hit', () => {
     w.player.x = PLAYER_START.x;
     w.player.y = PLAYER_START.y;
     expect(tryInteract(w)).toBe('ok');
-    for (let i = 0; i < 400 && w.surge; i++) stepWorld(w, { dx: 0, dy: 0, shield: true }, 1 / 60);
+    for (let i = 0; i < 400 && w.surge; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
     expect(w.shocks).toBe(1);
     expect(w.lastHitBreaker).toBe(0);
     expect(w.hp).toBe(4);

@@ -108,23 +108,3 @@ export function pathBetween(r: Route, d0: number, d1: number): Vec[] {
   out.push(pointAt(r, d1));
   return out;
 }
-
-export function directRoute(start: Vec, facing: number, id: number): Route {
-  const dx = Math.cos(facing);
-  const dy = Math.sin(facing);
-  const candidates: number[] = [];
-  if (dx > 0) candidates.push((ROOM.x + ROOM.w - start.x) / dx);
-  if (dx < 0) candidates.push((ROOM.x - start.x) / dx);
-  if (dy > 0) candidates.push((ROOM.y + ROOM.h - start.y) / dy);
-  if (dy < 0) candidates.push((ROOM.y - start.y) / dy);
-  const distance = Math.min(...candidates.filter((value) => value > 0));
-  const end = { x: start.x + dx * distance, y: start.y + dy * distance };
-  return buildRoute({
-    id,
-    name: 'PLAYER SHOT',
-    switchPos: start,
-    points: [start, end],
-    contacts: [],
-    lampDists: [],
-  });
-}

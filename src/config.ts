@@ -96,12 +96,6 @@ export const CFG = {
 
   surgeSpeed: 650, // faster = harder to read
   surgeHitRadius: 24, // bigger = wider hit band, easier to land and to get hit
-  bossShotInterval: 10,
-  bossShotSpeed: 420,
-  bossShotBounces: 5,
-  ballInterval: 10,
-  ballDuration: 3,
-  ballSpeed: 520,
 
   graceSeconds: 1.0, // shorter = harder
   healthPips: 4, // fewer = harder
