@@ -1,7 +1,7 @@
 import { CFG, ROOM } from '../config';
 import type { Vec } from './routes';
 
-export type CreatureState = 'stalk' | 'windup' | 'lunge' | 'recoil';
+export type CreatureState = 'stalk' | 'windup' | 'lunge' | 'recoil' | 'freeze';
 
 export interface Creature {
   x: number;
@@ -28,6 +28,12 @@ export function startWindup(c: Creature, target: Vec, windup: number): void {
   c.windupTotal = windup;
   c.target = { x: target.x, y: target.y };
   c.facing = Math.atan2(target.y - c.y, target.x - c.x);
+}
+
+// Stands completely still for `seconds`; used by boss 1 while a surge is on its way.
+export function freezeCreature(c: Creature, seconds: number): void {
+  c.state = 'freeze';
+  c.timer = seconds;
 }
 
 export function hitCreature(c: Creature, dir: Vec): void {
@@ -81,6 +87,11 @@ export function stepCreature(c: Creature, dt: number, player: Vec, speedMul = 1)
       c.lungeLeft -= step;
       clampToRoom(c);
       if (c.lungeLeft <= CFG.timerEpsilon) { c.lungeLeft = 0; c.state = 'stalk'; }
+      break;
+    }
+    case 'freeze': {
+      c.timer -= dt;
+      if (c.timer <= CFG.timerEpsilon) { c.timer = 0; c.state = 'stalk'; }
       break;
     }
     case 'recoil': {

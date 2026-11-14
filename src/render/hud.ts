@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BOSS_LEVELS, CFG, PALETTE, VIEW } from '../config';
 import { progress } from '../progress';
-import { OX, OY } from './layout';
 import { inExit, type World } from '../sim/game';
 import { DEPTH } from './layers';
 import { atlasOf } from './pixel';
@@ -49,17 +48,22 @@ export class Hud {
     this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
     this.banner = text(VIEW.w / 2, VIEW.h / 2 - 7, '', PALETTE.n7, 14).setDepth(DEPTH.banner);
     this.sub = text(VIEW.w / 2, VIEW.h / 2 + 10, '', PALETTE.n7).setDepth(DEPTH.banner);
+    // Sized to the text: the widest line is 34 characters at 6 px.
+    const PW = 236;
+    const PH = 124;
+    const px0 = Math.round((VIEW.w - PW) / 2);
+    const py0 = Math.round((VIEW.h - PH) / 2);
     this.controlsPanel = scene.add.graphics().setDepth(DEPTH.banner - 2);
-    this.controlsPanel.fillStyle(PALETTE.ink, 0.96).fillRect(68 + OX, 43 + OY, 184, 91);
-    this.controlsPanel.lineStyle(1, PALETTE.c2, 1).strokeRect(68 + OX, 43 + OY, 184, 91);
-    this.controlsPanel.lineStyle(1, PALETTE.n3, 1).strokeRect(72 + OX, 47 + OY, 176, 83);
-    this.controlsTitle = text(VIEW.w / 2, 55 + OY, 'CONTROLS', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
-    this.controlsText = text(VIEW.w / 2, 88 + OY, 'MOVE   WASD / ARROWS\n1 2 3  FIRE THAT GENERATOR\nSHIFT  PARRY THE BOSS\nR      RESTART\n\nFIRE WHEN THE BOSS CROSSES A PATH.\nTWO PARRIES = SUPER BOUNCE.', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
-    this.controlsHint = text(VIEW.w / 2, 122 + OY, 'PRESS ANY KEY TO BEGIN', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
-    this.controlsClose = scene.add.rectangle(239 + OX, 53 + OY, 14, 12, PALETTE.r1, 1)
+    this.controlsPanel.fillStyle(PALETTE.ink, 0.96).fillRect(px0, py0, PW, PH);
+    this.controlsPanel.lineStyle(1, PALETTE.c2, 1).strokeRect(px0, py0, PW, PH);
+    this.controlsPanel.lineStyle(1, PALETTE.n3, 1).strokeRect(px0 + 4, py0 + 4, PW - 8, PH - 8);
+    this.controlsTitle = text(VIEW.w / 2, py0 + 13, 'CONTROLS', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
+    this.controlsText = text(VIEW.w / 2, py0 + 59, 'MOVE   WASD  ARROWS\n1 2 3  FIRE THAT GENERATOR\n4 F    PARRY THE BOSS\nSHIFT  SMALL DASH\nR      RESTART\n\nFIRE WHEN THE BOSS CROSSES A PATH.\nTWO PARRIES MAKE A SUPER BOUNCE.', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
+    this.controlsHint = text(VIEW.w / 2, py0 + PH - 12, 'PRESS ANY KEY TO BEGIN', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
+    this.controlsClose = scene.add.rectangle(px0 + PW - 12, py0 + 12, 14, 12, PALETTE.r1, 1)
       .setStrokeStyle(1, PALETTE.c2, 1)
       .setDepth(DEPTH.banner);
-    this.controlsCloseLabel = text(239 + OX, 53 + OY, 'X', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
+    this.controlsCloseLabel = text(px0 + PW - 12, py0 + 12, 'X', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
     this.controlsClose.setInteractive({ useHandCursor: true });
     this.controlsClose.on('pointerdown', () => this.closeControls());
   }

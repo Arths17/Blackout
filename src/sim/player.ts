@@ -11,6 +11,7 @@ export interface MoveInput {
   dx: number;
   dy: number;
   parry?: boolean; // true on the step the key goes down
+  dash?: boolean; // true on the step the key goes down
 }
 
 export function makePlayer(x: number, y: number): PlayerState {

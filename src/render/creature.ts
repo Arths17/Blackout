@@ -34,7 +34,7 @@ export class CreatureView {
       if (k > 0.45) dx = Math.round(Math.sin(t * 70) * (k > 0.8 ? 1.5 : 1));
     } else if (c.state === 'lunge') frame = 18 + Math.floor(t * 14) % 2;
     else if (c.state === 'recoil') frame = 6 + (c.timer > 0.25 ? 0 : 1);
-    else if (c.asleep) frame = 0;
+    else if (c.asleep || c.state === 'freeze') frame = 0;
     else frame = Math.floor(t * 6) % 6;
 
     const x = Math.round(px(c.x)) + dx;
@@ -42,6 +42,7 @@ export class CreatureView {
     const flip = f.flip;
     this.spr.setFrame(frame).setFlipX(flip).setPosition(x, y).setDepth(DEPTH.y + y);
     if (c.alive && c.state === 'recoil' && Math.floor(t * 24) % 2 === 0) this.spr.setTintFill(PALETTE.w);
+    else if (c.alive && c.state === 'freeze') this.spr.setTint(PALETTE.c2);
     else this.spr.clearTint();
     this.shadow.setPosition(x, y - 1).setVisible(true);
 

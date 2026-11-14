@@ -1,5 +1,5 @@
-import { CFG, EXIT, FIRST_HIT_SPAWN, PLAYER_START, ROOM } from '../config';
-import { hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
+import { BOSS_START, CFG, EXIT, PLAYER_START, ROOM } from '../config';
+import { freezeCreature, hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
 import { ROUTES, dirAt, pointAt, type Route, type Vec } from './routes';
 import { distToSegment, makeSurge, stepSurge, type Surge } from './surge';
@@ -14,6 +14,7 @@ export type SimEvent =
   | { type: 'powerBack' }
   | { type: 'playerHit' }
   | { type: 'bossShot' }
+  | { type: 'dash' }
   | { type: 'parryStart' }
   | { type: 'parry'; streak: number }
   | { type: 'superStart' }
@@ -54,6 +55,9 @@ export interface World {
   parryCool: number;
   parryStreak: number;
   parryStreakLeft: number;
+  dashCool: number;
+  // A short shove on the player: the dash, or being knocked back by a parry.
+  impulse: { vx: number; vy: number; left: number } | null;
   bounce: Bounce | null;
   // Set when a bounce damaged the creature: the next creature hit on the player can't start another.
   bounceLocked: boolean;
@@ -84,7 +88,7 @@ export interface WorldOpts {
 
 export function createWorld(opts: WorldOpts = {}): World {
   const p = opts.player ?? PLAYER_START;
-  const c = opts.creature ?? FIRST_HIT_SPAWN;
+  const c = opts.creature ?? BOSS_START;
   const creature = makeCreature(c.x, c.y);
   creature.asleep = opts.asleep ?? opts.creature === undefined;
   return {
@@ -112,6 +116,8 @@ export function createWorld(opts: WorldOpts = {}): World {
     parryCool: 0,
     parryStreak: 0,
     parryStreakLeft: 0,
+    dashCool: 0,
+    impulse: null,
     bounce: null,
     bounceLocked: false,
   };
@@ -147,7 +153,8 @@ function startFire(w: World, route: Route, breaker: number): FireResult {
   }
   w.creature.asleep = false;
   // Click, windup and surge all start on this one call so their timing can't drift apart.
-  startWindup(w.creature, route.switchPos, currentWindup(w));
+  if (CFG.freezeOnFire) freezeCreature(w.creature, route.total / CFG.surgeSpeed + 0.4);
+  else startWindup(w.creature, route.switchPos, currentWindup(w));
   w.surge = makeSurge(route);
   emit(w, { type: 'relayClick', breaker });
   return 'ok';
@@ -230,8 +237,9 @@ function maybeBounce(w: World): void {
 }
 
 // Counts a parry toward the streak; the second one in a row launches a super bounce.
-function parryGain(w: World): void {
+function parryGain(w: World, ux: number, uy: number): void {
   w.parryLeft = 0;
+  w.impulse = { vx: ux * CFG.parryPush, vy: uy * CFG.parryPush, left: CFG.parryPushSeconds };
   w.grace = Math.max(w.grace, 0.35);
   w.parryStreak++;
   w.parryStreakLeft = CFG.parryStreakSeconds;
@@ -253,7 +261,8 @@ function parried(w: World): void {
   const dy = c.y - w.player.y;
   const d = Math.hypot(dx, dy) || 1;
   hitCreature(c, { x: dx / d, y: dy / d });
-  parryGain(w);
+  // The boss goes one way and the player the other.
+  parryGain(w, -dx / d, -dy / d);
 }
 
 const enraged = (w: World): boolean => CFG.enrage > 1 && w.shocks >= Math.ceil(CFG.shocksToWin * 0.6);
@@ -298,7 +307,8 @@ function stepShots(w: World, dt: number): void {
       const end = { x: shot.x + shot.vx * hitTime, y: shot.y + shot.vy * hitTime };
       if (!w.bounce && distToSegment(w.player, start, end) <= CFG.surgeHitRadius + CFG.playerRadius) {
         if (w.parryLeft > 0 && w.grace <= 0) {
-          parryGain(w);
+          const sp = Math.hypot(shot.vx, shot.vy) || 1;
+          parryGain(w, shot.vx / sp, shot.vy / sp);
           return false;
         }
         if (w.grace <= 0) {
@@ -408,6 +418,19 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     w.parryStreakLeft -= dt;
     if (w.parryStreakLeft <= 0) w.parryStreak = 0;
   }
+  w.dashCool = Math.max(0, w.dashCool - dt);
+  if (input.dash && w.dashCool <= 0 && !w.bounce) {
+    let dx = input.dx;
+    let dy = input.dy;
+    if (dx === 0 && dy === 0) {
+      dx = Math.cos(w.player.facing);
+      dy = Math.sin(w.player.facing);
+    }
+    const len = Math.hypot(dx, dy) || 1;
+    w.impulse = { vx: (dx / len) * CFG.dashSpeed, vy: (dy / len) * CFG.dashSpeed, left: CFG.dashSeconds };
+    w.dashCool = CFG.dashCooldown;
+    emit(w, { type: 'dash' });
+  }
   if (input.parry && w.parryCool <= 0 && !w.bounce) {
     w.parryLeft = CFG.parryWindow;
     w.parryCool = CFG.parryCooldown;
@@ -415,7 +438,17 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   }
 
   if (w.bounce) stepBounce(w, w.bounce, dt);
-  else stepPlayer(w.player, input, dt);
+  else {
+    stepPlayer(w.player, input, dt);
+    if (w.impulse) {
+      const r = CFG.playerRadius;
+      const step = Math.min(dt, w.impulse.left);
+      w.player.x = Math.min(ROOM.x + ROOM.w - r, Math.max(ROOM.x + r, w.player.x + w.impulse.vx * step));
+      w.player.y = Math.min(ROOM.y + ROOM.h - r, Math.max(ROOM.y + r, w.player.y + w.impulse.vy * step));
+      w.impulse.left -= dt;
+      if (w.impulse.left <= 0) w.impulse = null;
+    }
+  }
   if (w.phase !== 'play') return;
   if (w.creature.alive) {
     stepCreature(w.creature, dt, w.player, enraged(w) ? CFG.enrage : 1);

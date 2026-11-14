@@ -29,6 +29,7 @@ export class Game extends Phaser.Scene {
   private slow = 1;
   private pendingFire = -1;
   private pendingParry = false;
+  private pendingDash = false;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private room!: Room;
   private breakers!: Breakers;
@@ -84,6 +85,7 @@ export class Game extends Phaser.Scene {
     this.hitStop = 0;
     this.pendingFire = -1;
     this.pendingParry = false;
+    this.pendingDash = false;
     this.flashUntil = 0;
     this.flashStrongUntil = 0;
     this.lit = false;
@@ -119,10 +121,11 @@ export class Game extends Phaser.Scene {
     this.subtitle = this.add.bitmapText(VIEW.w / 2, 60, 'stencil', LORE[progress.level].warden, 7).setTint(PALETTE.n7).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
 
     const kb = this.input.keyboard!;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT,ONE,TWO,THREE') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT,ONE,TWO,THREE,FOUR,F') as Record<string, Phaser.Input.Keyboard.Key>;
     kb.on('keydown', () => this.hud.closeControls());
     kb.on('keydown-R', () => this.scene.restart());
-    kb.on('keydown-SHIFT', () => (this.pendingParry = true));
+    for (const k of ['FOUR', 'NUMPAD_FOUR', 'F']) kb.on(`keydown-${k}`, () => (this.pendingParry = true));
+    kb.on('keydown-SHIFT', () => (this.pendingDash = true));
     const bind = (names: string[], breaker: number) => {
       for (const n of names) kb.on(`keydown-${n}`, () => (this.pendingFire = breaker));
     };
@@ -178,6 +181,10 @@ export class Game extends Phaser.Scene {
         break;
       case 'escape':
         this.time.delayedCall(900, () => this.toChest());
+        break;
+      case 'dash':
+        play('dash');
+        this.fx.burst(this.w.player.x, this.w.player.y, 6);
         break;
       case 'parryStart':
         play('parry_swing');
@@ -270,8 +277,9 @@ export class Game extends Phaser.Scene {
       progress.total += STEP;
       progress.levelTimes[progress.level] += STEP;
     }
-    stepWorld(w, { dx, dy, parry: this.pendingParry }, STEP);
+    stepWorld(w, { dx, dy, parry: this.pendingParry, dash: this.pendingDash }, STEP);
     this.pendingParry = false;
+    this.pendingDash = false;
   }
 
   private render(dt: number): void {

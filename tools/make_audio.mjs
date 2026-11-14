@@ -309,6 +309,16 @@ function coinPing() {
   return shot(0.16, (t) => 0.8 * ring(t, 1760, 26) + 0.55 * ring(t, 2349, 34) + 0.25 * noise() * burst(t, 0, 500));
 }
 
+// A tiny quick air burst for the short dash.
+function dashPuff() {
+  let z = 0;
+  return shot(0.13, (t) => {
+    const hz = 900 + 2200 * Math.sin(Math.PI * Math.min(1, t / 0.12));
+    z += (1 - Math.exp(-2 * Math.PI * hz / rate)) * (noise() - z);
+    return sat(2.5 * z) * Math.sin(Math.PI * Math.min(1, t / 0.12));
+  });
+}
+
 async function wav(name, data, peak) {
   const mean = data.reduce((sum, x) => sum + x, 0) / data.length;
   let max = 0;
@@ -361,5 +371,6 @@ await wav('parry_swing', parrySwing(), 0.6);
 await wav('super_launch', superLaunch(), 0.9);
 await wav('chest_open', chestOpen(), 0.7);
 await wav('coin', coinPing(), 0.6);
+await wav('dash', dashPuff(), 0.55);
 await wav('music_loop', music(), 0.6);
 await wav('heartbeat', heartbeat(), 0.8);
