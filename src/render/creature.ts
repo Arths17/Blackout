@@ -48,7 +48,23 @@ export class CreatureView {
     const g = this.eyes;
     g.clear();
     if (c.alive) {
+      this.drawEyes(g, w, t, x, y);
       this.telegraph(g, w);
+    }
+  }
+
+  private drawEyes(g: Phaser.GameObjects.Graphics, w: World, t: number, x: number, y: number): void {
+    const reveal = w.creature.asleep ? Math.max(0, Math.min(1, (t - Math.max(0, CFG.introSeconds - 1)) / 1)) : 1;
+    if (reveal <= 0) return;
+    const pulse = 0.72 + Math.sin(t * 7) * 0.18;
+    const eyeY = y - 29;
+    for (const eyeX of [x - 6, x + 6]) {
+      g.fillStyle(0xff1d32, 0.18 * reveal);
+      g.fillRect(eyeX - 3, eyeY - 2, 7, 5);
+      g.fillStyle(0xff3548, pulse * reveal);
+      g.fillRect(eyeX - 2, eyeY - 1, 5, 3);
+      g.fillStyle(PALETTE.w, reveal);
+      g.fillRect(eyeX - 1, eyeY, 2, 1);
     }
   }
 

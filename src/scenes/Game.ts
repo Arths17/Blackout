@@ -5,6 +5,7 @@ import { createWorld, stepWorld, useEnergy, type SimEvent, type World } from '..
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
+import { Atmosphere } from '../render/atmosphere';
 import { Dust, Fx } from '../render/fx';
 import { Hud } from '../render/hud';
 import { DEPTH } from '../render/layers';
@@ -29,6 +30,7 @@ export class Game extends Phaser.Scene {
   private fx!: Fx;
   private dust!: Dust;
   private dark!: Darkness;
+  private atmosphere!: Atmosphere;
   private hud!: Hud;
   private grain!: Phaser.GameObjects.Image;
   private hurt!: Phaser.GameObjects.Rectangle;
@@ -40,6 +42,8 @@ export class Game extends Phaser.Scene {
   private freezeAt = -1;
   private playerStepAt = 0;
   private creatureStepAt = 0;
+  private shieldUntil = 0;
+  private lastTremor = -1;
 
   constructor() {
     super('Game');
@@ -66,6 +70,8 @@ export class Game extends Phaser.Scene {
     this.lit = false;
     this.playerStepAt = 0;
     this.creatureStepAt = 0;
+    this.shieldUntil = 0;
+    this.lastTremor = -1;
 
     initAudio();
     startAmbience();
@@ -73,6 +79,7 @@ export class Game extends Phaser.Scene {
     this.breakers = new Breakers(this);
     this.playerView = new PlayerView(this);
     this.creatureView = new CreatureView(this);
+    this.atmosphere = new Atmosphere(this);
     this.fx = new Fx(this);
     this.dust = new Dust(this);
     this.dark = new Darkness(this, { floor: FLOOR, blockers: this.room.blockers });
@@ -80,11 +87,14 @@ export class Game extends Phaser.Scene {
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(DEPTH.vignette);
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(DARK.grainAlpha);
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
-    this.hud = new Hud(this);
+    this.hud = new Hud(this, () => this.cameras.main.flash(120, 225, 232, 227));
 
     const kb = this.input.keyboard!;
     this.keys = kb.addKeys('W,A,S,D,Z,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
     kb.on('keydown-R', () => this.scene.restart());
+    kb.on('keydown-Z', (event: KeyboardEvent) => {
+      if (!event.repeat && this.w.shockwave) this.shieldUntil = this.w.time + 2;
+    });
     kb.on('keydown-E', () => (this.pendingInteract = true));
     kb.on('keydown-SPACE', () => (this.pendingInteract = true));
   }
@@ -111,6 +121,7 @@ export class Game extends Phaser.Scene {
         break;
       case 'shock':
         if (e.counted) {
+          play('surge_crack');
           this.hitStop = VIS.hitStop;
           this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.4;
           this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.8;
@@ -118,7 +129,18 @@ export class Game extends Phaser.Scene {
           cam.shake(VIS.shockShake.ms, VIS.shockShake.amp);
         }
         break;
+      case 'bossShot':
+        this.fx.burst(this.w.creature.x, this.w.creature.y, 8);
+        break;
+      case 'ballStart':
+        play('surge_crack');
+        break;
+      case 'ballHit':
+        play('surge_crack');
+        this.fx.burst(this.w.creature.x, this.w.creature.y, 18);
+        break;
       case 'playerHit':
+        play('surge_crack');
         this.hurt.setAlpha(0.35);
         this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
@@ -141,9 +163,12 @@ export class Game extends Phaser.Scene {
     const dt = Math.min(deltaMs / 1000, 0.1);
     if (this.hitStop > 0) this.hitStop -= dt;
     else this.acc += dt * this.slow;
-    while (this.acc >= STEP) {
-      this.acc -= STEP;
-      this.step();
+    if (this.hud.isControlsOpen()) this.acc = 0;
+    else {
+      while (this.acc >= STEP) {
+        this.acc -= STEP;
+        this.step();
+      }
     }
     this.render(dt);
   }
@@ -162,7 +187,7 @@ export class Game extends Phaser.Scene {
       this.autoFireAt = -1;
       useEnergy(w);
     }
-    stepWorld(w, { dx, dy, shield: k.Z.isDown }, STEP);
+    stepWorld(w, { dx, dy, shield: this.shieldUntil > w.time && w.shockwave !== null }, STEP);
   }
 
   private render(dt: number): void {
@@ -173,18 +198,36 @@ export class Game extends Phaser.Scene {
     if (w.phase === 'play' && w.player.moving && t >= this.playerStepAt) { play('step_player'); this.playerStepAt = t + VIS.playerStep; }
     if (w.phase === 'play' && !w.creature.asleep && w.creature.state === 'stalk' && t >= this.creatureStepAt) { play('step_creature'); this.creatureStepAt = t + VIS.creatureStep; }
     this.creatureView.update(w, t);
+    const atmosphere = this.atmosphere.update(w, t);
+    if (atmosphere.tremor && this.lastTremor !== Math.floor(t)) {
+      this.lastTremor = Math.floor(t);
+      this.cameras.main.shake(120, 0.0015);
+    }
     this.dust.update(dt);
 
     const pl = { x: px(w.player.x), y: px(w.player.y) };
     const lights: Light[] = [{ ...pl, r: DARK.playerHalo, shadows: true }];
     if (w.phase !== 'lost') lights.push({ ...pl, r: DARK.coneR, cone: { angle: w.player.facing, half: DARK.coneHalf }, shadows: true });
     lights.push(...this.room.update(t, this.lit));
+    lights.push(...atmosphere.lights);
     lights.push(...this.breakers.update(w, t));
     lights.push(...this.fx.update(w, dt));
     if (w.creature.alive && w.creature.state === 'windup') lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: 13, tint: PALETTE.g3 });
 
     const ambient = this.lit ? 1 : t < this.flashStrongUntil ? 0 : t < this.flashUntil ? 1 : DARK.ambient;
     this.dark.render(lights, ambient);
+    const intro = Math.max(0, Math.min(1, t / CFG.introSeconds));
+    const introZoom = 1.035 - intro * 0.035;
+    this.cameras.main.setZoom(introZoom);
+    if (intro < 1) {
+      const bossX = px(w.creature.x);
+      const bossY = px(w.creature.y);
+      const centerX = VIEW.w / 2 + (bossX - VIEW.w / 2) * (1 - intro) * 0.18;
+      const centerY = VIEW.h / 2 + (bossY - VIEW.h / 2) * (1 - intro) * 0.18;
+      this.cameras.main.centerOn(centerX, centerY);
+    } else {
+      this.cameras.main.centerOn(VIEW.w / 2, VIEW.h / 2);
+    }
     this.grain.setPosition(-Math.floor(Math.random() * 8), -Math.floor(Math.random() * 8));
     this.hud.update(w, t);
   }

@@ -62,6 +62,8 @@ describe('no-repeat rule', () => {
       expect(w.energy).toBe(0);
       expect(w.surge).not.toBeNull();
       expect(w.surge?.route.points[0]).toEqual({ x: w.player.x, y: w.player.y });
+      stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
+      expect(w.hp).toBe(CFG.healthPips);
     });
 
     it('the radial shockwave damages an unshielded player but not a shielded one', () => {
@@ -76,6 +78,15 @@ describe('no-repeat rule', () => {
       const shielded = make();
       stepWorld(shielded, { dx: 0, dy: 0, shield: true }, 0.1);
       expect(shielded.hp).toBe(CFG.healthPips);
+    });
+
+    it('a ball collision damages the monster and starts its shockwave', () => {
+      const w = createWorld({ player: { x: 500, y: 324 }, creature: { x: 560, y: 324 }, asleep: true });
+      w.nextBall = 0;
+      for (let i = 0; i < 20 && w.shocks === 0; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
+      expect(w.shocks).toBe(1);
+      expect(w.hp).toBe(CFG.healthPips - 1);
+      expect(w.shockwave).not.toBeNull();
     });
     });
 });

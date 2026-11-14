@@ -9,6 +9,7 @@ export interface Circle {
 
 export interface Surge {
   route: Route;
+  hurtsPlayer: boolean;
   dist: number;
   nextLamp: number;
   nextContact: number;
@@ -25,8 +26,8 @@ export interface SurgeStepResult {
   finished: boolean;
 }
 
-export function makeSurge(route: Route): Surge {
-  return { route, dist: 0, nextLamp: 0, nextContact: 0, hitCreature: false, hitPlayer: false, done: false };
+export function makeSurge(route: Route, hurtsPlayer = true): Surge {
+  return { route, hurtsPlayer, dist: 0, nextLamp: 0, nextContact: 0, hitCreature: false, hitPlayer: false, done: false };
 }
 
 export function distToSegment(p: Vec, a: Vec, b: Vec): number {
@@ -58,7 +59,7 @@ export function stepSurge(s: Surge, dt: number, creature: Circle, player: Circle
     s.hitCreature = true;
     res.hitCreature = true;
   }
-  if (canHurt && !s.hitPlayer && swept(path, player)) {
+  if (canHurt && s.hurtsPlayer && !s.hitPlayer && swept(path, player)) {
     s.hitPlayer = true;
     res.hitPlayer = true;
   }

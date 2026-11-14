@@ -47,6 +47,15 @@ export class Fx {
     const lights: Light[] = [];
     const t = w.time;
 
+    if (w.bossShot) {
+      const x = px(w.bossShot.x);
+      const y = px(w.bossShot.y);
+      g.fillStyle(0xff202b, 0.3).fillCircle(x, y, 7);
+      g.fillStyle(0xff4650, 1).fillCircle(x, y, 3);
+      g.fillStyle(PALETTE.w, 1).fillCircle(x, y, 1);
+      lights.push({ x, y, r: 18, tint: 0xff303b });
+    }
+
     if (w.shockwave) {
       g.lineStyle(2, PALETTE.c1, 0.9).strokeCircle(px(w.creature.x), px(w.creature.y), px(w.shockwave.radius));
       lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: Math.min(DARK.surgeR, px(w.shockwave.radius)), tint: PALETTE.c1 });

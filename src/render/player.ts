@@ -7,6 +7,7 @@ import { atlasOf, facingOf, px } from './pixel';
 export class PlayerView {
   private spr: Phaser.GameObjects.Sprite;
   private shadow: Phaser.GameObjects.Image;
+  private ball: Phaser.GameObjects.Graphics;
   private hp = CFG.healthPips;
   private hurtAt = -Infinity;
   private interactAt = -Infinity;
@@ -14,6 +15,7 @@ export class PlayerView {
   constructor(private scene: Phaser.Scene) {
     this.spr = scene.add.sprite(0, 0, 'player', 0).setOrigin(0.5, 23 / 24);
     this.shadow = scene.add.image(0, 0, 'shadow', 0).setOrigin(0.5, 0.5).setDepth(DEPTH.shadow);
+    this.ball = scene.add.graphics().setDepth(DEPTH.y + 2);
   }
 
   interact(t: number): void {
@@ -22,6 +24,21 @@ export class PlayerView {
 
   update(w: World, t: number): void {
     const p = w.player;
+    const x = Math.round(px(p.x)), y = Math.round(px(p.y)) + 3;
+    if (w.ballActive) {
+      this.spr.setVisible(false);
+      this.ball.clear();
+      const pulse = 5 + Math.sin(t * 18) * 1.5;
+      this.ball.fillStyle(PALETTE.c2, 0.35).fillCircle(x, y, pulse + 4);
+      this.ball.fillStyle(PALETTE.c1, 1).fillCircle(x, y, pulse);
+      this.ball.lineStyle(1, PALETTE.w, 1).strokeCircle(x, y, pulse + 2);
+      this.ball.lineBetween(x - pulse - 5, y, x + pulse + 5, y);
+      this.ball.lineBetween(x, y - pulse - 5, x, y + pulse + 5);
+      this.shadow.setPosition(x, y - 1);
+      return;
+    }
+    this.spr.setVisible(true);
+    this.ball.clear();
     const anims = atlasOf(this.scene).sheets.player.anims;
     const facing = facingOf(p.facing);
     const dir = facing.flip ? 'left' : facing.dir;
@@ -41,7 +58,6 @@ export class PlayerView {
     const animation = anims[name];
     const index = Math.max(0, Math.floor(elapsed * animation.fps));
     const frame = animation.frames[loop ? index % animation.frames.length : Math.min(animation.frames.length - 1, index)];
-    const x = Math.round(px(p.x)), y = Math.round(px(p.y)) + 3;
     this.spr.setFrame(frame).setPosition(x, y).setDepth(DEPTH.y + y);
     if (w.grace > 0 && Math.floor(t * 14) % 2 === 0) this.spr.setTintFill(PALETTE.n7);
     else this.spr.clearTint();
