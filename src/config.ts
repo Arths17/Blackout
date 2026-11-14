@@ -48,6 +48,7 @@ export const VIS = {
 
 export const CFG = {
   stepHz: 60,
+  timerEpsilon: 1e-9, // float slack so a 0.35 s timer ends on tick 21, not 22
 
   playerSpeed: 220,
   playerRadius: 11,
