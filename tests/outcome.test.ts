@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOSS_START, EXIT, FIRST_HIT_SPAWN, LURES, PLAYER_START, ROOM } from '../src/config';
+import { BOSS_START, CFG, EXIT, FIRST_HIT_SPAWN, LURES, PLAYER_START, ROOM } from '../src/config';
 import { createWorld, stepWorld, tryInteract } from '../src/sim/game';
 import { simulateShot } from './shot';
 
@@ -71,6 +71,6 @@ describe('boss start', () => {
     expect(tryInteract(w)).toBe('ok');
     for (let i = 0; i < 400 && w.surge; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
     expect(w.shocks).toBeGreaterThanOrEqual(1);
-    expect(w.hp).toBe(4);
+    expect(w.hp).toBe(CFG.healthPips);
   });
 });

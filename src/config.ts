@@ -59,7 +59,7 @@ export const DARK = {
   alpha: [0, 0.15, 0.33, 0.56], // tier 0 lit ... tier 3 ambient dark; higher = harder to see
   ambient: 3,
   vignette: [0, 0.03, 0.07, 0.12],
-  grainAlpha: 0.035,
+  grainAlpha: 0.02,
   playerR: 60, // light radii in screen px
   playerHalo: 19,
   coneR: 120,
@@ -124,7 +124,7 @@ export const CFG = {
   bounceHitGrace: 1.0, // immunity after a bounce hits the creature, so the player can get away
 
   graceSeconds: 1.0, // shorter = harder
-  healthPips: 4, // fewer = harder
+  healthPips: 5, // fewer = harder
   shocksToWin: 5, // more = longer fight
 
   missWindupReduction: 0.08, // per consecutive miss; bigger = harder

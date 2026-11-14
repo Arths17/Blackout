@@ -133,7 +133,7 @@ export class Dust {
 
   constructor(scene: Phaser.Scene) {
     this.g = scene.add.graphics().setDepth(DEPTH.dust);
-    for (let i = 0; i < 46; i++) this.p.push({ x: Math.random() * VIEW.w, y: Math.random() * VIEW.h, vx: 2 + Math.random() * 4, vy: 1 + Math.random() * 3 });
+    for (let i = 0; i < 14; i++) this.p.push({ x: Math.random() * VIEW.w, y: Math.random() * VIEW.h, vx: 2 + Math.random() * 4, vy: 1 + Math.random() * 3 });
   }
 
   update(dt: number): void {

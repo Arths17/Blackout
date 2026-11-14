@@ -34,13 +34,13 @@ export class Hud {
     const text = (x: number, y: number, value: string, tint: number, size = 7) =>
       scene.add.bitmapText(x, y, 'stencil', value, size).setTint(tint).setOrigin(0.5).setDepth(DEPTH.text);
     this.frame = scene.add.graphics().setDepth(DEPTH.hud - 1);
-    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 84, 15);
-    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 84, 15);
+    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 100, 15);
+    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 100, 15);
     this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(RX, 1, VIEW.w - RX - 2, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(RX, 1, VIEW.w - RX - 2, 15);
     this.frame.fillStyle(PALETTE.ink, 0.88).fillRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, VIEW.h - 17, VIEW.w - 4, 15);
-    this.healthCaption = text(66, 8, 'VITAL', PALETTE.n6, 7);
+    this.healthCaption = text(76, 8, 'VITAL', PALETTE.n6, 7);
     this.shockCaption = text(RX + 27, 8, 'SHOCKS', PALETTE.n6, 7);
     this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 7);
     for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));

@@ -46,6 +46,7 @@ export class Finish extends Phaser.Scene {
     BOSS_LEVELS.forEach((b, i) => {
       text(128 + i * 10, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S  ${progress.levelCoins[i]} COINS`, 7, PALETTE.n6);
     });
+    text(VIEW.h - 30, 'MUSIC DARK FOG BY KEVIN MACLEOD  INCOMPETECH.COM  CC BY 4.0', 7, PALETTE.n5);
     const hint = text(VIEW.h - 14, '[ENTER] PLAY AGAIN', 7, PALETTE.warm2);
     this.tweens.add({ targets: hint, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
 

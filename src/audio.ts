@@ -1,7 +1,7 @@
 export type SoundName = 'relay_click' | 'surge_crack' | 'wall_crack' | 'step_player'
   | 'step_creature' | 'hum_loop' | 'power_return' | 'bounce_launch' | 'bounce_wall' | 'bounce_hit'
   | 'player_hurt' | 'windup' | 'lunge' | 'dead_click' | 'lamp' | 'power_back' | 'fizzle' | 'blackout'
-  | 'music_loop' | 'heartbeat' | 'boss_shot' | 'chest_open' | 'coin' | 'dash' | 'vines' | 'parry' | 'parry_swing' | 'super_launch';
+  | 'music_loop' | 'heartbeat' | 'boss_shot' | 'chest_open' | 'coin' | 'dash' | 'vines' | 'parry' | 'parry_swing' | 'super_launch' | 'dark_fog';
 
 const levels: Record<SoundName, number> = {
   relay_click: 0.7,
@@ -28,6 +28,8 @@ const levels: Record<SoundName, number> = {
   chest_open: 0.7,
   coin: 0.4,
   dash: 0.45,
+  // Music by Kevin MacLeod (incompetech.com), CC BY 4.0; see CREDITS.md. Mastered loud, so it sits low.
+  dark_fog: 0.3,
   vines: 0.55,
   parry: 0.8,
   parry_swing: 0.4,
@@ -40,6 +42,7 @@ let creature: GainNode;
 let loading: Promise<void> | undefined;
 const beds: Partial<Record<SoundName, AudioBufferSourceNode>> = {};
 let wantAmbience = false;
+let loaded = false;
 let distance = Infinity;
 let activated = false;
 let resuming: Promise<void> | undefined;
@@ -70,13 +73,16 @@ export function initAudio(): void {
   const ctx = context;
   loading = Promise.all((Object.keys(levels) as SoundName[]).map(async (name) => {
     try {
-      const response = await fetch(import.meta.env.BASE_URL + 'audio/' + name + '.wav');
+      const response = await fetch(import.meta.env.BASE_URL + 'audio/' + name + (name === 'dark_fog' ? '.m4a' : '.wav'));
       if (!response.ok) throw new Error('HTTP ' + response.status);
       buffers.set(name, await ctx.decodeAudioData(await response.arrayBuffer()));
     } catch (error) {
       console.warn('Audio unavailable: ' + name, error);
     }
-  })).then(() => { beginAmbience(); });
+  })).then(() => {
+    loaded = true;
+    beginAmbience();
+  });
 }
 
 function unlock(): void {
@@ -114,7 +120,10 @@ export function play(name: SoundName): void {
 
 function beginAmbience(): void {
   if (!wantAmbience) return;
-  for (const name of ['hum_loop', 'music_loop'] as const) {
+  // The recorded track once it has loaded; the synthesized loop covers browsers that can't decode it.
+  const music = buffers.has('dark_fog') ? 'dark_fog' : 'music_loop';
+  for (const name of ['hum_loop', music] as const) {
+    if (name === music && !loaded) continue;
     if (beds[name]) continue;
     const node = source(name);
     if (!node) continue;

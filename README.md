@@ -2,7 +2,7 @@
 
 A short browser game made for the theme "Bounce Back". You are in a dark maintenance room with a creature. Three breakers send electrical surges around the room. Lamps show where the surge is going and briefly reveal the creature.
 
-Each generator's path is always drawn on the floor. When the creature crosses one, press that generator's number to send a surge down it. The surge ricochets off the walls and hurts you too if you are in the way. Land enough shocks to restore power, then reach the open exit. A generator that hits stays offline until a different one hits. Missing makes the next windup shorter and the generator recovery longer. You have four health pips.
+Each generator's path is always drawn on the floor. When the creature crosses one, press that generator's number to send a surge down it. The surge ricochets off the walls and hurts you too if you are in the way. Land enough shocks to restore power, then reach the open exit. A generator that hits stays offline until a different one hits. Missing makes the next windup shorter and the generator recovery longer. You have five health pips.
 
 ## Controls
 
@@ -48,3 +48,8 @@ npm run zip
 This rebuilds the game and writes blackout-html5.zip with index.html at the zip root, alongside assets/ and audio/. The packer uses only Node standard libraries. Upload that zip as an HTML game on itch.io. Page copy and capture plans are in docs/itch_page.md.
 
 To regenerate the WAV files, run npm run audio. The generator uses only Node standard libraries. Generated audio is committed; dist/ and the upload zip are not.
+
+## Music credit
+
+"Dark Fog" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/
