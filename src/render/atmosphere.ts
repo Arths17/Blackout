@@ -21,25 +21,17 @@ export class Atmosphere {
     { points: [[mx(84), my(47)], [mx(96), my(59)], [mx(111), my(58)], [mx(126), my(72)]], phase: 3.4, width: 1 },
     // Perimeter roots pushing in through the walls, kept clear of the breaker panels and the exit.
     { points: [[mx(21), my(58)], [mx(31), my(64)], [mx(40), my(62)], [mx(51), my(73)]], phase: 1.2, width: 2, leaf: true },
-    { points: [[mx(21), my(99)], [mx(30), my(95)], [mx(38), my(101)], [mx(46), my(97)]], phase: 2.7, width: 1 },
     { points: [[mx(299), my(34)], [mx(289), my(40)], [mx(286), my(50)], [mx(275), my(56)]], phase: 0.9, width: 2, leaf: true },
-    { points: [[mx(299), my(126)], [mx(290), my(132)], [mx(285), my(126)], [mx(274), my(134)]], phase: 3.9, width: 1 },
-    { points: [[mx(299), my(147)], [mx(291), my(150)], [mx(283), my(158)]], phase: 1.7, width: 1 },
     { points: [[mx(104), my(163)], [mx(110), my(156)], [mx(106), my(149)], [mx(115), my(143)]], phase: 2.4, width: 2, leaf: true },
-    { points: [[mx(203), my(163)], [mx(199), my(156)], [mx(207), my(150)]], phase: 0.3, width: 1 },
-    { points: [[mx(146), my(14)], [mx(149), my(24)], [mx(143), my(33)], [mx(150), my(43)]], phase: 4.4, width: 2, leaf: true },
-    { points: [[mx(196), my(14)], [mx(192), my(22)], [mx(198), my(31)], [mx(193), my(39)]], phase: 5.1, width: 1 },
   ];
   // Vines hanging from the top wall, with leaves down their length.
   private hanging = [
-    { x: mx(118), len: 26, phase: 0.5 },
-    { x: mx(171), len: 18, phase: 2.2 },
-    { x: mx(222), len: 30, phase: 4.0 },
-    { x: mx(244), len: 14, phase: 1.1 },
+    { x: mx(118), len: 22, phase: 0.5 },
+    { x: mx(222), len: 26, phase: 4.0 },
   ];
   // Moss patches on the floor edges: [x, y, w, h].
   private moss: [number, number, number, number][] = [
-    [mx(22), my(15), 10, 5], [mx(286), my(15), 12, 5], [mx(22), my(156), 12, 6], [mx(286), my(118), 12, 6], [mx(150), my(160), 14, 5], [mx(22), my(72), 5, 8],
+    [mx(22), my(15), 10, 5], [mx(286), my(118), 12, 6], [mx(22), my(156), 12, 6],
   ];
   private nextTremor = 7;
 
@@ -158,7 +150,7 @@ export class Atmosphere {
     lights.push({ x: ax + 10, y: ay + 6, r: DARK.panelR * 0.8, tint: PALETTE.g3 });
     lights.push({ x: bx + 12, y: by + 6, r: DARK.panelR * 0.85, tint: PALETTE.r3 });
     // Faint green glow at some root tips so the roots read in the dark.
-    for (const i of [3, 4, 5, 8, 10, 11]) {
+    for (const i of [3, 4, 5]) {
       const r = this.roots[i];
       const [x, y] = r.points[r.points.length - 1];
       lights.push({ x, y, r: 11, tint: PALETTE.g3 });

@@ -74,9 +74,9 @@ export class Foliage {
   constructor(scene: Phaser.Scene) {
     // Authored positions (320 x 180 floor coordinates). Kept off the breaker panels, the exit and the props.
     const trees: [number, number, number][] = [
-      [30, 92, 1.1], [27, 126, 0.9], [150, 38, 1.2], [207, 36, 1.0], [290, 58, 1.1], [127, 108, 0.8], [208, 126, 0.9], [92, 78, 0.75],
+      [30, 92, 1.1], [150, 38, 1.2], [290, 58, 1.1], [208, 126, 0.9],
     ];
-    const bushes: [number, number][] = [[60, 62], [248, 90], [160, 150], [112, 144], [262, 116], [185, 74]];
+    const bushes: [number, number][] = [[60, 62], [262, 116]];
     trees.forEach(([x, y, s], i) => {
       const g = scene.add.graphics().setDepth(DEPTH.y + my(y));
       tree(g, mx(x), my(y), s, 31 + i * 7);
@@ -89,7 +89,7 @@ export class Foliage {
     // leaves lying on the floor
     const floor = scene.add.graphics().setDepth(DEPTH.shadow - 2);
     const r = rng(77);
-    for (let i = 0; i < 170; i++) {
+    for (let i = 0; i < 45; i++) {
       const x = FLOOR.x0 + 6 + r() * (FLOOR.x1 - FLOOR.x0 - 12);
       const y = FLOOR.y0 + 6 + r() * (FLOOR.y1 - FLOOR.y0 - 12);
       const warm = r() < 0.3;
@@ -100,7 +100,7 @@ export class Foliage {
     }
 
     this.g = scene.add.graphics().setDepth(DEPTH.dust);
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 8; i++) {
       this.falling.push({ x: r() * VIEW.w, y: r() * VIEW.h, vy: 5 + r() * 7, sway: 3 + r() * 5, phase: r() * 6, warm: r() < 0.35 });
     }
   }

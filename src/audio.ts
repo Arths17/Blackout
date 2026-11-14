@@ -1,7 +1,7 @@
 export type SoundName = 'relay_click' | 'surge_crack' | 'wall_crack' | 'step_player'
   | 'step_creature' | 'hum_loop' | 'power_return' | 'bounce_launch' | 'bounce_wall' | 'bounce_hit'
   | 'player_hurt' | 'windup' | 'lunge' | 'dead_click' | 'lamp' | 'power_back' | 'fizzle' | 'blackout'
-  | 'music_loop' | 'heartbeat' | 'boss_shot' | 'chest_open' | 'coin' | 'dash' | 'vines' | 'parry' | 'parry_swing' | 'super_launch';
+  | 'music_loop' | 'heartbeat' | 'boss_shot' | 'chest_open' | 'coin' | 'dash' | 'vines' | 'parry' | 'parry_swing' | 'super_launch' | 'dark_fog' | 'fight_1' | 'fight_2' | 'fight_3';
 
 const levels: Record<SoundName, number> = {
   relay_click: 0.7,
@@ -28,6 +28,11 @@ const levels: Record<SoundName, number> = {
   chest_open: 0.7,
   coin: 0.4,
   dash: 0.45,
+  // Music by Kevin MacLeod (incompetech.com), CC BY 4.0; see CREDITS.md. Levels are for the tracks' own loudness.
+  dark_fog: 0.6,
+  fight_1: 0.62,
+  fight_2: 0.62,
+  fight_3: 0.58,
   vines: 0.55,
   parry: 0.8,
   parry_swing: 0.4,
@@ -40,10 +45,19 @@ let creature: GainNode;
 let loading: Promise<void> | undefined;
 const beds: Partial<Record<SoundName, AudioBufferSourceNode>> = {};
 let wantAmbience = false;
+let loaded = false;
 let distance = Infinity;
 let activated = false;
 let resuming: Promise<void> | undefined;
 const buffers = new Map<SoundName, AudioBuffer>();
+
+// Recorded tracks are big, so they load only when wanted and the music not in use is dropped.
+export type MusicName = 'dark_fog' | 'fight_1' | 'fight_2' | 'fight_3';
+const MUSIC: SoundName[] = ['dark_fog', 'fight_1', 'fight_2', 'fight_3'];
+const isMusic = (n: SoundName): boolean => MUSIC.includes(n);
+let wantedMusic: MusicName = 'dark_fog';
+let playing: { name: MusicName | 'music_loop'; node: AudioBufferSourceNode; gain: GainNode } | undefined;
+const pending = new Map<MusicName, Promise<void>>();
 
 export function initAudio(): void {
   if (context || typeof window === 'undefined' || typeof AudioContext === 'undefined') return;
@@ -68,7 +82,7 @@ export function initAudio(): void {
     if (context?.state === 'running') beginAmbience();
   });
   const ctx = context;
-  loading = Promise.all((Object.keys(levels) as SoundName[]).map(async (name) => {
+  loading = Promise.all((Object.keys(levels) as SoundName[]).filter((n) => !isMusic(n)).map(async (name) => {
     try {
       const response = await fetch(import.meta.env.BASE_URL + 'audio/' + name + '.wav');
       if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -76,7 +90,10 @@ export function initAudio(): void {
     } catch (error) {
       console.warn('Audio unavailable: ' + name, error);
     }
-  })).then(() => { beginAmbience(); });
+  })).then(() => {
+    loaded = true;
+    beginAmbience();
+  });
 }
 
 function unlock(): void {
@@ -114,14 +131,72 @@ export function play(name: SoundName): void {
 
 function beginAmbience(): void {
   if (!wantAmbience) return;
-  for (const name of ['hum_loop', 'music_loop'] as const) {
-    if (beds[name]) continue;
-    const node = source(name);
-    if (!node) continue;
-    node.loop = true;
-    node.start();
-    beds[name] = node;
+  if (!beds.hum_loop) {
+    const node = source('hum_loop');
+    if (node) {
+      node.loop = true;
+      node.start();
+      beds.hum_loop = node;
+    }
   }
+  applyMusic();
+}
+
+function loadMusic(name: MusicName): Promise<void> {
+  if (buffers.has(name) || !context) return Promise.resolve();
+  let p = pending.get(name);
+  if (!p) {
+    const ctx = context;
+    p = (async () => {
+      try {
+        const response = await fetch(import.meta.env.BASE_URL + 'audio/' + name + '.m4a');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        buffers.set(name, await ctx.decodeAudioData(await response.arrayBuffer()));
+      } catch (error) {
+        console.warn('Music unavailable: ' + name, error);
+      }
+    })();
+    pending.set(name, p);
+  }
+  return p;
+}
+
+// Crossfades to the wanted track. If it can't be decoded the synthesized loop covers for it.
+function applyMusic(): void {
+  if (!wantAmbience || !activated || !context || context.state !== 'running' || !loaded) return;
+  const want: MusicName | 'music_loop' = buffers.has(wantedMusic) ? wantedMusic : pending.has(wantedMusic) && !buffers.has(wantedMusic) ? (playing?.name ?? 'music_loop') : 'music_loop';
+  if (!buffers.has(wantedMusic) && !pending.has(wantedMusic)) {
+    void loadMusic(wantedMusic).then(applyMusic);
+  }
+  if (playing?.name === want) return;
+  const buffer = buffers.get(want);
+  if (!buffer) return;
+  const now = context.currentTime;
+  if (playing) {
+    const old = playing;
+    old.gain.gain.cancelScheduledValues(now);
+    old.gain.gain.setValueAtTime(old.gain.gain.value, now);
+    old.gain.gain.linearRampToValueAtTime(0, now + 1.2);
+    old.node.stop(now + 1.3);
+    old.node.onended = () => { old.node.disconnect(); old.gain.disconnect(); };
+    if (old.name !== 'music_loop' && old.name !== want) setTimeout(() => buffers.delete(old.name as MusicName), 2000);
+  }
+  const node = context.createBufferSource();
+  node.buffer = buffer;
+  node.loop = true;
+  const gain = context.createGain();
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(levels[want], now + 1.2);
+  node.connect(gain).connect(master);
+  node.start();
+  playing = { name: want, node, gain };
+}
+
+export function setMusic(name: MusicName): void {
+  wantedMusic = name;
+  initAudio();
+  void loadMusic(name).then(applyMusic);
+  applyMusic();
 }
 
 export function startAmbience(): void {

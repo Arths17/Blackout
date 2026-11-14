@@ -24,14 +24,19 @@ export class Hud {
   private controlsCloseLabel: Phaser.GameObjects.BitmapText;
   private controlsOpen = !controlsSeen;
   private onClose: () => void;
+  private onTitle: () => void;
+  private backBtn: Phaser.GameObjects.Rectangle;
+  private backLabel: Phaser.GameObjects.BitmapText;
 
-  constructor(private scene: Phaser.Scene, onControlsClose: () => void) {
+  constructor(private scene: Phaser.Scene, onControlsClose: () => void, onTitle: () => void) {
     this.onClose = onControlsClose;
+    this.onTitle = onTitle;
     const text = (x: number, y: number, value: string, tint: number, size = 7) =>
       scene.add.bitmapText(x, y, 'stencil', value, size).setTint(tint).setOrigin(0.5).setDepth(DEPTH.text);
     this.frame = scene.add.graphics().setDepth(DEPTH.hud - 1);
-    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 84, 15);
-    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 84, 15);
+    // Wide enough for five life pips and the caption.
+    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 100, 15);
+    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 100, 15);
     this.frame.fillStyle(PALETTE.ink, 0.88).fillRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     // Which fight this is, top right, for the whole fight.
@@ -39,7 +44,7 @@ export class Hud {
     this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(VIEW.w - 2 - TAGW, 1, TAGW, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(VIEW.w - 2 - TAGW, 1, TAGW, 15);
     text(VIEW.w - 2 - TAGW / 2, 8, `LEVEL ${progress.level + 1} OF ${BOSS_LEVELS.length}`, PALETTE.warm, 7);
-    this.healthCaption = text(66, 8, 'VITAL', PALETTE.n6, 7);
+    this.healthCaption = text(76, 8, 'VITAL', PALETTE.n6, 7);
     this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 7);
     for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
     this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
@@ -47,7 +52,7 @@ export class Hud {
     this.sub = text(VIEW.w / 2, VIEW.h / 2 + 10, '', PALETTE.n7).setDepth(DEPTH.banner);
     // Sized to the text: the widest line is 34 characters at 6 px.
     const PW = 236;
-    const PH = 124;
+    const PH = 146;
     const px0 = Math.round((VIEW.w - PW) / 2);
     const py0 = Math.round((VIEW.h - PH) / 2);
     this.controlsPanel = scene.add.graphics().setDepth(DEPTH.banner - 2);
@@ -56,6 +61,14 @@ export class Hud {
     this.controlsPanel.lineStyle(1, PALETTE.n3, 1).strokeRect(px0 + 4, py0 + 4, PW - 8, PH - 8);
     this.controlsTitle = text(VIEW.w / 2, py0 + 13, 'CONTROLS', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
     this.controlsText = text(VIEW.w / 2, py0 + 59, 'MOVE   WASD  ARROWS\n1 2 3  FIRE THAT GENERATOR\n4 F    PARRY THE BOSS\nSHIFT  SMALL DASH\nR      RESTART\n\nFIRE WHEN THE BOSS CROSSES A PATH.\nTWO PARRIES MAKE A SUPER BOUNCE.', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
+    this.backBtn = scene.add.rectangle(VIEW.w / 2, py0 + PH - 36, 150, 14, PALETTE.r1, 1)
+      .setStrokeStyle(1, PALETTE.c2, 1)
+      .setDepth(DEPTH.banner)
+      .setInteractive({ useHandCursor: true });
+    this.backLabel = text(VIEW.w / 2, py0 + PH - 36, 'BACK TO TITLE SCREEN [T]', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
+    this.backBtn.on('pointerover', () => this.backBtn.setFillStyle(PALETTE.n3, 1));
+    this.backBtn.on('pointerout', () => this.backBtn.setFillStyle(PALETTE.r1, 1));
+    this.backBtn.on('pointerdown', () => this.toTitle());
     this.controlsHint = text(VIEW.w / 2, py0 + PH - 12, 'PRESS ANY KEY TO BEGIN', PALETTE.warm2, 7).setDepth(DEPTH.banner + 1);
     this.controlsClose = scene.add.rectangle(px0 + PW - 12, py0 + 12, 14, 12, PALETTE.r1, 1)
       .setStrokeStyle(1, PALETTE.c2, 1)
@@ -63,6 +76,19 @@ export class Hud {
     this.controlsCloseLabel = text(px0 + PW - 12, py0 + 12, 'X', PALETTE.w, 7).setDepth(DEPTH.banner + 1);
     this.controlsClose.setInteractive({ useHandCursor: true });
     this.controlsClose.on('pointerdown', () => this.closeControls());
+  }
+
+  // Esc: pause the fight and show the controls again, or resume.
+  toggleControls(): void {
+    if (this.controlsOpen) this.closeControls();
+    else {
+      this.controlsOpen = true;
+      this.controlsHint.setText('PRESS ANY KEY TO RESUME');
+    }
+  }
+
+  toTitle(): void {
+    if (this.controlsOpen) this.onTitle();
   }
 
   closeControls(): void {
@@ -107,5 +133,9 @@ export class Hud {
     this.controlsHint.setVisible(showControls);
     this.controlsClose.setVisible(showControls);
     this.controlsCloseLabel.setVisible(showControls);
+    this.backBtn.setVisible(showControls);
+    this.backLabel.setVisible(showControls);
+    if (showControls) this.backBtn.setInteractive();
+    else this.backBtn.disableInteractive();
   }
 }

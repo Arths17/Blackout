@@ -31,3 +31,7 @@ Record one short return-loop attempt. Start on the breaker throw, show an empty-
 ## Upload
 
 Run npm run zip and upload blackout-html5.zip as the HTML game. index.html must remain at the archive root. Test the uploaded embed for keyboard focus, first-key audio, restart, loss, and the five-hit exit payoff. Screenshots and GIF are planned here, not captured yet.
+
+## Credits
+
+Music: "Dark Fog", "The Descent", "Ouroboros" and "Gathering Darkness" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/

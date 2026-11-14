@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FIRST_HIT_SPAWN, LURES, PLAYER_START, ROOM } from '../src/config';
+import { BOSS_START, CFG, EXIT, FIRST_HIT_SPAWN, LURES, PLAYER_START, ROOM } from '../src/config';
 import { createWorld, stepWorld, tryInteract } from '../src/sim/game';
 import { simulateShot } from './shot';
 
@@ -50,22 +50,30 @@ describe('quick bank outcomes', () => {
   });
 });
 
-describe('first hit', () => {
-  it('pressing breaker 1 at the start lands at least one shock without costing health', () => {
+describe('boss start', () => {
+  it('the boss starts in the top-right corner guarding the exit door', () => {
     const w = createWorld();
-    expect(w.creature.x).toBe(FIRST_HIT_SPAWN.x);
-    w.player.x = PLAYER_START.x;
-    w.player.y = PLAYER_START.y;
+    expect(w.creature.x).toBe(BOSS_START.x);
+    expect(w.creature.y).toBe(BOSS_START.y);
+    expect(w.creature.x).toBeGreaterThan(EXIT.x);
+    expect(w.creature.y).toBeLessThan(ROOM.y + 120);
+  });
+
+  it('the boss starts running at the player straight away', () => {
+    const w = createWorld();
+    expect(w.creature.asleep).toBe(false);
+    const d0 = Math.hypot(w.creature.x - w.player.x, w.creature.y - w.player.y);
+    for (let i = 0; i < 60; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
+    const d1 = Math.hypot(w.creature.x - w.player.x, w.creature.y - w.player.y);
+    expect(d1).toBeLessThan(d0 - 100);
+    expect(w.creature.state).toBe('stalk');
+  });
+
+  it('a creature placed on the first-hit mark is still hit by breaker 1 from the start', () => {
+    const w = createWorld({ creature: FIRST_HIT_SPAWN, player: PLAYER_START, asleep: true });
     expect(tryInteract(w)).toBe('ok');
     for (let i = 0; i < 400 && w.surge; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
     expect(w.shocks).toBeGreaterThanOrEqual(1);
-    expect(w.lastHitBreaker).toBe(0);
-    expect(w.hp).toBe(4);
-  });
-
-  it('the creature does not wander off before the player acts', () => {
-    const w = createWorld();
-    for (let i = 0; i < 60 * 5; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
-    expect(w.creature.x).toBe(FIRST_HIT_SPAWN.x);
+    expect(w.hp).toBe(CFG.healthPips);
   });
 });
