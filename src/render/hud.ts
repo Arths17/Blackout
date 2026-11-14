@@ -25,17 +25,17 @@ export class Hud {
     this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);
     this.banner = text(VIEW.w / 2, VIEW.h / 2 - 7, '', PALETTE.n7, 14).setDepth(DEPTH.banner);
     this.sub = text(VIEW.w / 2, VIEW.h / 2 + 10, '', PALETTE.n7).setDepth(DEPTH.banner);
-    text(VIEW.w / 2, VIEW.h - 5, 'WASD MOVE  E FIRE  R RESTART', PALETTE.n6);
+    text(VIEW.w / 2, VIEW.h - 5, 'WASD MOVE  E CHARGE/FIRE  Z SHIELD  R RESTART', PALETTE.n6);
   }
 
   update(w: World, t: number): void {
     const U = atlasOf(this.scene).sheets.ui;
     this.pips.forEach((p, i) => p.setFrame(i < w.hp ? U.pip.full : w.grace > 0.8 && i === w.hp ? U.pip.flash : U.pip.empty));
     this.bolts.forEach((b, i) => b.setFrame(i < w.shocks ? U.bolt.full : U.bolt.empty));
-    const status = w.phase !== 'play' || w.surge ? '' : w.cooldown > 0 ? `GEN ${w.cooldown.toFixed(1)}` : 'POWER READY';
+    const status = w.phase !== 'play' || w.surge ? '' : w.energy > 0 ? 'ENERGY READY' : w.cooldown > 0 ? `GEN ${w.cooldown.toFixed(1)}` : 'POWER READY';
     this.status.setText(status).setTint(PALETTE.n7);
     this.prompt.setVisible(false);
-    if (w.phase === 'play' && !w.surge && w.cooldown <= 0) {
+    if (w.phase === 'play' && !w.surge && w.cooldown <= 0 && w.energy === 0) {
       for (const r of ROUTES) {
         if (Math.hypot(w.player.x - r.switchPos.x, w.player.y - r.switchPos.y) <= CFG.interactRange && !isOffline(w, r.id)) {
           this.prompt.setVisible(true).setPosition(Math.round(px(w.player.x)), Math.round(px(w.player.y)) - 17 + Math.floor(t * 3) % 2);

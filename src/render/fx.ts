@@ -47,6 +47,11 @@ export class Fx {
     const lights: Light[] = [];
     const t = w.time;
 
+    if (w.shockwave) {
+      g.lineStyle(2, PALETTE.c1, 0.9).strokeCircle(px(w.creature.x), px(w.creature.y), px(w.shockwave.radius));
+      lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: Math.min(DARK.surgeR, px(w.shockwave.radius)), tint: PALETTE.c1 });
+    }
+
     this.lampSprites.forEach((row, id) =>
       row.forEach((spr, i) => {
         const f = Math.max(0, 1 - (t - w.lampLitAt[id][i]) / CFG.lampFade);

@@ -1,11 +1,12 @@
 import { CFG, EXIT, FIRST_HIT_SPAWN, PLAYER_START, ROOM } from '../config';
 import { hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
-import { ROUTES, pointAt, type Vec } from './routes';
+import { directRoute, ROUTES, pointAt, type Vec } from './routes';
 import { makeSurge, stepSurge, type Surge } from './surge';
 
 export type SimEvent =
   | { type: 'relayClick'; breaker: number }
+  | { type: 'energyGain'; breaker: number }
   | { type: 'deadClick'; breaker: number }
   | { type: 'lampLit'; breaker: number; lamp: number; x: number; y: number }
   | { type: 'bounce'; x: number; y: number }
@@ -26,6 +27,7 @@ export interface World {
   player: PlayerState;
   creature: Creature;
   surge: Surge | null;
+  shockwave: Shockwave | null;
   lampLitAt: number[][];
   revealUntil: number;
   shocks: number;
@@ -36,6 +38,16 @@ export interface World {
   grace: number;
   endTime: number;
   listeners: ((e: SimEvent) => void)[];
+  energy: number;
+  energyBreaker: number;
+  shielding: boolean;
+}
+
+export interface Shockwave {
+  radius: number;
+  speed: number;
+  maxRadius: number;
+  hitPlayer: boolean;
 }
 
 export interface WorldOpts {
@@ -55,6 +67,7 @@ export function createWorld(opts: WorldOpts = {}): World {
     player: makePlayer(p.x, p.y),
     creature,
     surge: null,
+    shockwave: null,
     lampLitAt: ROUTES.map((r) => r.lampDists.map(() => -Infinity)),
     revealUntil: -Infinity,
     shocks: 0,
@@ -65,6 +78,9 @@ export function createWorld(opts: WorldOpts = {}): World {
     grace: 0,
     endTime: 0,
     listeners: [],
+    energy: 0,
+    energyBreaker: -1,
+    shielding: false,
   };
 }
 
@@ -85,6 +101,10 @@ export function isOffline(w: World, breaker: number): boolean {
 }
 
 export function fire(w: World, breaker: number): FireResult {
+  return startFire(w, ROUTES[breaker], breaker);
+}
+
+function startFire(w: World, route: ReturnType<typeof directRoute>, breaker: number): FireResult {
   if (w.phase !== 'play') return 'over';
   if (w.surge) return 'busy';
   if (w.cooldown > 0) return 'cooling';
@@ -92,7 +112,6 @@ export function fire(w: World, breaker: number): FireResult {
     emit(w, { type: 'deadClick', breaker });
     return 'offline';
   }
-  const route = ROUTES[breaker];
   w.creature.asleep = false;
   // Click, windup and surge all start on this one call so their timing can't drift apart.
   startWindup(w.creature, route.switchPos, currentWindup(w));
@@ -112,6 +131,33 @@ export function tryInteract(w: World): FireResult | 'none' {
     }
   }
   return best >= 0 ? fire(w, best) : 'none';
+}
+
+export function useEnergy(w: World): FireResult | 'none' | 'charged' {
+  if (w.phase !== 'play') return 'over';
+  let best = -1;
+  let bestD = CFG.interactRange;
+  for (const r of ROUTES) {
+    const d = Math.hypot(w.player.x - r.switchPos.x, w.player.y - r.switchPos.y);
+    if (d <= bestD && !isOffline(w, r.id)) {
+      best = r.id;
+      bestD = d;
+    }
+  }
+  if (best >= 0 && w.energy === 0) {
+    w.energy = 1;
+    w.energyBreaker = best;
+    emit(w, { type: 'energyGain', breaker: best });
+    return 'charged';
+  }
+  if (w.energy === 0) return 'none';
+  if (best >= 0) return 'charged';
+  const result = startFire(w, directRoute({ x: w.player.x, y: w.player.y }, w.player.facing, w.energyBreaker), w.energyBreaker);
+  if (result === 'ok') {
+    w.energy = 0;
+    w.energyBreaker = -1;
+  }
+  return result;
 }
 
 export function damagePlayer(w: World): boolean {
@@ -141,11 +187,20 @@ function registerShock(w: World, breaker: number): void {
     w.lastHitBreaker = breaker;
   }
   emit(w, { type: 'shock', breaker, counted });
+  if (counted) {
+    w.shockwave = {
+      radius: CFG.creatureRadius,
+      speed: CFG.surgeSpeed,
+      maxRadius: Math.hypot(ROOM.w, ROOM.h) + 100,
+      hitPlayer: false,
+    };
+  }
   if (counted && w.shocks >= CFG.shocksToWin && w.phase === 'play') {
     w.phase = 'won';
     w.endTime = w.time;
     w.creature.alive = false;
     w.surge = null;
+    w.shockwave = null;
     w.cooldown = 0;
     w.grace = 0;
     emit(w, { type: 'win' });
@@ -168,6 +223,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     w.grace -= dt;
     if (w.grace <= CFG.timerEpsilon) w.grace = 0;
   }
+  w.shielding = input.shield === true;
 
   // Terminal worlds stop counting: no power-return click after the win.
   if (w.cooldown > 0 && !w.surge && w.phase === 'play') {
@@ -188,6 +244,18 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     }
   }
   // A lethal creature touch ends the tick: no shock, lamp or bounce may follow the lose event.
+  if (isLost(w)) return;
+
+  if (w.shockwave) {
+    const previousRadius = w.shockwave.radius;
+    w.shockwave.radius += w.shockwave.speed * dt;
+    const distance = Math.hypot(w.player.x - w.creature.x, w.player.y - w.creature.y);
+    if (!w.shockwave.hitPlayer && previousRadius <= distance + CFG.playerRadius && w.shockwave.radius >= distance - CFG.playerRadius) {
+      w.shockwave.hitPlayer = true;
+      if (!w.shielding) damagePlayer(w);
+    }
+    if (w.shockwave.radius >= w.shockwave.maxRadius) w.shockwave = null;
+  }
   if (isLost(w)) return;
 
   const s = w.surge;

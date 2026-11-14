@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
 import { CFG, DARK, LURES, PALETTE, VIEW, VIS } from '../config';
-import { createWorld, stepWorld, tryInteract, type SimEvent, type World } from '../sim/game';
+import { createWorld, stepWorld, useEnergy, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
@@ -83,7 +83,7 @@ export class Game extends Phaser.Scene {
     this.hud = new Hud(this);
 
     const kb = this.input.keyboard!;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = kb.addKeys('W,A,S,D,Z,UP,DOWN,LEFT,RIGHT,R') as Record<string, Phaser.Input.Keyboard.Key>;
     kb.on('keydown-R', () => this.scene.restart());
     kb.on('keydown-E', () => (this.pendingInteract = true));
     kb.on('keydown-SPACE', () => (this.pendingInteract = true));
@@ -98,6 +98,10 @@ export class Game extends Phaser.Scene {
         this.playerView.interact(this.w.time);
         this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.6;
         this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.9;
+        break;
+      case 'energyGain':
+        play('relay_click');
+        this.playerView.interact(this.w.time);
         break;
       case 'bounce':
         play('wall_crack');
@@ -151,14 +155,14 @@ export class Game extends Phaser.Scene {
     const dx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const dy = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
     if (this.pendingInteract) {
-      tryInteract(w);
+      useEnergy(w);
       this.pendingInteract = false;
     }
     if (this.autoFireAt >= 0 && w.time >= this.autoFireAt) {
       this.autoFireAt = -1;
-      tryInteract(w);
+      useEnergy(w);
     }
-    stepWorld(w, { dx, dy }, STEP);
+    stepWorld(w, { dx, dy, shield: k.Z.isDown }, STEP);
   }
 
   private render(dt: number): void {

@@ -10,6 +10,7 @@ export class Boot extends Phaser.Scene {
   preload(): void {
     this.load.bitmapFont('stencil', 'assets/stencil.png', 'assets/stencil.xml');
     this.load.json('atlas', 'assets/atlas.json');
+    this.load.spritesheet('tree-monster', 'tree-root-monster.png', { frameWidth: 256, frameHeight: 256 });
     this.load.once('filecomplete-json-atlas', () => {
       const a = this.cache.json.get('atlas') as Atlas;
       for (const [name, s] of Object.entries(a.sheets)) {

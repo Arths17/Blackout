@@ -10,6 +10,7 @@ export interface PlayerState {
 export interface MoveInput {
   dx: number;
   dy: number;
+  shield?: boolean;
 }
 
 export function makePlayer(x: number, y: number): PlayerState {

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { CFG, EXIT } from '../src/config';
-import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stepWorld, type World } from '../src/sim/game';
+import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stepWorld, useEnergy, type World } from '../src/sim/game';
 import { ROUTES } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
 import { snapshot } from './helpers';
 
 const DT = 1 / 60;
-const idle = { dx: 0, dy: 0 };
+const idle = { dx: 0, dy: 0, shield: true };
 
 function run(w: World, seconds: number): void {
   for (let i = 0; i < Math.round(seconds * 60); i++) stepWorld(w, idle, DT);
@@ -50,6 +50,34 @@ describe('no-repeat rule', () => {
     w.cooldown = 0;
     expect(fire(w, 0)).toBe('ok');
   });
+
+  describe('stored generator energy', () => {
+    it('charges at a generator and fires only after leaving it', () => {
+      const w = createWorld({ player: ROUTES[0].switchPos, creature: { x: 1000, y: 560 }, asleep: true });
+      expect(useEnergy(w)).toBe('charged');
+      expect(w.energy).toBe(1);
+      expect(useEnergy(w)).toBe('charged');
+      w.player.x = 300;
+      expect(useEnergy(w)).toBe('ok');
+      expect(w.energy).toBe(0);
+      expect(w.surge).not.toBeNull();
+      expect(w.surge?.route.points[0]).toEqual({ x: w.player.x, y: w.player.y });
+    });
+
+    it('the radial shockwave damages an unshielded player but not a shielded one', () => {
+      const make = () => {
+        const w = createWorld({ player: { x: 700, y: 324 }, creature: { x: 600, y: 324 }, asleep: true });
+        w.shockwave = { radius: 0, speed: 2000, maxRadius: 500, hitPlayer: false };
+        return w;
+      };
+      const unshielded = make();
+      stepWorld(unshielded, { dx: 0, dy: 0 }, 0.1);
+      expect(unshielded.hp).toBe(CFG.healthPips - 1);
+      const shielded = make();
+      stepWorld(shielded, { dx: 0, dy: 0, shield: true }, 0.1);
+      expect(shielded.hp).toBe(CFG.healthPips);
+    });
+    });
 });
 
 describe('miss cost', () => {
