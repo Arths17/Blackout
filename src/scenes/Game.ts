@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
+import { initAudio, play, setCreatureDistance, setMusic, startAmbience, type MusicName } from '../audio';
 import { BOSS_LEVELS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyBossLevel } from '../config';
 import { progress } from '../progress';
 import { LORE } from '../lore';
@@ -98,6 +98,9 @@ export class Game extends Phaser.Scene {
 
     initAudio();
     startAmbience();
+    // The fight music gets harder every couple of bosses, and the last boss has its own.
+    const FIGHT: MusicName[] = ['fight_1', 'fight_1', 'fight_2', 'fight_2', 'fight_3'];
+    setMusic(FIGHT[progress.level]);
     this.room = new Room(this);
     this.breakers = new Breakers(this);
     this.playerView = new PlayerView(this);

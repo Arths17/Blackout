@@ -51,5 +51,5 @@ To regenerate the WAV files, run npm run audio. The generator uses only Node sta
 
 ## Music credit
 
-"Dark Fog" Kevin MacLeod (incompetech.com)
+"Dark Fog", "Cyborg Ninja", "Volatile Reaction" and "Killing Time" Kevin MacLeod (incompetech.com)
 Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/

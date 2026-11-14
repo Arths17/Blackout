@@ -34,4 +34,4 @@ Run npm run zip and upload blackout-html5.zip as the HTML game. index.html must 
 
 ## Credits
 
-Music: "Dark Fog" Kevin MacLeod (incompetech.com). Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/
+Music: "Dark Fog", "Cyborg Ninja", "Volatile Reaction" and "Killing Time" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/

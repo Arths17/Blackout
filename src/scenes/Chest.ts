@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { initAudio, play, startAmbience } from '../audio';
+import { initAudio, play, setMusic, startAmbience } from '../audio';
 import { BOSS_LEVELS, PALETTE, VIEW } from '../config';
 import { LORE } from '../lore';
 import { progress, totalCoins } from '../progress';
@@ -53,6 +53,7 @@ export class Chest extends Phaser.Scene {
     this.leaving = false;
     initAudio();
     startAmbience();
+    setMusic('dark_fog');
     const lvl = progress.level;
     const lore = LORE[lvl];
     this.message = clean(lore.text);
