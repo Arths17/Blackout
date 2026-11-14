@@ -47,6 +47,15 @@ export class Fx {
     const lights: Light[] = [];
     const t = w.time;
 
+    for (const s of w.shots) {
+      const x = px(s.x);
+      const y = px(s.y);
+      g.fillStyle(0xff7a1f, 0.3).fillCircle(x, y, 6);
+      g.fillStyle(0xffb347, 1).fillCircle(x, y, 3);
+      g.fillStyle(PALETTE.w, 1).fillCircle(x, y, 1);
+      lights.push({ x, y, r: 16, tint: 0xff8a2a });
+    }
+
     this.lampSprites.forEach((row, id) =>
       row.forEach((spr, i) => {
         const f = Math.max(0, 1 - (t - w.lampLitAt[id][i]) / CFG.lampFade);

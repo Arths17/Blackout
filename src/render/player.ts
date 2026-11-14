@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { CFG, PALETTE } from '../config';
 import type { World } from '../sim/game';
-import { bodyRoute } from '../sim/routes';
 import { DEPTH } from './layers';
 import { atlasOf, facingOf, px } from './pixel';
 
@@ -27,23 +26,6 @@ export class PlayerView {
     const p = w.player;
     const x = Math.round(px(p.x)), y = Math.round(px(p.y)) + 3;
     this.ball.clear();
-    if (w.charged >= 0 && !w.bounce) {
-      const pulse = Math.sin(t * 10);
-      const cy = y - 7;
-      this.ball.lineStyle(1, PALETTE.c1, 0.9).strokeCircle(x, cy, 11 + pulse);
-      this.ball.lineStyle(1, PALETTE.w, 0.5).strokeCircle(x, cy, 14 - pulse);
-      // Faint preview of the shot: where it will run and ricochet if released now.
-      const route = bodyRoute({ x: p.x, y: p.y }, p.facing, w.charged, CFG.shotBounces, CFG.shotLead);
-      for (let i = 1; i < route.points.length; i++) {
-        const a = route.points[i - 1];
-        const b = route.points[i];
-        this.ball.lineStyle(1, PALETTE.c2, 0.28).lineBetween(Math.round(px(a.x)), Math.round(px(a.y)), Math.round(px(b.x)), Math.round(px(b.y)));
-      }
-      for (let i = 0; i < 3; i++) {
-        const a = t * 6 + (i * Math.PI * 2) / 3;
-        this.ball.fillStyle(PALETTE.w, 1).fillRect(Math.round(x + Math.cos(a) * 12), Math.round(cy + Math.sin(a) * 12), 1, 1);
-      }
-    }
     if (w.parryLeft > 0 && !w.bounce) {
       const k = w.parryLeft / CFG.parryWindow;
       this.ball.lineStyle(2, PALETTE.w, 0.9).strokeCircle(x, y - 7, 10 + (1 - k) * 4);

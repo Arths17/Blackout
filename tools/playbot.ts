@@ -15,7 +15,7 @@ registerHooks({
 });
 const { CFG, ROOM, applyBossLevel } = await import('../src/config.ts');
 applyBossLevel(Number(process.env.LEVEL ?? 0));
-const { createWorld, stepWorld, interact: press, tryInteract } = await import('../src/sim/game.ts');
+const { createWorld, stepWorld, fire, tryInteract } = await import('../src/sim/game.ts');
 const { ROUTES } = await import('../src/sim/routes.ts');
 const { distToSegment } = await import('../src/sim/surge.ts');
 const dt = 1 / CFG.stepHz;
@@ -40,11 +40,11 @@ function towards(w: World, target: Vec) {
     ? { dx: 0, dy: 0 }
     : { dx: target.x - w.player.x, dy: target.y - w.player.y };
 }
-function predictsHit(w: World) {
-  // Look ahead only on a detached copy; the actual game receives movement and interact.
+function predictsHit(w: World, breaker: number) {
+  // Look ahead only on a detached copy; the actual game receives movement and a generator number.
   const copy = { ...w, player: { ...w.player }, creature: { ...w.creature, target: { ...w.creature.target } },
-    lampLitAt: w.lampLitAt.map(row => [...row]), listeners: [] } as World;
-  if (copy.charged < 0 || press(copy) !== 'ok') return false;
+    lampLitAt: w.lampLitAt.map(row => [...row]), shots: w.shots.map(s => ({ ...s })), listeners: [] } as World;
+  if (fire(copy, breaker) !== 'ok') return false;
   while (copy.surge && copy.phase === 'play') stepWorld(copy, { dx: 0, dy: 0 }, dt);
   return copy.shocks > w.shocks;
 }
@@ -61,6 +61,13 @@ function dodge(w: World, target: Vec) {
         q.y < ROOM.y + CFG.playerRadius || q.y > ROOM.y + ROOM.h - CFG.playerRadius) continue;
     const gap = distance(q, c);
     let value = -distance(q, target) - Math.max(0, 110 - gap) * 5;
+    if (c.state === 'windup') {
+      value -= Math.max(0, 70 - distToSegment(q, c, c.target)) * 6;
+    }
+    for (const sh of w.shots) {
+      const ahead = { x: sh.x + sh.vx * 0.5, y: sh.y + sh.vy * 0.5 };
+      value -= Math.max(0, 55 - distToSegment(q, sh, ahead)) * 7;
+    }
     if (c.state === 'lunge') {
       const end = { x: c.x + c.dirX * c.lungeLeft, y: c.y + c.dirY * c.lungeLeft };
       value -= Math.max(0, 55 - distToSegment(q, c, end)) * 8;
@@ -87,10 +94,6 @@ function play(strategy: Strategy, seed: number, spamBreaker = 0) {
   let invalidScores = 0;
   let terminalScores = 0;
   let prior = -1;
-  let destination = 0;
-  let target: Vec = { ...ROUTES[0].switchPos };
-  let nextDecision = 0;
-  let arrivedAt = 0;
   w.listeners.push(e => {
     if (e.type === 'relayClick') shots[e.breaker]++;
     if (e.type === 'deadClick') offline[e.breaker]++;
@@ -101,52 +104,32 @@ function play(strategy: Strategy, seed: number, spamBreaker = 0) {
       prior = e.breaker;
     }
   });
+  const press = (b: number) => { attempts[b]++; return fire(w, b); };
+  let target: Vec = { x: ROOM.x + ROOM.w / 2, y: ROOM.y + ROOM.h / 2 };
+  let nextDecision = 0;
   for (let tick = 0; tick < limit * CFG.stepHz && w.phase === 'play'; tick++) {
-    let input = { dx: 0, dy: 0 };
-    const interact = () => {
-      let closest = -1;
-      let d = CFG.interactRange;
-      for (const r of ROUTES) if (distance(w.player, r.switchPos) <= d) {
-        closest = r.id; d = distance(w.player, r.switchPos);
-      }
-      if (closest >= 0) attempts[closest]++;
-      return press(w);
-    };
+    let input = { dx: 0, dy: 0, parry: false };
     if (strategy === 'spam') {
-      target = ROUTES[spamBreaker].switchPos;
-      input = towards(w, target);
-      if (distance(w.player, target) < CFG.interactRange) interact();
+      if (tick % 12 === 0) press(spamBreaker);
     } else if (strategy === 'random') {
       if (tick >= nextDecision) {
-        // Random walks include trips to switches, so this policy actually attempts shots.
-        target = random() < 0.65 ? ROUTES[Math.floor(random() * ROUTES.length)].switchPos :
-          { x: ROOM.x + 30 + random() * (ROOM.w - 60), y: ROOM.y + 30 + random() * (ROOM.h - 60) };
+        target = { x: ROOM.x + 30 + random() * (ROOM.w - 60), y: ROOM.y + 30 + random() * (ROOM.h - 60) };
         nextDecision = tick + Math.round((1 + random() * 4) * CFG.stepHz);
       }
-      input = towards(w, target);
-      if (tick % 12 === 0 && random() < 0.7) interact();
+      input = { ...towards(w, target), parry: false };
+      if (tick % 12 === 0 && random() < 0.7) press(Math.floor(random() * ROUTES.length));
     } else {
-      if (tick === 0) interact();
-      if (tick % 12 === 0) {
-        const near = distance(w.player, ROUTES[destination].switchPos) <= CFG.interactRange;
-        if (w.charged >= 0) {
-          if (!w.surge && w.cooldown <= 0 && predictsHit(w)) {
-            interact();
-            destination = (destination + 1 + Math.floor(random() * 2)) % ROUTES.length;
-            arrivedAt = w.time;
-          } else if (w.time - arrivedAt > 25) {
-            interact();
-            arrivedAt = w.time;
-          }
-        } else if (near && !w.surge && !isOfflineNow(w, destination)) {
-          interact();
-        } else if (destination === w.lastHitBreaker || (near && w.time - arrivedAt > 3) || w.time - arrivedAt > 18) {
-          destination = (destination + 1 + Math.floor(random() * 2)) % ROUTES.length;
-          arrivedAt = w.time;
-        }
-        target = ROUTES[destination].switchPos;
+      // fire only when the shot is predicted to land; otherwise keep away from the boss
+      if (tick % 12 === 0 && !w.surge && w.cooldown <= 0) {
+        for (let b = 0; b < ROUTES.length; b++) if (w.lastHitBreaker !== b && predictsHit(w, b)) { press(b); break; }
       }
-      input = dodge(w, target);
+      const c = w.creature;
+      // kite toward the corner farthest from the boss
+      target = { x: c.x < ROOM.x + ROOM.w / 2 ? ROOM.x + ROOM.w - 80 : ROOM.x + 80, y: c.y < ROOM.y + ROOM.h / 2 ? ROOM.y + ROOM.h - 80 : ROOM.y + 80 };
+      const gap = Math.hypot(c.x - w.player.x, c.y - w.player.y);
+      const shotNear = w.shots.some(sh => Math.hypot(sh.x - w.player.x, sh.y - w.player.y) < 48);
+      const touching = (c.state === 'lunge' || c.state === 'stalk') && gap < CFG.creatureRadius + CFG.playerRadius + 38;
+      input = { ...dodge(w, target), parry: (shotNear || touching) && w.parryCool <= 0 && random() < Number(process.env.PARRY ?? 1) };
     }
     stepWorld(w, input, dt);
   }

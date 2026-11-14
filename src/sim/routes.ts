@@ -118,37 +118,3 @@ export function dirAt(r: Route, d: number): Vec {
   const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
   return { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
 }
-
-// A shot fired from the player's body: runs along the facing and ricochets off the walls.
-export function bodyRoute(start: Vec, facing: number, id: number, bounces: number, lead: number): Route {
-  let dx = Math.cos(facing);
-  let dy = Math.sin(facing);
-  const wallDist = (p: Vec): { t: number; axis: 'x' | 'y' } => {
-    let t = Infinity;
-    let axis: 'x' | 'y' = 'x';
-    if (dx > 1e-9) t = (ROOM.x + ROOM.w - p.x) / dx;
-    else if (dx < -1e-9) t = (ROOM.x - p.x) / dx;
-    if (dy > 1e-9) {
-      const ty = (ROOM.y + ROOM.h - p.y) / dy;
-      if (ty < t) { t = ty; axis = 'y'; }
-    } else if (dy < -1e-9) {
-      const ty = (ROOM.y - p.y) / dy;
-      if (ty < t) { t = ty; axis = 'y'; }
-    }
-    return { t, axis };
-  };
-  const first = wallDist(start);
-  const ahead = Math.min(lead, Math.max(0, first.t) * 0.5);
-  let p = { x: start.x + dx * ahead, y: start.y + dy * ahead };
-  const points = [p];
-  for (let i = 0; i <= bounces; i++) {
-    const { t, axis } = wallDist(p);
-    if (!Number.isFinite(t) || t <= 1e-6) break;
-    p = { x: p.x + dx * t, y: p.y + dy * t };
-    points.push(p);
-    if (axis === 'x') dx = -dx;
-    else dy = -dy;
-  }
-  const contacts = points.slice(1).map((_, i) => i + 1);
-  return buildRoute({ id, name: 'BODY SHOT', switchPos: start, points, contacts: contacts.slice(0, -1), lampDists: [] });
-}

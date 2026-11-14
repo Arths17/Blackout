@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BOSS_LEVELS, CFG, EXIT, ROOM, applyBossLevel } from '../src/config';
-import { createWorld, currentWindup, damagePlayer, fire, interact, missCooldown, stepWorld, type World } from '../src/sim/game';
-import { ROUTES, bodyRoute } from '../src/sim/routes';
+import { BOSS_LEVELS, CFG, EXIT, applyBossLevel } from '../src/config';
+import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stepWorld, type World } from '../src/sim/game';
+import { ROUTES } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
 import { snapshot } from './helpers';
 
@@ -223,59 +223,6 @@ describe('bounce back', () => {
   });
 });
 
-describe('held charge', () => {
-  const atSwitch = (b: number) => createWorld({ player: ROUTES[b].switchPos, creature: { x: 1000, y: 560 }, asleep: true });
-
-  it('the first press charges and holds, the next press shoots from the body wherever it is', () => {
-    const w = atSwitch(0);
-    expect(interact(w)).toBe('charged');
-    expect(w.charged).toBe(0);
-    expect(w.surge).toBeNull();
-    w.player.x = 700;
-    w.player.y = 300;
-    w.player.facing = Math.PI / 6;
-    expect(interact(w)).toBe('ok');
-    expect(w.charged).toBe(-1);
-    const route = w.surge!.route;
-    expect(route.id).toBe(0);
-    expect(Math.hypot(route.points[0].x - 700, route.points[0].y - 300)).toBeCloseTo(CFG.shotLead);
-    expect(route.contacts.length).toBe(CFG.shotBounces);
-    expect(route.switchPos).toEqual({ x: 700, y: 300 });
-  });
-
-  it('a body shot stays inside the room and bounces', () => {
-    for (let a = 0; a < 16; a++) {
-      const r = bodyRoute({ x: 500, y: 300 }, (a * Math.PI) / 8, 1, CFG.shotBounces, CFG.shotLead);
-      for (const p of r.points) {
-        expect(p.x).toBeGreaterThanOrEqual(ROOM.x - 1e-6);
-        expect(p.x).toBeLessThanOrEqual(ROOM.x + ROOM.w + 1e-6);
-        expect(p.y).toBeGreaterThanOrEqual(ROOM.y - 1e-6);
-        expect(p.y).toBeLessThanOrEqual(ROOM.y + ROOM.h + 1e-6);
-      }
-      expect(r.points.length).toBeGreaterThan(2);
-    }
-  });
-
-  it('the charge is kept while the generator is cooling or a surge is live', () => {
-    const w = atSwitch(1);
-    interact(w);
-    w.cooldown = 1;
-    expect(interact(w)).toBe('cooling');
-    expect(w.charged).toBe(1);
-  });
-
-  it('an offline breaker cannot be charged', () => {
-    const w = atSwitch(0);
-    w.lastHitBreaker = 0;
-    expect(interact(w)).toBe('offline');
-    expect(w.charged).toBe(-1);
-  });
-
-  it('pressing away from every breaker with no charge does nothing', () => {
-    const w = createWorld({ player: { x: 600, y: 300 }, creature: { x: 1000, y: 560 }, asleep: true });
-    expect(interact(w)).toBe('none');
-  });
-});
 
 describe('parry', () => {
   const touching = () => createWorld({ player: { x: 600, y: 324 }, creature: { x: 610, y: 324 }, asleep: false });
@@ -349,20 +296,110 @@ describe('boss levels', () => {
       expect(b.lunge).toBeGreaterThan(a.lunge);
       expect(b.recoil).toBeLessThan(a.recoil);
       expect(b.shocks).toBeGreaterThanOrEqual(a.shocks);
+      expect(b.radius).toBeGreaterThanOrEqual(a.radius);
+      expect(b.enrage).toBeGreaterThanOrEqual(a.enrage);
+      // attacks only ever get more frequent once they exist
+      if (a.lungeEvery > 0) expect(b.lungeEvery).toBeLessThan(a.lungeEvery);
+      if (a.shotEvery > 0) {
+        expect(b.shotEvery).toBeLessThan(a.shotEvery);
+        expect(b.shots).toBeGreaterThanOrEqual(a.shots);
+        expect(b.shotSpeed).toBeGreaterThan(a.shotSpeed);
+      }
     }
     for (const b of BOSS_LEVELS) {
-      expect(b.stalk).toBeLessThan(CFG.playerSpeed * 0.85);
+      expect(b.stalk * b.enrage).toBeLessThan(CFG.playerSpeed);
       expect(b.windup).toBeGreaterThan(CFG.windupFloor);
     }
     expect(BOSS_LEVELS.length).toBe(5);
+  });
+
+  it('the first boss only reacts, and the last one attacks on its own', () => {
+    expect(BOSS_LEVELS[0].lungeEvery).toBe(0);
+    expect(BOSS_LEVELS[0].shotEvery).toBe(0);
+    expect(BOSS_LEVELS[4].lungeEvery).toBeGreaterThan(0);
+    expect(BOSS_LEVELS[4].shotEvery).toBeGreaterThan(0);
+    expect(BOSS_LEVELS[4].shots).toBeGreaterThanOrEqual(3);
   });
 
   it('applying a level changes the tuning and level 1 restores the defaults', () => {
     applyBossLevel(4);
     expect(CFG.creatureStalkSpeed).toBe(BOSS_LEVELS[4].stalk);
     expect(CFG.shocksToWin).toBe(BOSS_LEVELS[4].shocks);
+    expect(CFG.autoLungeEvery).toBe(BOSS_LEVELS[4].lungeEvery);
     applyBossLevel(0);
     expect(CFG.creatureStalkSpeed).toBe(BOSS_LEVELS[0].stalk);
     expect(CFG.shocksToWin).toBe(5);
+    expect(CFG.autoLungeEvery).toBe(0);
+  });
+});
+
+describe('boss attacks', () => {
+  const far = { player: { x: 300, y: 300 }, creature: { x: 800, y: 300 }, asleep: false };
+  const withLevel = (i: number, fn: () => void) => {
+    applyBossLevel(i);
+    try { fn(); } finally { applyBossLevel(0); }
+  };
+
+  it('level 1 never attacks on its own', () => {
+    const w = createWorld(far);
+    for (let i = 0; i < 60 * 30; i++) stepWorld(w, idle, DT);
+    expect(w.shots.length).toBe(0);
+    expect(w.creature.state === 'windup' || w.creature.state === 'lunge').toBe(false);
+  });
+
+  it('a later boss starts its own telegraphed lunge at where the player stands', () => {
+    withLevel(4, () => {
+      const w = createWorld(far);
+      w.nextLunge = 1;
+      let target: { x: number; y: number } | null = null;
+      for (let i = 0; i < 60 * 3 && !target; i++) {
+        stepWorld(w, idle, DT);
+        if (w.creature.state === 'windup') target = { ...w.creature.target };
+      }
+      expect(target).not.toBeNull();
+      expect(target!.x).toBeCloseTo(w.player.x, 0);
+      expect(target!.y).toBeCloseTo(w.player.y, 0);
+    });
+  });
+
+  it('a later boss fires a fan of bouncing seeds that can hurt the player', () => {
+    withLevel(4, () => {
+      const w = createWorld({ ...far, creature: { x: 800, y: 300 } });
+      w.nextShot = 1;
+      w.nextLunge = 1e9;
+      for (let i = 0; i < 60 * 2 && w.shots.length === 0; i++) stepWorld(w, { dx: 0, dy: 0 }, DT);
+      expect(w.shots.length).toBe(CFG.bossShotCount);
+      for (let i = 0; i < 60 * 3 && w.hp === CFG.healthPips; i++) stepWorld(w, { dx: 0, dy: 0 }, DT);
+      expect(w.hp).toBeLessThan(CFG.healthPips);
+    });
+  });
+
+  it('a parry blocks a seed and counts toward the streak', () => {
+    withLevel(4, () => {
+      const w = createWorld({ player: { x: 400, y: 300 }, creature: { x: 1000, y: 300 }, asleep: true });
+      w.shots.push({ x: 480, y: 300, vx: -CFG.bossShotSpeed, vy: 0, bouncesLeft: 4 });
+      w.parryLeft = 0.3;
+      stepWorld(w, { dx: 0, dy: 0 }, DT);
+      for (let i = 0; i < 30; i++) stepWorld(w, { dx: 0, dy: 0 }, DT);
+      expect(w.hp).toBe(CFG.healthPips);
+      expect(w.parryStreak).toBe(1);
+      expect(w.shots.length).toBe(0);
+    });
+  });
+
+  it('the last boss speeds up once it is badly hurt', () => {
+    withLevel(4, () => {
+      const w = createWorld({ player: { x: 100, y: 300 }, creature: { x: 1000, y: 300 }, asleep: false });
+      w.nextLunge = 1e9;
+      w.nextShot = 1e9;
+      stepWorld(w, idle, DT);
+      const calm = 1000 - w.creature.x;
+      const h = createWorld({ player: { x: 100, y: 300 }, creature: { x: 1000, y: 300 }, asleep: false });
+      h.nextLunge = 1e9;
+      h.nextShot = 1e9;
+      h.shocks = Math.ceil(CFG.shocksToWin * 0.6);
+      stepWorld(h, idle, DT);
+      expect(1000 - h.creature.x).toBeGreaterThan(calm);
+    });
   });
 });

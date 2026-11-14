@@ -43,7 +43,7 @@ function clampToRoom(c: Creature): void {
   c.y = Math.min(ROOM.y + ROOM.h - r, Math.max(ROOM.y + r, c.y));
 }
 
-export function stepCreature(c: Creature, dt: number, player: Vec): void {
+export function stepCreature(c: Creature, dt: number, player: Vec, speedMul = 1): void {
   switch (c.state) {
     case 'stalk': {
       if (c.asleep) break;
@@ -52,7 +52,7 @@ export function stepCreature(c: Creature, dt: number, player: Vec): void {
       const d = Math.hypot(dx, dy);
       c.facing = Math.atan2(dy, dx);
       if (d > CFG.creatureRadius + CFG.playerRadius) {
-        const step = Math.min(CFG.creatureStalkSpeed * dt, d);
+        const step = Math.min(CFG.creatureStalkSpeed * speedMul * dt, d);
         c.x += (dx / d) * step;
         c.y += (dy / d) * step;
         clampToRoom(c);

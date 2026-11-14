@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PALETTE, VIEW } from './config';
 import { Boot } from './scenes/Boot';
+import { Finish } from './scenes/Finish';
 import { Game } from './scenes/Game';
 
 const game = new Phaser.Game({
@@ -11,7 +12,7 @@ const game = new Phaser.Game({
   backgroundColor: PALETTE.ink,
   render: { pixelArt: true, antialias: false, roundPixels: true },
   scale: { mode: Phaser.Scale.NONE, zoom: 1, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [Boot, Game],
+  scene: [Boot, Game, Finish],
 });
 function resize(): void {
   const zoom = Math.max(1, Math.floor(Math.min(window.innerWidth / VIEW.w, window.innerHeight / VIEW.h)));

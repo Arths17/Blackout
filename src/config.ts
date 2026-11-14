@@ -110,8 +110,6 @@ export const CFG = {
   superRadius: 34, // reach of the super bounce, against bounce's own playerRadius
   superShocks: 3, // shocks a super bounce deals to the boss
   bounceHitGrace: 1.0, // immunity after a bounce hits the creature, so the player can get away
-  shotBounces: 3, // wall contacts on a shot fired from the player's body
-  shotLead: 48, // px the shot starts ahead of the body so it can't hit the shooter on frame one
 
   graceSeconds: 1.0, // shorter = harder
   healthPips: 4, // fewer = harder
@@ -124,19 +122,28 @@ export const CFG = {
   cooldownMax: 3.5,
   introSeconds: 8, // creature stays put this long unless the first breaker is thrown
 
+  autoLungeEvery: 0, // set per level
+  bossShotEvery: 0,
+  bossShotCount: 0,
+  bossShotSpeed: 0,
+  bossShotBounces: 4,
+  bossShotSpread: 0.3, // radians between shots in a fan
+  enrage: 1,
   interactRange: 70, // px from a switch; smaller = harder to fire under pressure
   lampFade: 0.3,
   revealSeconds: 0.3,
 
 };
 
-// Boss fight difficulty per level. Stalk stays well under playerSpeed so there is always a gap to open.
+// Boss fight difficulty per level. Stalk stays under playerSpeed so there is always a gap to open.
+// lungeEvery / shotEvery are seconds between the boss's own attacks (0 = never); enrage speeds the
+// boss up once it is down to its last 40% of health.
 export const BOSS_LEVELS = [
-  { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20 },
-  { name: 'THE GNARLED DEEP', stalk: 139, windup: 0.92, lunge: 560, lungeMax: 400, recoil: 0.46, shocks: 5, radius: 21 },
-  { name: 'THE ROTTING GROVE', stalk: 148, windup: 0.84, lunge: 600, lungeMax: 420, recoil: 0.42, shocks: 6, radius: 22 },
-  { name: 'THE STRANGLING ROOTS', stalk: 157, windup: 0.76, lunge: 640, lungeMax: 440, recoil: 0.38, shocks: 6, radius: 23 },
-  { name: 'THE ELDER CANOPY', stalk: 166, windup: 0.7, lunge: 680, lungeMax: 460, recoil: 0.35, shocks: 7, radius: 25 },
+  { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20, lungeEvery: 0, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1 },
+  { name: 'THE GNARLED DEEP', stalk: 144, windup: 0.9, lunge: 580, lungeMax: 420, recoil: 0.45, shocks: 5, radius: 22, lungeEvery: 8, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1 },
+  { name: 'THE ROTTING GROVE', stalk: 156, windup: 0.8, lunge: 640, lungeMax: 450, recoil: 0.4, shocks: 6, radius: 24, lungeEvery: 6.5, shotEvery: 8, shots: 1, shotSpeed: 380, enrage: 1.1 },
+  { name: 'THE STRANGLING ROOTS', stalk: 164, windup: 0.74, lunge: 690, lungeMax: 480, recoil: 0.36, shocks: 7, radius: 26, lungeEvery: 5.5, shotEvery: 7, shots: 2, shotSpeed: 420, enrage: 1.1 },
+  { name: 'THE ELDER CANOPY', stalk: 174, windup: 0.64, lunge: 760, lungeMax: 520, recoil: 0.3, shocks: 8, radius: 28, lungeEvery: 4.2, shotEvery: 5.5, shots: 3, shotSpeed: 460, enrage: 1.15 },
 ];
 
 export function applyBossLevel(i: number): void {
@@ -148,4 +155,9 @@ export function applyBossLevel(i: number): void {
   CFG.recoil = b.recoil;
   CFG.shocksToWin = b.shocks;
   CFG.creatureRadius = b.radius;
+  CFG.autoLungeEvery = b.lungeEvery;
+  CFG.bossShotEvery = b.shotEvery;
+  CFG.bossShotCount = b.shots;
+  CFG.bossShotSpeed = b.shotSpeed;
+  CFG.enrage = b.enrage;
 }

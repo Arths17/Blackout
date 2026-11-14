@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, startAmbience } from '../audio';
 import { BOSS_LEVELS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyBossLevel } from '../config';
 import { progress } from '../progress';
-import { createWorld, stepWorld, interact, tryInteract, type SimEvent, type World } from '../sim/game';
+import { createWorld, fire, stepWorld, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
 import { CreatureView } from '../render/creature';
 import { Darkness, type Light } from '../render/darkness';
@@ -10,6 +10,7 @@ import { Atmosphere } from '../render/atmosphere';
 import { Entrance } from '../render/entrance';
 import { Foliage } from '../render/foliage';
 import { ExitCue } from '../render/exitcue';
+import { Paths } from '../render/paths';
 import { Dust, Fx } from '../render/fx';
 import { Hud } from '../render/hud';
 import { DEPTH } from '../render/layers';
@@ -25,7 +26,7 @@ export class Game extends Phaser.Scene {
   private acc = 0;
   private hitStop = 0;
   private slow = 1;
-  private pendingInteract = false;
+  private pendingFire = -1;
   private pendingParry = false;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private room!: Room;
@@ -39,6 +40,7 @@ export class Game extends Phaser.Scene {
   private entrance!: Entrance;
   private foliage!: Foliage;
   private exitCue!: ExitCue;
+  private paths!: Paths;
   private title!: Phaser.GameObjects.BitmapText;
   private titleRule!: Phaser.GameObjects.Rectangle;
   private vinesPlayed = false;
@@ -77,7 +79,7 @@ export class Game extends Phaser.Scene {
     this.w.listeners.push((e) => this.onEvent(e));
     this.acc = 0;
     this.hitStop = 0;
-    this.pendingInteract = false;
+    this.pendingFire = -1;
     this.pendingParry = false;
     this.flashUntil = 0;
     this.flashStrongUntil = 0;
@@ -98,6 +100,7 @@ export class Game extends Phaser.Scene {
     this.entrance = new Entrance(this);
     this.foliage = new Foliage(this);
     this.exitCue = new ExitCue(this);
+    this.paths = new Paths(this);
     this.vinesPlayed = false;
     this.fx = new Fx(this);
     this.dust = new Dust(this);
@@ -111,16 +114,16 @@ export class Game extends Phaser.Scene {
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
 
     const kb = this.input.keyboard!;
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT') as Record<string, Phaser.Input.Keyboard.Key>;
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT,ONE,TWO,THREE') as Record<string, Phaser.Input.Keyboard.Key>;
     kb.on('keydown', () => this.hud.closeControls());
     kb.on('keydown-R', () => this.scene.restart());
-    const press = () => {
-      if (this.w.phase === 'lost' || this.w.phase === 'escaped') this.scene.restart();
-      else this.pendingInteract = true;
-    };
     kb.on('keydown-SHIFT', () => (this.pendingParry = true));
-    kb.on('keydown-E', press);
-    kb.on('keydown-SPACE', press);
+    const bind = (names: string[], breaker: number) => {
+      for (const n of names) kb.on(`keydown-${n}`, () => (this.pendingFire = breaker));
+    };
+    bind(['ONE', 'NUMPAD_ONE'], 0);
+    bind(['TWO', 'NUMPAD_TWO'], 1);
+    bind(['THREE', 'NUMPAD_THREE'], 2);
     kb.on('keydown-ENTER', () => {
       if (this.w.phase === 'escaped') {
         progress.level = (progress.level + 1) % BOSS_LEVELS.length;
@@ -135,7 +138,6 @@ export class Game extends Phaser.Scene {
       case 'relayClick':
         play('relay_click');
         play('surge_crack');
-        this.playerView.interact(this.w.time);
         this.flashUntil = this.w.time + (VIS.flashMs / 1000) * 1.6;
         this.flashStrongUntil = this.w.time + (VIS.flashMs / 1000) * 0.9;
         break;
@@ -161,18 +163,12 @@ export class Game extends Phaser.Scene {
         this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
-      case 'charge':
-        play('charge_up');
-        this.playerView.interact(this.w.time);
+      case 'bossShot':
+        play('boss_shot');
+        this.fx.burst(this.w.creature.x, this.w.creature.y, 10);
         break;
-      case 'bounceStart':
-        play('bounce_launch');
-        cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
-        break;
-      case 'ballBounce':
-        play('bounce_wall');
-        this.fx.burst(e.x, e.y, 6);
-        cam.shake(VIS.bounceShake.ms, VIS.bounceShake.amp);
+      case 'escape':
+        if (progress.level >= BOSS_LEVELS.length - 1) this.time.delayedCall(900, () => this.scene.start('Finish'));
         break;
       case 'parryStart':
         play('parry_swing');
@@ -253,13 +249,17 @@ export class Game extends Phaser.Scene {
     const k = this.keys;
     const dx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0);
     const dy = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0);
-    if (this.pendingInteract) {
-      interact(w);
-      this.pendingInteract = false;
+    if (this.pendingFire >= 0) {
+      fire(w, this.pendingFire);
+      this.pendingFire = -1;
     }
     if (this.autoFireAt >= 0 && w.time >= this.autoFireAt) {
       this.autoFireAt = -1;
-      tryInteract(w);
+      fire(w, 0);
+    }
+    if (w.phase === 'play' || w.phase === 'won') {
+      progress.total += STEP;
+      progress.levelTimes[progress.level] += STEP;
     }
     stepWorld(w, { dx, dy, parry: this.pendingParry }, STEP);
     this.pendingParry = false;
@@ -292,6 +292,7 @@ export class Game extends Phaser.Scene {
       this.cameras.main.shake(120, 0.0015);
     }
     this.dust.update(dt);
+    this.paths.update(w, t);
     this.foliage.update(dt);
 
     const pl = { x: px(w.player.x), y: px(w.player.y) };
@@ -311,12 +312,11 @@ export class Game extends Phaser.Scene {
     }
     lights.push(...this.breakers.update(w, t));
     lights.push(...this.fx.update(w, dt));
-    if (w.charged >= 0 && !w.bounce) lights.push({ ...pl, r: 22, tint: PALETTE.c1 });
     if (w.creature.alive && w.creature.state === 'windup') lights.push({ x: px(w.creature.x), y: px(w.creature.y), r: 13, tint: PALETTE.g3 });
 
     const ambient = this.lit ? 1 : t < this.flashStrongUntil ? 0 : t < this.flashUntil ? 1 : DARK.ambient;
     this.dark.render(lights, ambient);
     this.grain.setPosition(-Math.floor(Math.random() * 8), -Math.floor(Math.random() * 8));
-    this.hud.update(w, t);
+    this.hud.update(w);
   }
 }
