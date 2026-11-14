@@ -30,9 +30,9 @@ const levels: Record<SoundName, number> = {
   dash: 0.45,
   // Music by Kevin MacLeod (incompetech.com), CC BY 4.0; see CREDITS.md. Levels are for the tracks' own loudness.
   dark_fog: 0.6,
-  fight_1: 0.42,
-  fight_2: 0.4,
-  fight_3: 0.4,
+  fight_1: 0.62,
+  fight_2: 0.62,
+  fight_3: 0.58,
   vines: 0.55,
   parry: 0.8,
   parry_swing: 0.4,

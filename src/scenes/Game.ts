@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, setMusic, startAmbience, type MusicName } from '../audio';
 import { BOSS_LEVELS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyBossLevel } from '../config';
-import { progress } from '../progress';
+import { progress, resetRun } from '../progress';
 import { LORE } from '../lore';
 import { createWorld, fire, stepWorld, type SimEvent, type World } from '../sim/game';
 import { ROUTES } from '../sim/routes';
@@ -119,7 +119,10 @@ export class Game extends Phaser.Scene {
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(DEPTH.vignette);
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(DEPTH.grain).setAlpha(DARK.grainAlpha);
     this.hurt = this.add.rectangle(0, 0, VIEW.w, VIEW.h, PALETTE.n7, 0).setOrigin(0, 0).setDepth(DEPTH.flash);
-    this.hud = new Hud(this, () => undefined);
+    this.hud = new Hud(this, () => undefined, () => {
+      resetRun();
+      this.scene.start('Title');
+    });
     this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', BOSS_LEVELS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.levelLine = this.add.bitmapText(VIEW.w / 2, 27, 'stencil', `LEVEL ${progress.level + 1} OF ${BOSS_LEVELS.length}`, 7).setTint(PALETTE.warm).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
@@ -127,7 +130,18 @@ export class Game extends Phaser.Scene {
 
     const kb = this.input.keyboard!;
     this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,R,SHIFT,ONE,TWO,THREE,FOUR,F') as Record<string, Phaser.Input.Keyboard.Key>;
-    kb.on('keydown', () => this.hud.closeControls());
+    // Esc opens the controls (and pauses); any other key closes them. T on that screen goes back to the title.
+    kb.on('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Escape') return;
+      if (e.key === 't' || e.key === 'T') {
+        if (this.hud.isControlsOpen()) {
+          this.hud.toTitle();
+          return;
+        }
+      }
+      this.hud.closeControls();
+    });
+    kb.on('keydown-ESC', () => this.hud.toggleControls());
     kb.on('keydown-R', () => this.scene.restart());
     for (const k of ['FOUR', 'NUMPAD_FOUR', 'F']) kb.on(`keydown-${k}`, () => (this.pendingParry = true));
     kb.on('keydown-SHIFT', () => (this.pendingDash = true));
@@ -325,7 +339,8 @@ export class Game extends Phaser.Scene {
     lights.push(...this.entrance.update(t));
     lights.push(...this.exitCue.update(w, t));
     // Area name card over the first few seconds of play.
-    const card = Math.max(0, Math.min(1, Math.min((t - 0.2) / 0.6, (3.8 - t) / 0.8)));
+    // Hidden while the controls are up, so the two never draw over each other.
+    const card = this.hud.isControlsOpen() ? 0 : Math.max(0, Math.min(1, Math.min((t - 0.2) / 0.6, (3.8 - t) / 0.8)));
     this.title.setAlpha(card);
     this.titleRule.setAlpha(card * 0.8);
     this.subtitle.setAlpha(card);

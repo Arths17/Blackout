@@ -11,7 +11,7 @@
 
 | Asset | Source | License | Notes |
 | --- | --- | --- | --- |
-| `public/audio/dark_fog.m4a`, `fight_1.m4a`, `fight_2.m4a`, `fight_3.m4a` | "Dark Fog", "Cyborg Ninja", "Volatile Reaction" and "Killing Time" by Kevin MacLeod, [incompetech.com](https://incompetech.com) | CC BY 4.0, attribution required | Cut to loops and re-encoded to AAC. Credit in CREDITS.md, README and on the results screen |
+| `public/audio/dark_fog.m4a`, `fight_1.m4a`, `fight_2.m4a`, `fight_3.m4a` | "Dark Fog", "The Descent", "Ouroboros" and "Gathering Darkness" by Kevin MacLeod, [incompetech.com](https://incompetech.com) | CC BY 4.0, attribution required | Cut to loops and re-encoded to AAC. Credit in CREDITS.md, README and on the results screen |
 | Other `public/audio/*.wav` | Original, `tools/make_audio.mjs` | Project license | Generated |
 
 ## Earlier sourcing

@@ -59,11 +59,14 @@ describe('boss start', () => {
     expect(w.creature.y).toBeLessThan(ROOM.y + 120);
   });
 
-  it('the creature does not wander off before the player acts', () => {
+  it('the boss starts running at the player straight away', () => {
     const w = createWorld();
-    for (let i = 0; i < 60 * 5; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
-    expect(w.creature.x).toBe(BOSS_START.x);
-    expect(w.creature.y).toBe(BOSS_START.y);
+    expect(w.creature.asleep).toBe(false);
+    const d0 = Math.hypot(w.creature.x - w.player.x, w.creature.y - w.player.y);
+    for (let i = 0; i < 60; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
+    const d1 = Math.hypot(w.creature.x - w.player.x, w.creature.y - w.player.y);
+    expect(d1).toBeLessThan(d0 - 100);
+    expect(w.creature.state).toBe('stalk');
   });
 
   it('a creature placed on the first-hit mark is still hit by breaker 1 from the start', () => {

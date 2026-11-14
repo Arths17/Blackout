@@ -21,9 +21,9 @@ The 5×7 stencil bitmap alphabet is drawn in `tools/make_art.mjs` and exported a
 All four tracks are by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/
 
 - "Dark Fog" Kevin MacLeod (incompetech.com): title screen, chests and results screen (`public/audio/dark_fog.m4a`)
-- "Cyborg Ninja" Kevin MacLeod (incompetech.com): fights 1 and 2 (`public/audio/fight_1.m4a`)
-- "Volatile Reaction" Kevin MacLeod (incompetech.com): fights 3 and 4 (`public/audio/fight_2.m4a`)
-- "Killing Time" Kevin MacLeod (incompetech.com): the final fight (`public/audio/fight_3.m4a`)
+- "The Descent" Kevin MacLeod (incompetech.com): fights 1 and 2 (`public/audio/fight_1.m4a`)
+- "Ouroboros" Kevin MacLeod (incompetech.com): fights 3 and 4 (`public/audio/fight_2.m4a`)
+- "Gathering Darkness" Kevin MacLeod (incompetech.com): the final fight (`public/audio/fight_3.m4a`)
 
 Downloaded from incompetech.com on 2026-11-14. Each was cut to the loudest two minutes (100 seconds for Dark Fog), crossfaded end into start so it loops, and re-encoded to AAC for the web. Nothing else was changed. The credit wording is the one his site asks for, and it is also shown on the in-game results screen.
 

@@ -91,7 +91,8 @@ export function createWorld(opts: WorldOpts = {}): World {
   const p = opts.player ?? PLAYER_START;
   const c = opts.creature ?? BOSS_START;
   const creature = makeCreature(c.x, c.y);
-  creature.asleep = opts.asleep ?? opts.creature === undefined;
+  // The boss comes straight for the player; tests that need it still can pass asleep.
+  creature.asleep = opts.asleep ?? false;
   return {
     time: 0,
     phase: 'play',
