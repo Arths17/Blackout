@@ -35,16 +35,16 @@ export class Hud {
       scene.add.bitmapText(x, y, 'stencil', value, size).setTint(tint).setOrigin(0.5).setDepth(DEPTH.text);
     this.frame = scene.add.graphics().setDepth(DEPTH.hud - 1);
     // Wide enough for five life pips and the caption.
-    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 100, 15);
-    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 100, 15);
+    this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(2, 1, 110, 15);
+    this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, 1, 110, 15);
     this.frame.fillStyle(PALETTE.ink, 0.88).fillRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(2, VIEW.h - 17, VIEW.w - 4, 15);
     // Which fight this is, top right, for the whole fight.
     const TAGW = 80;
     this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(VIEW.w - 2 - TAGW, 1, TAGW, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(VIEW.w - 2 - TAGW, 1, TAGW, 15);
-    text(VIEW.w - 2 - TAGW / 2, 8, `LEVEL ${progress.level + 1} OF ${BOSS_LEVELS.length}`, PALETTE.warm, 7);
-    this.healthCaption = text(76, 8, 'VITAL', PALETTE.n6, 7);
+    text(VIEW.w - 2 - TAGW / 2, 8, `ROOM ${progress.level + 1} OF ${BOSS_LEVELS.length}`, PALETTE.warm, 7);
+    this.healthCaption = text(84, 8, 'HEALTH', PALETTE.n6, 7);
     this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 7);
     for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
     this.bar = scene.add.rectangle(0, VIEW.h / 2, VIEW.w, 38, PALETTE.ink, 0.92).setOrigin(0, 0.5).setDepth(DEPTH.banner - 1).setVisible(false);

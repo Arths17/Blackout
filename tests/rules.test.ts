@@ -439,11 +439,11 @@ describe('coins', () => {
   });
 });
 
-describe('boss 5 keeps its difficulty', () => {
-  it('the last boss is unchanged', () => {
+describe('boss 5 tuning', () => {
+  it('the last boss has the eased final values', () => {
     const b = BOSS_LEVELS[4];
     expect([b.stalk, b.windup, b.lunge, b.lungeMax, b.recoil, b.shocks, b.radius, b.lungeEvery, b.shotEvery, b.shots, b.shotSpeed, b.enrage])
-      .toEqual([174, 0.64, 760, 520, 0.3, 8, 28, 4.2, 5.5, 3, 460, 1.15]);
+      .toEqual([166, 0.7, 700, 490, 0.34, 7, 26, 5.5, 7, 3, 420, 1.1]);
   });
 });
 

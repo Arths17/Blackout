@@ -1,7 +1,7 @@
 export type SoundName = 'relay_click' | 'surge_crack' | 'wall_crack' | 'step_player'
   | 'step_creature' | 'hum_loop' | 'power_return' | 'bounce_launch' | 'bounce_wall' | 'bounce_hit'
   | 'player_hurt' | 'windup' | 'lunge' | 'dead_click' | 'lamp' | 'power_back' | 'fizzle' | 'blackout'
-  | 'music_loop' | 'heartbeat' | 'boss_shot' | 'chest_open' | 'coin' | 'dash' | 'vines' | 'parry' | 'parry_swing' | 'super_launch' | 'dark_fog' | 'fight_1' | 'fight_2' | 'fight_3';
+  | 'music_loop' | 'heartbeat' | 'boss_shot' | 'chest_open' | 'coin' | 'dash' | 'vines' | 'parry' | 'parry_swing' | 'super_launch' | 'music_menu' | 'fight_1' | 'fight_2' | 'fight_3';
 
 const levels: Record<SoundName, number> = {
   relay_click: 0.7,
@@ -28,8 +28,8 @@ const levels: Record<SoundName, number> = {
   chest_open: 0.7,
   coin: 0.4,
   dash: 0.45,
-  // Music by Kevin MacLeod (incompetech.com), CC BY 4.0; see CREDITS.md. Levels are for the tracks' own loudness.
-  dark_fog: 0.6,
+  // Music by Eric Skiff (Resistor Anthems), CC BY 4.0; see CREDITS.md. Levels are for the tracks' own loudness.
+  music_menu: 0.6,
   fight_1: 0.62,
   fight_2: 0.62,
   fight_3: 0.58,
@@ -52,10 +52,10 @@ let resuming: Promise<void> | undefined;
 const buffers = new Map<SoundName, AudioBuffer>();
 
 // Recorded tracks are big, so they load only when wanted and the music not in use is dropped.
-export type MusicName = 'dark_fog' | 'fight_1' | 'fight_2' | 'fight_3';
-const MUSIC: SoundName[] = ['dark_fog', 'fight_1', 'fight_2', 'fight_3'];
+export type MusicName = 'music_menu' | 'fight_1' | 'fight_2' | 'fight_3';
+const MUSIC: SoundName[] = ['music_menu', 'fight_1', 'fight_2', 'fight_3'];
 const isMusic = (n: SoundName): boolean => MUSIC.includes(n);
-let wantedMusic: MusicName = 'dark_fog';
+let wantedMusic: MusicName = 'music_menu';
 let playing: { name: MusicName | 'music_loop'; node: AudioBufferSourceNode; gain: GainNode } | undefined;
 const pending = new Map<MusicName, Promise<void>>();
 

@@ -53,7 +53,7 @@ export class Chest extends Phaser.Scene {
     this.leaving = false;
     initAudio();
     startAmbience();
-    setMusic('dark_fog');
+    setMusic('music_menu');
     const lvl = progress.level;
     const lore = LORE[lvl];
     this.message = clean(lore.text);

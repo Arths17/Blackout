@@ -45,7 +45,7 @@ export class Title extends Phaser.Scene {
     seen = true;
     initAudio(); // so the first key press also unlocks audio
     startAmbience();
-    setMusic('dark_fog');
+    setMusic('music_menu');
     this.leaving = false;
     this.born = this.time.now;
     this.cameras.main.fadeIn(700, 8, 13, 18);
@@ -159,7 +159,7 @@ export class Title extends Phaser.Scene {
     this.mon.setPosition(252, 140 + bob);
     const eyes = this.eyes;
     eyes.clear();
-    const cells = TREE_EYES.get(0) ?? [];
+    const cells = TREE_EYES.get('tree-monster:0') ?? [];
     const open = t > 1.2 && !(t % 5.4 > 5.22);
     const s = 112 / 64;
     const left = 252 - 56;

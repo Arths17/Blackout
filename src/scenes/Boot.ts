@@ -3,6 +3,7 @@ import { BOSS_LEVELS, DARK, PALETTE, VIEW } from '../config';
 import { progress } from '../progress';
 import { titleSeen } from './Title';
 import { EYES, TREE_EYES, dither, rgb, type Atlas } from '../render/pixel';
+import { drawWardenSheet } from '../render/wardens';
 
 export class Boot extends Phaser.Scene {
   constructor() {
@@ -25,6 +26,7 @@ export class Boot extends Phaser.Scene {
   create(): void {
     this.scanEyes();
     this.scanTreeEyes();
+    this.makeWardens();
     this.makeVignette();
     this.makeGrain();
     const q = new URLSearchParams(window.location.search);
@@ -33,6 +35,18 @@ export class Boot extends Phaser.Scene {
     // The dev flags (?level, ?lure, ?freeze, ?notitle) go straight to the game.
     const dev = ['level', 'lure', 'freeze', 'notitle'].some((k) => q.has(k));
     this.scene.start(dev || titleSeen() ? 'Game' : 'Title');
+  }
+
+  // The four hand-drawn wardens are painted in code, one 6 x 4 sheet of 64 px frames each.
+  private makeWardens(): void {
+    for (let i = 0; i < 4; i++) {
+      const sheet = drawWardenSheet(i);
+      const tex = this.textures.addCanvas(`warden${i}`, sheet.canvas)!;
+      for (let f = 0; f < 24; f++) {
+        tex.add(f, 0, (f % 6) * 64, Math.floor(f / 6) * 64, 64, 64);
+        TREE_EYES.set(`warden${i}:${f}`, sheet.eyes.get(f) ?? []);
+      }
+    }
   }
 
   // The monster sheet draws its own orange eyes. Find them per frame so the glow lands on them exactly.
@@ -63,7 +77,7 @@ export class Boot extends Phaser.Scene {
       }
       const cells: [number, number][] = [];
       for (const [key, n] of count) if (n >= 3) cells.push([key % 64, Math.floor(key / 64)]);
-      TREE_EYES.set(f, cells);
+      TREE_EYES.set(`tree-monster:${f}`, cells);
     }
   }
 

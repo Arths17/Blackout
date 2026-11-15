@@ -34,4 +34,4 @@ Run npm run zip and upload blackout-html5.zip as the HTML game. index.html must 
 
 ## Credits
 
-Music: "Dark Fog", "The Descent", "Ouroboros" and "Gathering Darkness" Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/
+Music: Eric Skiff - Underclocked, Jumpshot, Come and Find Me and There's a Power Here - Resistor Anthems - Available at http://EricSkiff.com/music Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/

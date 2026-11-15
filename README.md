@@ -52,5 +52,5 @@ To regenerate the WAV files, run npm run audio. The generator uses only Node sta
 
 ## Music credit
 
-"Dark Fog", "The Descent", "Ouroboros" and "Gathering Darkness" Kevin MacLeod (incompetech.com)
+Music: Eric Skiff - Underclocked, Jumpshot, Come and Find Me and There's a Power Here - Resistor Anthems - Available at http://EricSkiff.com/music
 Licensed under Creative Commons: By Attribution 4.0 https://creativecommons.org/licenses/by/4.0/

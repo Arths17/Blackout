@@ -20,7 +20,7 @@ export class Finish extends Phaser.Scene {
   create(): void {
     initAudio();
     startAmbience();
-    setMusic('dark_fog');
+    setMusic('music_menu');
     play('power_return');
     this.cameras.main.setBackgroundColor(PALETTE.ink);
     this.cameras.main.fadeIn(600, 8, 13, 18);
@@ -47,8 +47,8 @@ export class Finish extends Phaser.Scene {
     BOSS_LEVELS.forEach((b, i) => {
       text(128 + i * 10, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S  ${progress.levelCoins[i]} COINS`, 7, PALETTE.n6);
     });
-    text(VIEW.h - 36, 'MUSIC BY KEVIN MACLEOD  INCOMPETECH.COM  CC BY 4.0', 7, PALETTE.n5);
-    text(VIEW.h - 27, 'DARK FOG  THE DESCENT  OUROBOROS  GATHERING DARKNESS', 7, PALETTE.n5);
+    text(VIEW.h - 36, 'MUSIC BY ERIC SKIFF  RESISTOR ANTHEMS  ERICSKIFF.COM  CC BY 4.0', 7, PALETTE.n5);
+    text(VIEW.h - 27, 'UNDERCLOCKED  JUMPSHOT  COME AND FIND ME  THERES A POWER HERE', 7, PALETTE.n5);
     const hint = text(VIEW.h - 14, '[ENTER] PLAY AGAIN', 7, PALETTE.warm2);
     this.tweens.add({ targets: hint, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
 

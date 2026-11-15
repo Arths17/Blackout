@@ -44,5 +44,7 @@ export const atlasOf = (scene: Phaser.Scene): Atlas => scene.cache.json.get('atl
 // can be drawn above the darkness exactly where the sprite has them.
 export const EYES = new Map<number, [number, number][]>();
 
-// Cells (in the 64 px display) where each tree-monster frame has its own glowing eye pixels.
-export const TREE_EYES = new Map<number, [number, number][]>();
+// Cells (in the 64 px display) where each boss frame has its glowing eye pixels, keyed 'sheet:frame'.
+export const TREE_EYES = new Map<string, [number, number][]>();
+// Boss sprite sheet for each room: four hand-drawn wardens, then the final boss's own art.
+export const BOSS_SHEETS = ['warden0', 'warden1', 'warden2', 'warden3', 'tree-monster'];

@@ -124,7 +124,7 @@ export class Game extends Phaser.Scene {
       this.scene.start('Title');
     });
     this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', BOSS_LEVELS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
-    this.levelLine = this.add.bitmapText(VIEW.w / 2, 27, 'stencil', `LEVEL ${progress.level + 1} OF ${BOSS_LEVELS.length}`, 7).setTint(PALETTE.warm).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
+    this.levelLine = this.add.bitmapText(VIEW.w / 2, 27, 'stencil', `ROOM ${progress.level + 1} OF ${BOSS_LEVELS.length}`, 7).setTint(PALETTE.warm).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
     this.subtitle = this.add.bitmapText(VIEW.w / 2, 60, 'stencil', LORE[progress.level].warden, 7).setTint(PALETTE.n7).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
 

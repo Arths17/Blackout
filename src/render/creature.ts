@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { CFG, PALETTE } from '../config';
 import type { World } from '../sim/game';
 import { DEPTH } from './layers';
-import { TREE_EYES, facingOf, pixLine, px } from './pixel';
+import { progress } from '../progress';
+import { BOSS_SHEETS, TREE_EYES, facingOf, pixLine, px } from './pixel';
 
 export class CreatureView {
   private spr: Phaser.GameObjects.Sprite;
@@ -10,11 +11,12 @@ export class CreatureView {
   private shadow: Phaser.GameObjects.Image;
   private eyes: Phaser.GameObjects.Graphics;
   private bar: Phaser.GameObjects.Graphics;
+  private sheet = BOSS_SHEETS[progress.level];
   private shown = 0; // segments drawn, easing toward the real value so a hit visibly drains
 
   constructor(scene: Phaser.Scene) {
-    this.spr = scene.add.sprite(0, 0, 'tree-monster', 0).setOrigin(0.5, 0.82).setDisplaySize(64, 64);
-    this.ghost = scene.add.sprite(0, 0, 'tree-monster', 0).setOrigin(0.5, 0.82).setDisplaySize(64, 64).setDepth(DEPTH.ghost).setVisible(false);
+    this.spr = scene.add.sprite(0, 0, this.sheet, 0).setOrigin(0.5, 0.82).setDisplaySize(64, 64);
+    this.ghost = scene.add.sprite(0, 0, this.sheet, 0).setOrigin(0.5, 0.82).setDisplaySize(64, 64).setDepth(DEPTH.ghost).setVisible(false);
     this.shadow = scene.add.image(0, 0, 'shadow', 1).setOrigin(0.5, 0.5).setDepth(DEPTH.shadow);
     this.eyes = scene.add.graphics().setDepth(DEPTH.over);
     this.bar = scene.add.graphics().setDepth(DEPTH.over + 1);
@@ -88,7 +90,7 @@ export class CreatureView {
 
   private drawEyes(g: Phaser.GameObjects.Graphics, w: World, t: number, x: number, y: number, frame: number, flip: boolean): void {
     const reveal = w.creature.asleep ? Math.max(0, Math.min(1, (t - Math.max(0, CFG.introSeconds - 1)) / 1)) : 1;
-    const cells = TREE_EYES.get(frame);
+    const cells = TREE_EYES.get(`${this.sheet}:${frame}`);
     if (reveal <= 0 || !cells || cells.length === 0) return;
     const pulse = 0.72 + Math.sin(t * 7) * 0.18;
     // The sprite is drawn 64 px wide with its origin at (0.5, 0.82); the cells are in that 64 px space.
@@ -97,8 +99,8 @@ export class CreatureView {
     for (const [cx, cy] of cells) {
       const ex = left + (flip ? 63 - cx : cx);
       const ey = top + cy;
-      g.fillStyle(0xff8a1f, 0.2 * reveal).fillRect(ex - 1, ey - 1, 3, 3);
-      g.fillStyle(0xffb347, pulse * reveal).fillRect(ex, ey, 1, 1);
+      g.fillStyle(0xffc233, 0.22 * reveal).fillRect(ex - 1, ey - 1, 3, 3);
+      g.fillStyle(0xffe45c, pulse * reveal).fillRect(ex, ey, 1, 1);
     }
   }
 
