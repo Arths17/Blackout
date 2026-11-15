@@ -296,51 +296,6 @@
      "sha256": "113c26f08313cce64be391664e048cb1e4b383bfce3dd673a24cf5e40f8f5235"
     }
    }
-  },
-  "creature": {
-   "frame": [
-    32,
-    32
-   ],
-   "cols": 11,
-   "anchor": [
-    16,
-    24
-   ],
-   "dirs": {
-    "down": 0,
-    "up": 11,
-    "right": 22
-   },
-   "anims": {
-    "stalk": [
-     0,
-     1,
-     2,
-     3
-    ],
-    "windup": [
-     4,
-     5,
-     6
-    ],
-    "lunge": [
-     7,
-     8
-    ],
-    "recoil": [
-     9,
-     10
-    ]
-   },
-   "death": [
-    33,
-    34,
-    35,
-    36
-   ],
-   "sleep": 37,
-   "relaxed": true
   }
  }
 }

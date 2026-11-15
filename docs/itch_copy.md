@@ -42,7 +42,7 @@ So the whole game is baiting. You can't outrun it for long, but you can walk it 
 
 - Move with **WASD** or the arrow keys.
 - Press **1, 2 or 3** to fire that breaker. You don't have to be near it, which is the point. You're the bait, not the electrician.
-- Press **Shift** to parry when the boss touches you. Land two parries in a row and you send it flying with a bigger bounce that hits several times.
+- Press **F** to parry a lunge or a seed. Land two in a row and you go flying in a bigger bounce that shocks it twice. **Shift** is a short dash.
 - **R** restarts the fight instantly. You'll use it.
 
 Every breaker's path is always visible, so there's nothing to memorize. The skill is in where you stand and when you fire. Miss and the next windup gets shorter while the breaker takes longer to recover, so a wasted shot costs you.
@@ -85,6 +85,6 @@ Hey, thanks for playing. If it feels brutal at first, try standing still and let
 
 1. Run `npm run zip`.
 2. Upload blackout-html5.zip, tick "This file will be played in the browser".
-3. Set the embed size to something wide, around 960x640, and enable fullscreen.
+3. Set the embed size to 1152x648 (the game is 384x216 scaled by a whole number, so 768x432 also fits) and enable fullscreen.
 4. Test the embed for keyboard focus, first-key audio and restart before you submit.
 5. Cover image 630x500 and at least three screenshots. Existing frames are in docs/shots/.

@@ -279,71 +279,6 @@ function grid(rows, w, h, x = 0, y = 0) {
   return image;
 }
 // A collapsed maintenance suit: raised left scapula, one trailing arm, exposed ribs and a split jaw.
-const body = {
-  down: [
-    '...........ee..........', '......ee..#ed#.........', '.....#dc##dcb#.........',
-    '....#dcdddcba#.........', '...#edccdcba##.........', '...#dcccbbba#bc#.......',
-    '..#dcbbbfebba#bc#......', '..#dcbbfefbba#bc#......', '..#cbbbfebbba#c#.......',
-    '..#cbbaabbbb##dc#......', '.#cbba.#dcddcbb#.......', '.#cba..#dfxbxdcb#......',
-    '.#cba..#edaaadcb#......', '.#ba...#baffaab#.......', '.#ba....#abfa#.........',
-    '.#b#.....#ab#..#b#.....', '.#b#...#bcbb#..#be#....', '.#be#.#bc#bb#..#ef#....',
-    '.#be#.#ba.#bb#..f......', '.#ef#.#ba..#bc#........', '..ff..#be...#be#.......',
-    '......#ef#...#ef#......', '.......ff.....fff.....', '......................',
-  ],
-  up: [
-    '.........ee...........', '......e.#ed#..........', '.....#dccdc#..........',
-    '....#ddcccba#.........', '...#edcbbbaa#.........', '...#dcbeccba#bc#.......',
-    '..#dcbbecbbba#bc#......', '..#dcbbecbbba#bc#......', '..#cbbbeabbba#c#.......',
-    '..#cbbaebbbb##dc#......', '.#cbba.#bcbbaa#........', '.#cba..#abbbba#........',
-    '.#cba..#acbcba#........', '.#ba....#cbba#.........', '.#ba....#baba#.........',
-    '.#b#.....#ab#..#b#.....', '.#b#...#bcbb#..#be#....', '.#be#.#bc#bb#..#ef#....',
-    '.#be#.#ba.#bb#..f......', '.#ef#.#ba..#bc#........', '..ff..#be...#be#.......',
-    '......#ef#...#ef#......', '.......ff.....fff.....', '......................',
-  ],
-  right: [
-    '........e.................', '.......#de#...............', '......#dcc#..ee...........',
-    '.....#dcbb#.#de#..........', '....#dcdbb##dcb#..........', '...#dcdbbcddcbb#..........',
-    '..#dcbbbedcbbbaa#.........', '..#cbbbedccbbbaa#.........', '.#cbbbedcbbbaaa#..........',
-    '.#cbbedcbb#bbb##dc#.......', '.#cbbeccb#.#bcdfxdc#......', '.#cbbaab#..#bdaaadc#......',
-    '.#cbaab#...#aaaafeb#......', '.#cbaa#.....#aaffa#.......', '.#cba#..#b#..#aa#.........',
-    '.#ba#..#bc#...##..........', '.#ba#..#bc#.#b#...........', '.#be#..#ba#.#bc#..........',
-    '.#be#..#ba#.#bc#..........', '.#ef#..#ba#..#bb#.........', '..ff...#be#...#bb#........',
-    '.......#ef#....#be#.......', '........fff.....#efff.....', '..........................',
-  ],
-};
-function creature(dir, frame) {
-  const t = new Img(32, 32);
-  const wind = frame >= 4 && frame <= 6;
-  const strike = frame === 7 || frame === 8;
-  const recoil = frame === 9 || frame === 10;
-  const rows = body[dir];
-  rows.forEach((row, y) => {
-    let dx = 0, dy = 0;
-    if (wind) { dy = y < 15 ? frame - 3 : 0; dx = y < 15 ? -(frame - 3) : 0; }
-    if (strike) { dx = y < 15 ? 3 : -1; dy = y < 15 ? 1 : 0; }
-    if (recoil) { dx = y < 14 ? -2 : 0; dy = y < 14 ? 2 : 0; }
-    if (frame < 4 && y > 15) dx = [0, 1, 0, -1][frame] * (y % 2 ? 1 : -1);
-    t.blit(grid([row], 28, 1), 3 + dx, 2 + y + dy);
-  });
-  if (wind) {
-    t.line(5, 24, 7, 24, P.bone2);
-    t.set(12 - (frame - 4), 9 + frame - 4, P.bone);
-    t.set(16 - (frame - 4), 18 + frame - 4, P.g5);
-  }
-  return t;
-}
-const creatureFrames = [];
-for (const dir of ['down', 'up', 'right']) for (let f = 0; f < 11; f++) creatureFrames.push(creature(dir, f));
-for (let frame = 0; frame < 4; frame++) {
-  const corpse = new Img(32, 32);
-  const source = creature('down', 9);
-  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-    const c = source.get(x, y);
-    if (c) corpse.set(x, 19 + Math.floor((y - 2) / (2 + frame)), c === P.g5 ? P.g2 : c);
-  }
-  creatureFrames.push(corpse);
-}
-creatureFrames.push(creature('down', 4));
 
 function crate(w, h, top, seed) {
   const r = mulberry(seed);
@@ -646,8 +581,7 @@ const playerFrames = hero.frames.map(rows => {
   return image;
 });
 save('player', sheet(16, 24, 8, playerFrames));
-save('creature', sheet(32, 32, 11, creatureFrames));
-console.log('frames: tiles', tileFrames.length, 'props', propFrames.length, 'creature', creatureFrames.length);
+console.log('frames: tiles', tileFrames.length, 'props', propFrames.length);
 
 const atlas = {
   sheets: {
@@ -660,10 +594,6 @@ const atlas = {
     ui: { frame: [9, 11], cols: 5, pip: { full: 0, empty: 1, flash: 2 }, bolt: { full: 3, empty: 4 } },
     shadow: { frame: [24, 10], cols: 2, player: 0, creature: 1 },
     player: { frame: [16, 24], cols: 8, anchor: [8, 23], anims: hero.animations },
-    creature: {
-      frame: [32, 32], cols: 11, anchor: [16, 24], dirs: { down: 0, up: 11, right: 22 },
-      anims: { stalk: [0, 1, 2, 3], windup: [4, 5, 6], lunge: [7, 8], recoil: [9, 10] }, death: [33, 34, 35, 36], sleep: 37, relaxed: true,
-    },
   },
 };
 fs.writeFileSync(`${OUT}/atlas.json`, JSON.stringify(atlas, null, 1));

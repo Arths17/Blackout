@@ -73,7 +73,7 @@ export class Chest extends Phaser.Scene {
     const text = (x: number, y: number, v: string, size: number, tint: number, origin = 0.5) =>
       this.add.bitmapText(x, y, 'stencil', v, size).setTint(tint).setOrigin(origin, 0.5).setDepth(30);
     text(CX, 14, lore.chest, 7, PALETTE.warm2);
-    text(CX, 25, `BOSS ${lvl + 1} OF ${ROOMS.length} DEFEATED`, 7, PALETTE.n6);
+    text(CX, 25, `ROOM ${lvl + 1} OF ${ROOMS.length} CLEARED`, 7, PALETTE.n6);
     this.total = text(VIEW.w - 8, 8, `COINS ${totalCoins()}`, 7, PALETTE.warm, 1);
     this.gain = text(CX, 44, '', 14, PALETTE.warm).setAlpha(0);
     this.hint = text(CX, 150, '[ENTER] OPEN THE CHEST', 7, PALETTE.warm2);
@@ -197,7 +197,7 @@ export class Chest extends Phaser.Scene {
         this.body.setText(this.message.slice(0, Math.floor(this.typed)));
       } else {
         this.body.setText(this.message);
-        this.hint.setText(progress.level >= ROOMS.length - 1 ? '[ENTER] FINISH' : '[ENTER] NEXT FIGHT').setPosition(CX, 206).setVisible(true).setAlpha(1);
+        this.hint.setText(progress.level >= ROOMS.length - 1 ? '[ENTER] FINISH' : '[ENTER] NEXT ROOM').setPosition(CX, 206).setVisible(true).setAlpha(1);
       }
     }
     this.drawCoins(dt);

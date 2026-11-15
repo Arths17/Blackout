@@ -9,9 +9,6 @@ const fmt = (s: number): string => {
   return `${m}:${rest < 10 ? '0' : ''}${rest.toFixed(1)}`;
 };
 
-// 5x7 question mark: the pixel font has no punctuation beyond . : - [ ].
-const Q = ['01110', '11011', '00011', '00110', '00100', '00000', '00100'];
-
 export class Finish extends Phaser.Scene {
   constructor() {
     super('Finish');
@@ -28,14 +25,9 @@ export class Finish extends Phaser.Scene {
 
     const text = (y: number, v: string, size: number, tint: number) =>
       this.add.bitmapText(VIEW.w / 2, y, 'stencil', v, size).setTint(tint).setOrigin(0.5);
-    text(26, 'GOOD JOB', 14, PALETTE.warm2);
-    const ask = text(48, 'WHAT DO YOU THINK OF BLACKOUT', 7, PALETTE.w);
-    const g = this.add.graphics();
-    const qx = Math.round(ask.x + ask.width / 2 - 1);
-    const qy = Math.round(ask.y - 4);
-    g.fillStyle(PALETTE.w, 1);
-    Q.forEach((row, j) => [...row].forEach((c, i) => c === '1' && g.fillRect(qx + i, qy + j, 1, 1)));
-    g.fillStyle(PALETTE.warm, 1).fillRect(VIEW.w / 2 - 70, 62, 140, 1);
+    text(26, 'YOU MADE IT OUT', 14, PALETTE.warm2);
+    text(48, 'WHAT DO YOU THINK OF BLACKOUT?', 7, PALETTE.w);
+    this.add.rectangle(VIEW.w / 2, 62, 140, 1, PALETTE.warm);
 
     const col = (x: number, label: string, value: string) => {
       this.add.bitmapText(x, 82, 'stencil', label, 7).setTint(PALETTE.n7).setOrigin(0.5);
@@ -44,16 +36,23 @@ export class Finish extends Phaser.Scene {
     col(VIEW.w / 2 - 80, 'YOUR TIME', fmt(progress.total));
     col(VIEW.w / 2 + 80, 'COINS', String(totalCoins()));
     ROOMS.forEach((b, i) => {
-      text(128 + i * 10, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S  ${progress.levelCoins[i]} COINS`, 7, PALETTE.n6);
+      text(122 + i * 9, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S  ${progress.levelCoins[i]} COINS`, 7, PALETTE.n6);
     });
     text(VIEW.h - 36, 'MUSIC BY ERIC SKIFF  RESISTOR ANTHEMS  ERICSKIFF.COM  CC BY 4.0', 7, PALETTE.n5);
     text(VIEW.h - 27, 'UNDERCLOCKED  JUMPSHOT  COME AND FIND ME  THERES A POWER HERE', 7, PALETTE.n5);
     const hint = text(VIEW.h - 14, '[ENTER] PLAY AGAIN', 7, PALETTE.warm2);
     this.tweens.add({ targets: hint, alpha: 0.35, duration: 700, yoyo: true, repeat: -1 });
 
-    this.input.keyboard!.on('keydown-ENTER', () => {
-      resetRun();
-      this.scene.start('Game');
-    });
+    let leaving = false;
+    const again = () => {
+      if (leaving) return;
+      leaving = true;
+      this.cameras.main.fadeOut(350, 8, 13, 18);
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        resetRun();
+        this.scene.start('Game');
+      });
+    };
+    for (const k of ['ENTER', 'SPACE']) this.input.keyboard!.on(`keydown-${k}`, again);
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CFG, COINS, EXIT, ROOM, ROOMS, applyRoom } from '../src/config';
 import { coinsFor } from '../src/sim/coins';
-import { createWorld, currentWindup, damagePlayer, fire, missCooldown, stalkBoost, stepWorld, type World } from '../src/sim/game';
+import { createWorld, currentWindup, damagePlayer, fire, lineUnder, missCooldown, stalkBoost, stepWorld, type World } from '../src/sim/game';
 import { ROUTES } from '../src/sim/routes';
 import { makeSurge } from '../src/sim/surge';
 import { snapshot } from './helpers';
@@ -583,5 +583,32 @@ describe('parry pushback', () => {
     stepWorld(w, { dx: 0, dy: 0, parry: true }, DT);
     for (let i = 0; i < 40; i++) stepWorld(w, { dx: 0, dy: 0 }, DT);
     expect(w.player.x).toBeGreaterThan(px0 + 30);
+  });
+});
+
+describe('the room 1 prompt', () => {
+  const on = (x: number, y: number): World => createWorld({ player: { x: 900, y: 120 }, creature: { x, y }, asleep: false });
+
+  it('names the breaker whose line the creature stands on, and that throw lands', () => {
+    const w = on(361, 262); // 300 px along breaker 1's first leg
+    expect(lineUnder(w)).toBe(0);
+    fire(w, 0);
+    runUntilSurgeEnds(w);
+    expect(w.shocks).toBeGreaterThanOrEqual(1);
+  });
+
+  it('says nothing off the lines, for an offline breaker, or while the power is out', () => {
+    expect(lineUnder(on(150, 500))).toBe(-1);
+    const w = on(361, 262);
+    w.lastHitBreaker = 0;
+    expect(lineUnder(w)).toBe(-1);
+    w.lastHitBreaker = -1;
+    w.cooldown = 1;
+    expect(lineUnder(w)).toBe(-1);
+  });
+
+  it('ignores the far end of a line the surge cannot reach before the lunge', () => {
+    // the last stretch of breaker 3's loop, about 1900 px along
+    expect(lineUnder(on(1020, 316))).toBe(-1);
   });
 });

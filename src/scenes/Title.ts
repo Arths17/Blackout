@@ -52,7 +52,7 @@ export class Title extends Phaser.Scene {
     this.drawSky();
     this.drawGround();
 
-    this.mon = this.add.sprite(252, 150, 'tree-monster', 0).setOrigin(0.5, 0.82).setDisplaySize(112, 112).setTint(0x1a2630).setDepth(10);
+    this.mon = this.add.sprite(290, 150, 'tree-monster', 0).setOrigin(0.5, 0.82).setDisplaySize(128, 128).setTint(0x1a2630).setDepth(10);
     this.eyes = this.add.graphics().setDepth(12);
     this.fog = this.add.graphics().setDepth(20);
     this.motes = this.add.graphics().setDepth(21);
@@ -61,7 +61,8 @@ export class Title extends Phaser.Scene {
     this.drawTitle();
     this.sparks = this.add.graphics().setDepth(31);
 
-    this.prompt = this.add.bitmapText(22, 150, 'stencil', '> PRESS ANY KEY', 7).setTint(PALETTE.n7).setDepth(32);
+    this.add.bitmapText(24, 112, 'stencil', 'THE POWER IS OUT.\nSOMETHING IS IN HERE WITH YOU.', 7).setTint(PALETTE.n6).setDepth(30);
+    this.prompt = this.add.bitmapText(22, 150, 'stencil', '> PRESS ANY KEY', 7).setTint(PALETTE.warm2).setDepth(32);
 
     this.add.image(0, 0, 'vignette').setOrigin(0, 0).setDepth(40);
     this.grain = this.add.image(0, 0, 'grain').setOrigin(0, 0).setDepth(41).setAlpha(DARK.grainAlpha * 1.4);
@@ -88,7 +89,7 @@ export class Title extends Phaser.Scene {
       }
     }
     // a pale pool of air behind the head, in stepped rings so it reads as light and not as a shape
-    for (let r = 0; r < 6; r++) g.fillStyle(PALETTE.g3, 0.05).fillCircle(252, 74, 70 - r * 10);
+    for (let r = 0; r < 6; r++) g.fillStyle(PALETTE.g3, 0.05).fillCircle(290, 74, 70 - r * 10);
   }
 
   // The floor is ragged on purpose: uneven heights and a few blades or roots sticking up out of it.
@@ -155,21 +156,20 @@ export class Title extends Phaser.Scene {
 
     // the creature breathes by a pixel; its own eyes (found on the sheet at boot) glow, and it blinks now and then
     const bob = Math.round(Math.sin(t * 1.15));
-    this.mon.setPosition(252, 140 + bob);
+    this.mon.setPosition(290, 140 + bob);
     const eyes = this.eyes;
     eyes.clear();
     const cells = TREE_EYES.get('tree-monster:0') ?? [];
     const open = t > 1.2 && !(t % 5.4 > 5.22);
-    const s = 112 / 64;
-    const left = 252 - 56;
-    const top = 140 + bob - 112 * 0.82;
+    const s = 2;
+    const left = 290 - 64;
+    const top = 140 + bob - 128 * 0.82;
     const pulse = 0.75 + Math.sin(t * 2.2) * 0.2;
     if (open) {
       for (const [cx, cy] of cells) {
         const ex = Math.round(left + cx * s);
         const ey = Math.round(top + cy * s);
-        eyes.fillStyle(0xff8a1f, 0.16 * pulse).fillRect(ex - 3, ey - 3, 8, 8);
-        eyes.fillStyle(0xff8a1f, 0.28 * pulse).fillRect(ex - 1, ey - 1, 4, 4);
+        eyes.fillStyle(0xff8a1f, 0.2 * pulse).fillRect(ex - 2, ey - 2, 6, 6);
         eyes.fillStyle(0xffb347, pulse).fillRect(ex, ey, 2, 2);
       }
     }

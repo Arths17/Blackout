@@ -33,7 +33,7 @@ export class Paths {
       const key = `${off}${live}${hot === r.id}${blink}${march}`;
       if (key === this.drawn[r.id]) continue;
       this.drawn[r.id] = key;
-      this.draw(r.id, off ? 0.16 : live || hot === r.id ? 0.95 : 0.6, blink ? PALETTE.w : PATH_COLORS[r.id], off, march, hot === r.id);
+      this.draw(r.id, off ? 0.16 : live || hot === r.id ? 0.95 : 0.7, blink ? PALETTE.w : PATH_COLORS[r.id], off, march, hot === r.id);
     }
   }
 

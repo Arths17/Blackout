@@ -18,6 +18,8 @@ const game = new Phaser.Game({
   height: VIEW.h,
   parent: 'game',
   backgroundColor: PALETTE.ink,
+  // src/audio.ts does all the sound; without this Phaser opens a second audio context at boot.
+  audio: { noAudio: true },
   render: { pixelArt: true, antialias: false, roundPixels: true },
   scale: { mode: Phaser.Scale.NONE, zoom: 1, autoCenter: Phaser.Scale.CENTER_BOTH },
   scene: [Boot, Title, Game, Chest, Finish],
