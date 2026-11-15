@@ -18,8 +18,8 @@ export function facingOf(angle: number): Facing {
   return { dir: s > 0 ? 'down' : 'up', flip: false };
 }
 
-// One-pixel line into a Graphics, so nothing gets antialiased.
-export function pixLine(g: Phaser.GameObjects.Graphics, x0: number, y0: number, x1: number, y1: number): void {
+// One-pixel line, so nothing gets antialiased. Works on a Graphics or a 2D canvas context.
+export function pixLine(g: { fillRect(x: number, y: number, w: number, h: number): unknown }, x0: number, y0: number, x1: number, y1: number): void {
   x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
   const dx = Math.abs(x1 - x0);
   const dy = -Math.abs(y1 - y0);
@@ -39,10 +39,6 @@ export interface Atlas {
   sheets: Record<string, Record<string, any>>;
 }
 export const atlasOf = (scene: Phaser.Scene): Atlas => scene.cache.json.get('atlas') as Atlas;
-
-// Where each creature frame has glowing eye pixels, read once from the sheet at boot so the eyes
-// can be drawn above the darkness exactly where the sprite has them.
-export const EYES = new Map<number, [number, number][]>();
 
 // Cells (in the 64 px display) where each boss frame has its glowing eye pixels, keyed 'sheet:frame'.
 export const TREE_EYES = new Map<string, [number, number][]>();

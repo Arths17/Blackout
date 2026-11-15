@@ -50,7 +50,7 @@ export class Entrance {
     this.g = scene.add.graphics().setDepth(DEPTH.y + 5);
   }
 
-  update(t: number): Light[] {
+  update(t: number, lights: Light[]): void {
     const g = this.g;
     g.clear();
     const p = Math.max(0, Math.min(1, (t - START) / GROW));
@@ -89,9 +89,7 @@ export class Entrance {
       });
     }
 
-    const lights: Light[] = [];
     if (p >= 1) lights.push({ x: DOOR.x + DOOR.w / 2 + 4, y: DOOR.y + DOOR.h / 2, r: 12, tint: PALETTE.g3 });
-    if (p < 1) lights.push({ x: DOOR.x + DOOR.w / 2 + 6, y: DOOR.y + DOOR.h / 2, r: 24 * (1 - p), tint: PALETTE.warm });
-    return lights;
+    else lights.push({ x: DOOR.x + DOOR.w / 2 + 6, y: DOOR.y + DOOR.h / 2, r: 24 * (1 - p), tint: PALETTE.warm });
   }
 }

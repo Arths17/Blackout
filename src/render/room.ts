@@ -195,11 +195,11 @@ export class Room {
     }
   }
 
-  // Emergency strips and flickering lamps. Returns their lights for the darkness pass.
-  update(t: number, lit: boolean): Light[] {
+  // Emergency strips and flickering lamps, with their lights for the darkness pass.
+  update(t: number, lit: boolean, lights: Light[]): void {
     const g = this.strips;
     g.clear();
-    const lights: Light[] = [];
+    const P = atlasOf(this.scene).sheets.props;
     for (const s of this.segs) {
       const f = 0.55 + 0.25 * Math.sin(t * (1.3 + (s.seed % 7) * 0.27) + s.seed) + (Math.sin(t * 29 + s.seed * 5) > 0.94 ? -0.4 : 0);
       if (f < 0.2) continue;
@@ -209,11 +209,10 @@ export class Room {
     }
     for (const l of this.lamps) {
       const buzz = Math.sin(t * 41 + l.seed * 9) > 0.3 && Math.sin(t * 2.3 + l.seed) > 0.5;
-      l.spr.setFrame(buzz ? atlasOf(this.scene).sheets.props.lamp_flicker : atlasOf(this.scene).sheets.props.lamp_dead);
+      l.spr.setFrame(buzz ? P.lamp_flicker : P.lamp_dead);
       if (buzz) lights.push({ x: l.x, y: l.y + 6, r: 22, tint: PALETTE.r3 });
     }
     this.door.setFrame(lit ? 1 : 0);
     if (lit) lights.push({ x: px(EXIT.x) + 16, y: 12, r: 40, tint: PALETTE.warm });
-    return lights;
   }
 }

@@ -15,12 +15,12 @@ export class ExitCue {
     this.label = scene.add.bitmapText(0, 0, 'stencil', 'EXIT', 7).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.text).setVisible(false);
   }
 
-  update(w: World, t: number): Light[] {
+  update(w: World, t: number, lights: Light[]): void {
     const g = this.g;
     g.clear();
     const on = w.phase === 'won' || w.phase === 'escaped';
     this.label.setVisible(on && w.phase === 'won');
-    if (!on) return [];
+    if (!on) return;
     const x0 = Math.round(px(EXIT.x));
     const wd = Math.round(px(EXIT.w));
     const cx = x0 + wd / 2;
@@ -38,6 +38,6 @@ export class ExitCue {
       }
     }
     this.label.setPosition(Math.round(cx), 46);
-    return [{ x: cx, y: 12, r: 66, tint: PALETTE.warm2 }];
+    lights.push({ x: cx, y: 12, r: 66, tint: PALETTE.warm2 });
   }
 }

@@ -68,8 +68,10 @@ export const DARK = {
   panelR: 30,
 };
 
-// One clearly different color per generator: its path on the floor, its number and its panel diagram.
-export const PATH_COLORS = [0x3fd2ff, 0xffa530, 0xd774ff];
+// One color and one dash length per breaker: its line on the floor, its number and its panel diagram.
+// Cold blue, lamp amber and moss green, all pulled from the room's own palette so nothing reads as neon.
+export const PATH_COLORS = [0x8fc3d6, 0xe2a04f, 0xa9c47c];
+export const PATH_DASH = [5, 9, 2];
 
 // Presentation timing. None of this changes the rules.
 export const VIS = {

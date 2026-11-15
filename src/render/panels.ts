@@ -4,7 +4,7 @@ import { isOffline, type World } from '../sim/game';
 import { ROUTES, pathBetween, type Route } from '../sim/routes';
 import type { Light } from './darkness';
 import { DEPTH } from './layers';
-import { atlasOf, px } from './pixel';
+import { atlasOf, pixLine, px } from './pixel';
 
 const W = 36;
 const H = 28;
@@ -53,23 +53,8 @@ export class Breakers {
     DIGITS[String(n)].forEach((row, j) => [...row].forEach((v, i) => v === '1' && ctx.fillRect(x + i, y + j, 1, 1)));
   }
 
-  private line(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): void {
-    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
-    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
-    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
-    let err = dx + dy;
-    for (;;) {
-      ctx.fillRect(x0, y0, 1, 1);
-      if (x0 === x1 && y0 === y1) break;
-      const e2 = 2 * err;
-      if (e2 >= dy) { err += dy; x0 += sx; }
-      if (e2 <= dx) { err += dx; y0 += sy; }
-    }
-  }
-
-  update(w: World, t: number): Light[] {
+  update(w: World, t: number, lights: Light[]): void {
     const A = atlasOf(this.scene).sheets.breaker;
-    const lights: Light[] = [];
     const cooling = w.cooldown > 0;
     for (const r of ROUTES) {
       const off = isOffline(w, r.id);
@@ -88,7 +73,6 @@ export class Breakers {
       }
       lights.push({ x: p.x + W / 2, y: p.y + H / 2, r: DARK.panelR * (off ? 0.55 : cooling ? 0.75 : 1), tint: off ? undefined : PALETTE.r3 });
     }
-    return lights;
   }
 
   private draw(r: Route, state: number, w: World, S: Record<string, number>): void {
@@ -107,7 +91,7 @@ export class Breakers {
     for (let i = 1; i < r.points.length; i++) {
       const [ax, ay] = map(r.points[i - 1].x, r.points[i - 1].y);
       const [bx, by] = map(r.points[i].x, r.points[i].y);
-      this.line(ctx, ax, ay, bx, by);
+      pixLine(ctx, ax, ay, bx, by);
     }
     if (state === S.busy && w.surge) {
       ctx.fillStyle = hexs(PALETTE.w);
@@ -115,7 +99,7 @@ export class Breakers {
       for (let i = 1; i < path.length; i++) {
         const [ax, ay] = map(path[i - 1].x, path[i - 1].y);
         const [bx, by] = map(path[i].x, path[i].y);
-        this.line(ctx, ax, ay, bx, by);
+        pixLine(ctx, ax, ay, bx, by);
       }
     }
     ctx.fillStyle = hexs(state === S.offline ? PALETTE.n4 : PALETTE.c1);

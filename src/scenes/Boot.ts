@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { ROOMS, DARK, PALETTE, VIEW } from '../config';
 import { progress } from '../progress';
 import { titleSeen } from './Title';
-import { EYES, TREE_EYES, dither, rgb, type Atlas } from '../render/pixel';
+import { TREE_EYES, dither, rgb, type Atlas } from '../render/pixel';
 import { drawWardenSheet } from '../render/wardens';
 
 export class Boot extends Phaser.Scene {
@@ -24,16 +24,17 @@ export class Boot extends Phaser.Scene {
   }
 
   create(): void {
-    this.scanEyes();
     this.scanTreeEyes();
     this.makeWardens();
     this.makeVignette();
     this.makeGrain();
+    // Without this Space and the arrows also scroll the page the game is embedded in.
+    this.input.keyboard!.addCapture('SPACE,UP,DOWN,LEFT,RIGHT');
     const q = new URLSearchParams(window.location.search);
     const lv = Number(q.get('level'));
     if (lv >= 1) progress.level = Math.min(ROOMS.length - 1, Math.floor(lv) - 1);
-    // The dev flags (?level, ?lure, ?freeze, ?notitle) go straight to the game.
-    const dev = ['level', 'lure', 'freeze', 'notitle'].some((k) => q.has(k));
+    // The dev flags (?level, ?lure, ?notitle) go straight to the game.
+    const dev = ['level', 'lure', 'notitle'].some((k) => q.has(k));
     this.scene.start(dev || titleSeen() ? 'Game' : 'Title');
   }
 
@@ -78,28 +79,6 @@ export class Boot extends Phaser.Scene {
       const cells: [number, number][] = [];
       for (const [key, n] of count) if (n >= 3) cells.push([key % 64, Math.floor(key / 64)]);
       TREE_EYES.set(`tree-monster:${f}`, cells);
-    }
-  }
-
-  private scanEyes(): void {
-    const img = this.textures.get('creature').getSourceImage() as HTMLImageElement;
-    const c = document.createElement('canvas');
-    c.width = img.width;
-    c.height = img.height;
-    const ctx = c.getContext('2d')!;
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, c.width, c.height).data;
-    const g5 = PALETTE.g5;
-    const cols = c.width / 32;
-    for (let y = 0; y < c.height; y++) {
-      for (let x = 0; x < c.width; x++) {
-        const i = (y * c.width + x) * 4;
-        if (data[i + 3] && data[i] === ((g5 >> 16) & 255) && data[i + 1] === ((g5 >> 8) & 255) && data[i + 2] === (g5 & 255)) {
-          const f = Math.floor(y / 32) * cols + Math.floor(x / 32);
-          if (!EYES.has(f)) EYES.set(f, []);
-          EYES.get(f)!.push([x % 32, y % 32]);
-        }
-      }
     }
   }
 

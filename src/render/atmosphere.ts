@@ -34,37 +34,40 @@ export class Atmosphere {
     [mx(22), my(15), 10, 5], [mx(286), my(118), 12, 6], [mx(22), my(156), 12, 6],
   ];
   private nextTremor = 7;
+  private swayed: [number, number][] = [[0, 0], [0, 0], [0, 0], [0, 0]];
 
   constructor(scene: Phaser.Scene) {
+    // The moss never moves, so it is drawn once on its own layer under the animated roots.
+    this.drawMoss(scene.add.graphics().setDepth(DEPTH.y + 4));
     this.g = scene.add.graphics().setDepth(DEPTH.y + 4);
   }
 
-  update(w: World, t: number): { lights: Light[]; tremor: boolean } {
-    const lights: Light[] = [];
+  // Returns true on the frames the room should tremble.
+  update(w: World, t: number, lights: Light[]): boolean {
     this.g.clear();
-    this.drawMoss();
     this.drawRoots(w, t);
     this.drawHanging(t);
     this.drawMonitors(t, lights);
     const tremor = t >= this.nextTremor;
     if (tremor) this.nextTremor = t + 11 + (Math.sin(t * 0.17) + 1) * 3;
-    return { lights, tremor };
+    return tremor;
   }
 
   private drawRoots(w: World, t: number): void {
     const g = this.g;
     for (const root of this.roots) {
-      const points: [number, number][] = root.points.map(([x, y], i) => [
-        x + Math.sin(t * 1.4 + root.phase + i * 0.8) * (i === 0 ? 0.5 : 1.5),
-        y + Math.cos(t * 1.1 + root.phase + i) * 0.8,
-      ]);
+      const points = this.swayed;
+      root.points.forEach(([x, y], i) => {
+        points[i][0] = x + Math.sin(t * 1.4 + root.phase + i * 0.8) * (i === 0 ? 0.5 : 1.5);
+        points[i][1] = y + Math.cos(t * 1.1 + root.phase + i) * 0.8;
+      });
       // Thick where it enters the wall, thinner toward the tip.
       for (let i = 1; i < points.length; i++) {
         const wd = Math.max(2, root.width + 2 - Math.floor(i / 2));
         g.lineStyle(wd + 2, PALETTE.ink, 0.9);
-        this.stroke(g, [points[i - 1], points[i]]);
+        g.lineBetween(points[i - 1][0], points[i - 1][1], points[i][0], points[i][1]);
         g.lineStyle(wd, i % 2 ? PALETTE.g3 : PALETTE.g4, 1);
-        this.stroke(g, [points[i - 1], points[i]]);
+        g.lineBetween(points[i - 1][0], points[i - 1][1], points[i][0], points[i][1]);
       }
       for (let i = 1; i < points.length; i++) {
         const [x, y] = points[i];
@@ -81,15 +84,16 @@ export class Atmosphere {
         const side = i % 2 === 0 ? -1 : 1;
         const endX = cx + side * (28 + i * 13);
         const endY = cy + 18 + Math.sin(t * 1.7 + i) * 3;
-        const pts: [number, number][] = [
-          [cx + side * 4, cy + 8],
-          [cx + side * (12 + i * 3), cy + 12 + Math.sin(t * 1.6 + i) * 2],
-          [endX, endY],
-        ];
-        g.lineStyle(3, PALETTE.ink, 0.85);
-        this.stroke(g, pts);
-        g.lineStyle(1, PALETTE.g3, 0.85);
-        this.stroke(g, pts);
+        const midX = cx + side * (12 + i * 3);
+        const midY = cy + 12 + Math.sin(t * 1.6 + i) * 2;
+        for (const [width, color] of [[3, PALETTE.ink], [1, PALETTE.g3]]) {
+          g.lineStyle(width, color, 0.85);
+          g.beginPath();
+          g.moveTo(cx + side * 4, cy + 8);
+          g.lineTo(midX, midY);
+          g.lineTo(endX, endY);
+          g.strokePath();
+        }
       }
     }
   }
@@ -123,8 +127,7 @@ export class Atmosphere {
     }
   }
 
-  private drawMoss(): void {
-    const g = this.g;
+  private drawMoss(g: Phaser.GameObjects.Graphics): void {
     for (const [x, y, w, h] of this.moss) {
       for (let j = 0; j < h; j++) {
         for (let i = 0; i < w; i++) {
@@ -155,11 +158,5 @@ export class Atmosphere {
       const [x, y] = r.points[r.points.length - 1];
       lights.push({ x, y, r: 11, tint: PALETTE.g3 });
     }
-  }
-
-  private stroke(g: Phaser.GameObjects.Graphics, points: [number, number][]): void {
-    g.beginPath();
-    points.forEach(([x, y], i) => (i === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
-    g.strokePath();
   }
 }
