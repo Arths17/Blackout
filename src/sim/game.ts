@@ -300,7 +300,7 @@ function parried(w: World): void {
 const enraged = (w: World): boolean => CFG.enrage > 1 && w.shocks >= Math.ceil(CFG.shocksToWin * CFG.enrageAt);
 
 // The boss's own attacks: a telegraphed lunge at where the player stands, and bouncing seeds.
-function bossAttacks(w: World): void {
+function creatureAttacks(w: World): void {
   const c = w.creature;
   if (!c.alive || c.asleep) return;
   const scale = enraged(w) ? 0.75 : 1;
@@ -484,7 +484,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   if (w.phase !== 'play') return;
   if (w.creature.alive) {
     stepCreature(w.creature, dt, w.player, (enraged(w) ? CFG.enrage : 1) * stalkBoost(w));
-    bossAttacks(w);
+    creatureAttacks(w);
     const c = w.creature;
     if (!w.bounce && c.state !== 'recoil' && Math.hypot(c.x - w.player.x, c.y - w.player.y) < CFG.creatureRadius + CFG.playerRadius) {
       if (w.parryLeft > 0 && w.grace <= 0) parried(w);
