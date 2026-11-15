@@ -148,6 +148,26 @@ export function isOffline(w: World, breaker: number): boolean {
   return w.lastHitBreaker === breaker;
 }
 
+// The ready breaker whose line the creature is standing on, or -1. Only the stretch the surge
+// reaches before the windup ends counts, so "it is on the line" means the shot will land.
+export function lineUnder(w: World): number {
+  const c = w.creature;
+  if (w.phase !== 'play' || w.surge || w.cooldown > 0 || !c.alive || c.state !== 'stalk') return -1;
+  const reach = CFG.surgeSpeed * currentWindup(w);
+  for (const r of ROUTES) {
+    if (isOffline(w, r.id)) continue;
+    for (let i = 1; i < r.points.length && r.cum[i - 1] < reach; i++) {
+      const a = r.points[i - 1];
+      const b = r.points[i];
+      const len = r.cum[i] - r.cum[i - 1];
+      const along = ((c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y)) / len;
+      if (along < 0 || along > len || r.cum[i - 1] + along > reach) continue;
+      if (distToSegment(c, a, b) <= CFG.surgeHitRadius) return r.id;
+    }
+  }
+  return -1;
+}
+
 export function fire(w: World, breaker: number): FireResult {
   return startFire(w, ROUTES[breaker], breaker);
 }
