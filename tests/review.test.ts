@@ -86,12 +86,12 @@ describe('timers count whole ticks', () => {
 describe('timer boundaries across restart and win', () => {
   it('grace ends exactly at one second and permits the next contact', () => {
     const w = createWorld();
-    damagePlayer(w);
+    damagePlayer(w, 'creature');
     for (let tick = 0; tick < CFG.graceSeconds * CFG.stepHz - 1; tick++) stepWorld(w, idle, DT);
-    expect(damagePlayer(w)).toBe(false);
+    expect(damagePlayer(w, 'creature')).toBe(false);
     stepWorld(w, idle, DT);
     expect(w.grace).toBe(0);
-    expect(damagePlayer(w)).toBe(true);
+    expect(damagePlayer(w, 'creature')).toBe(true);
   });
 
   it('recoil and intro end on their configured ticks', () => {
@@ -109,7 +109,7 @@ describe('timer boundaries across restart and win', () => {
     const first = createWorld();
     first.missStreak = 200;
     fire(first, 0);
-    damagePlayer(first);
+    damagePlayer(first, 'creature');
     stepWorld(first, idle, DT);
     const restarted = createWorld();
     expect(restarted).toEqual(createWorld());

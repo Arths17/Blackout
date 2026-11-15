@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { initAudio, play, setMusic, startAmbience } from '../audio';
-import { BOSS_LEVELS, PALETTE, VIEW } from '../config';
+import { ROOMS, PALETTE, VIEW } from '../config';
 import { progress, resetRun, totalCoins } from '../progress';
 
 const fmt = (s: number): string => {
@@ -44,7 +44,7 @@ export class Finish extends Phaser.Scene {
     };
     col(VIEW.w / 2 - 80, 'YOUR TIME', fmt(progress.total));
     col(VIEW.w / 2 + 80, 'COINS', String(totalCoins()));
-    BOSS_LEVELS.forEach((b, i) => {
+    ROOMS.forEach((b, i) => {
       text(128 + i * 10, `${i + 1}  ${b.name}  ${progress.levelTimes[i].toFixed(1)}S  ${progress.levelCoins[i]} COINS`, 7, PALETTE.n6);
     });
     text(VIEW.h - 36, 'MUSIC BY ERIC SKIFF  RESISTOR ANTHEMS  ERICSKIFF.COM  CC BY 4.0', 7, PALETTE.n5);

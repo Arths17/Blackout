@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BOSS_LEVELS, DARK, PALETTE, VIEW } from '../config';
+import { ROOMS, DARK, PALETTE, VIEW } from '../config';
 import { progress } from '../progress';
 import { titleSeen } from './Title';
 import { EYES, TREE_EYES, dither, rgb, type Atlas } from '../render/pixel';
@@ -31,7 +31,7 @@ export class Boot extends Phaser.Scene {
     this.makeGrain();
     const q = new URLSearchParams(window.location.search);
     const lv = Number(q.get('level'));
-    if (lv >= 1) progress.level = Math.min(BOSS_LEVELS.length - 1, Math.floor(lv) - 1);
+    if (lv >= 1) progress.level = Math.min(ROOMS.length - 1, Math.floor(lv) - 1);
     // The dev flags (?level, ?lure, ?freeze, ?notitle) go straight to the game.
     const dev = ['level', 'lure', 'freeze', 'notitle'].some((k) => q.has(k));
     this.scene.start(dev || titleSeen() ? 'Game' : 'Title');

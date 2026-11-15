@@ -1,15 +1,12 @@
-export const W = 1152;
-export const H = 648;
-
+// World units: the room is laid out on a 1152 x 648 field and drawn at a third of that (see VIEW).
 export const ROOM = { x: 76, y: 44, w: 1000, h: 560 };
 export const EXIT = { x: 960, w: 100 }; // door in the top wall
 
 export const PLAYER_START = { x: 190, y: 560 };
-// Sweep result for Quick bank: pressing at the start from here lands the opening hit on leg 2.
-export const FIRST_HIT_SPAWN = { x: 732, y: 324 };
-// The boss starts at the top-right corner, guarding the exit door.
+// The creature starts in the top-right corner, in front of the exit.
 export const BOSS_START = { x: 1000, y: 112 };
-// Same row, same switch: where the creature stands when the button is pressed.
+// Three creature positions on one row that give three outcomes for breaker 1 (too early, hit, too late).
+// Used by the outcome test and the ?lure= dev flag.
 export const LURES = {
   early: { x: 570, y: 324 },
   hit: { x: 732, y: 324 },
@@ -74,107 +71,119 @@ export const DARK = {
 // One clearly different color per generator: its path on the floor, its number and its panel diagram.
 export const PATH_COLORS = [0x3fd2ff, 0xffa530, 0xd774ff];
 
+// Presentation timing. None of this changes the rules.
 export const VIS = {
-  playerStep: 0.32,
+  playerStep: 0.32, // seconds between footstep sounds
   creatureStep: 0.47,
   hitStop: 0.07, // seconds the sim freezes on a counted shock
-  shockShake: { ms: 200, amp: 0.008 },
-  bounceShake: { ms: 60, amp: 0.003 },
-  hurtShake: { ms: 150, amp: 0.006 },
+  hurtStop: 0.05, // shorter freeze when the player is hurt
+  shockShake: { ms: 220, amp: 0.009 },
+  bounceShake: { ms: 70, amp: 0.003 },
+  hurtShake: { ms: 160, amp: 0.007 },
+  lungeShake: { ms: 90, amp: 0.004 },
+  superShake: { ms: 380, amp: 0.014 },
   trailLen: 70, // screen px of jagged trail behind the surge head
   flashMs: 120, // how long a surge flash keeps the whole room lit
+  sparkMax: 160, // spark pool size
+  sparkLights: 6, // only the newest few sparks light the floor
+  cardSeconds: 3.8, // how long the room name card stays up
+  heartNear: 450, // px: the heartbeat starts once the creature is closer than this
 };
 
 export const CFG = {
   stepHz: 60,
   timerEpsilon: 1e-9, // float slack so a 0.35 s timer ends on tick 21, not 22
 
-  playerSpeed: 220,
+  // Player
+  playerSpeed: 220, // px/s
   playerRadius: 11,
-  creatureStalkSpeed: 130, // closer to playerSpeed = harder
-  creatureRadius: 20, // contact range: how close it has to get to hurt the player
-  bossHitBonus: 14, // extra reach for the player's shots and bounce only, so the boss is easier to hit without being easier to touch you
-
-  windup: 1.0, // shorter = harder; 1.0 gives early/hit/late regions of similar size on Quick bank
-  lungeSpeed: 520,
-  lungeMaxDist: 380,
-  recoil: 0.5, // shorter = harder
-  recoilKnock: 150, // px/s the creature is thrown back along the surge during recoil
-
-  surgeSpeed: 650, // faster = harder to read
-  surgeHitRadius: 24, // bigger = wider hit band, easier to land and to get hit
-
-  bounceEvery: 2, // every Nth creature hit on the player sends them bouncing
-  bounceSpeed: 520,
-  bounceSeconds: 4.0,
-  parryWindow: 0.42, // seconds after pressing Shift that a touch from the boss is blocked
-  parryCooldown: 0.7, // whiffing costs you this long before the next try
-  parryStreakSeconds: 6, // a parry streak lapses if the next one takes longer than this
-  parriesForSuper: 2,
-  parryPush: 360, // px/s the player is shoved away from what they parried
-  parryPushSeconds: 0.18,
+  healthPips: 5, // fewer = harder
+  graceSeconds: 1.0, // no damage for this long after a hit; shorter = harder
+  interactRange: 70, // px from a breaker panel for E / Space to throw it
   dashSpeed: 520, // a very small hop: dashSpeed * dashSeconds is about 52 px
   dashSeconds: 0.1,
   dashCooldown: 0.9,
-  freezeOnFire: false, // set per level: boss 1 stands still while a surge is live
-  reactChance: 1, // chance the boss winds up and lunges at a generator when it fires; set per level
-  superSpeed: 640,
-  superSeconds: 5,
-  superRadius: 34, // reach of the super bounce, against bounce's own playerRadius
-  superShocks: 3, // shocks a super bounce deals to the boss
-  bounceHitGrace: 1.0, // immunity after a bounce hits the creature, so the player can get away
 
-  graceSeconds: 1.0, // shorter = harder
-  healthPips: 5, // fewer = harder
-  shocksToWin: 5, // more = longer fight
+  // Creature. The per-room values in ROOMS overwrite the ones marked "per room".
+  creatureStalkSpeed: 120, // per room; must stay under playerSpeed
+  creatureRadius: 20, // per room; contact range against the player
+  creatureHitBonus: 14, // extra reach for surges and bounces only, so it is easier to shock than to be touched by
+  windup: 1.6, // per room; seconds it stands still after a breaker is thrown, before the lunge
+  lungeSpeed: 520, // per room
+  lungeMaxDist: 380, // per room
+  recoil: 0.5, // per room; seconds it is stunned after a shock
+  recoilKnock: 150, // px/s it is pushed along the surge while stunned
+  shocksToWin: 5, // per room
+  autoLungeEvery: 0, // per room; seconds between lunges it starts by itself, 0 = never
+  autoLungeWindup: 0.95, // its own lunges wind up slightly quicker than a breaker reaction
+  seedEvery: 0, // per room; seconds between seed volleys, 0 = never
+  seedCount: 0, // per room
+  seedSpeed: 0, // per room
+  seedBounces: 4, // wall hits before a seed dies
+  seedSpread: 0.3, // radians between seeds in a volley
+  seedRadius: 11,
+  enrage: 1, // per room; speed multiplier once it is nearly dead
+  enrageAt: 0.6, // share of its health that has to be gone first
+  introSeconds: 8, // a creature created asleep wakes after this long (tests and the ?lure flag only)
 
-  missWindupReduction: 0.08, // per consecutive miss; bigger = harder
+  // Surge
+  surgeSpeed: 650, // px/s along the route; faster = harder to read
+  surgeHitRadius: 24, // half-width of the live lane, for the creature and for you
+  generatorCooldown: 1.5, // seconds with no power after a surge ends
+  lampFade: 0.3, // seconds a lamp stays lit after the surge passes it
+  revealSeconds: 0.3, // seconds the creature shows through the dark after a lamp or bounce
+
+  // Miss penalty, per miss in a row. A hit clears it.
+  missWindupReduction: 0.08, // seconds off the next windup
   windupFloor: 0.35,
-  generatorCooldown: 1.5,
-  missCooldownAdd: 0.6, // per consecutive miss
+  missCooldownAdd: 0.6, // seconds added to the power coming back
   cooldownMax: 3.5,
-  introSeconds: 8, // creature stays put this long unless the first breaker is thrown
+  missSpeedUp: 0.04, // share added to the stalk speed
+  missSpeedUpMax: 0.12,
 
-  autoLungeEvery: 0, // set per level
-  bossShotEvery: 0,
-  bossShotCount: 0,
-  bossShotSpeed: 0,
-  bossShotBounces: 4,
-  bossShotSpread: 0.3, // radians between shots in a fan
-  enrage: 1,
-  interactRange: 70, // px from a switch; smaller = harder to fire under pressure
-  lampFade: 0.3,
-  revealSeconds: 0.3,
-
+  // Getting hit and hitting back
+  bounceEvery: 2, // every Nth touch from the creature throws the player into a ricochet
+  bounceSpeed: 520,
+  bounceSeconds: 2.6, // how long the ricochet lasts if it hits nothing
+  bounceHitGrace: 1.0, // no damage for this long after a bounce lands, so the player can get away
+  parryWindow: 0.34, // seconds after pressing parry that a touch is blocked
+  parryCooldown: 0.9, // from the press; a whiff leaves you open for the difference
+  parryGrace: 0.35, // no damage for this long after a parry
+  parryStreakSeconds: 6, // the second parry has to come within this long
+  parriesForSuper: 2,
+  parryPush: 360, // px/s the player is shoved away from what they parried
+  parryPushSeconds: 0.18,
+  superSpeed: 640,
+  superSeconds: 4,
+  superRadius: 34,
+  superShocks: 2, // shocks a super bounce deals
 };
 
-// Boss fight difficulty per level. Stalk stays under playerSpeed so there is always a gap to open.
-// lungeEvery / shotEvery are seconds between the boss's own attacks (0 = never); enrage speeds the
-// boss up once it is down to its last 40% of health.
-export const BOSS_LEVELS = [
-  { name: 'THE HOLLOW TREE', stalk: 130, windup: 1.0, lunge: 520, lungeMax: 380, recoil: 0.5, shocks: 5, radius: 20, lungeEvery: 0, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1, freeze: true, react: 0.5 },
-  { name: 'THE GNARLED DEEP', stalk: 140, windup: 0.92, lunge: 560, lungeMax: 410, recoil: 0.46, shocks: 5, radius: 21, lungeEvery: 9, shotEvery: 0, shots: 0, shotSpeed: 0, enrage: 1, freeze: false, react: 0.5 },
-  { name: 'THE ROTTING GROVE', stalk: 150, windup: 0.84, lunge: 610, lungeMax: 430, recoil: 0.42, shocks: 6, radius: 23, lungeEvery: 7.5, shotEvery: 9.5, shots: 1, shotSpeed: 350, enrage: 1.05, freeze: false, react: 0.5 },
-  { name: 'THE STRANGLING ROOTS', stalk: 152, windup: 0.82, lunge: 620, lungeMax: 440, recoil: 0.4, shocks: 6, radius: 24, lungeEvery: 7, shotEvery: 9, shots: 2, shotSpeed: 370, enrage: 1.05, freeze: false, react: 0.5 },
-  { name: 'THE ELDER CANOPY', stalk: 166, windup: 0.7, lunge: 700, lungeMax: 490, recoil: 0.34, shocks: 7, radius: 26, lungeEvery: 5.5, shotEvery: 7, shots: 3, shotSpeed: 420, enrage: 1.1, freeze: false, react: 0.5 },
+// One row per room. Stalk speed stays under playerSpeed so there is always a gap to open.
+// windup is the time the creature stands still after a breaker is thrown: 1.6 s lets a surge
+// cover a whole short route, so in room 1 a creature standing on a line is as good as hit.
+export const ROOMS = [
+  { name: 'THE HOLLOW TREE', stalk: 120, windup: 1.6, lunge: 500, lungeMax: 360, recoil: 0.6, shocks: 5, radius: 20, lungeEvery: 0, seedEvery: 0, seeds: 0, seedSpeed: 0, enrage: 1 },
+  { name: 'THE GNARLED DEEP', stalk: 135, windup: 1.3, lunge: 540, lungeMax: 400, recoil: 0.5, shocks: 5, radius: 21, lungeEvery: 9, seedEvery: 0, seeds: 0, seedSpeed: 0, enrage: 1 },
+  { name: 'THE ROTTING GROVE', stalk: 146, windup: 1.15, lunge: 590, lungeMax: 420, recoil: 0.45, shocks: 6, radius: 23, lungeEvery: 7.5, seedEvery: 9.5, seeds: 1, seedSpeed: 340, enrage: 1.05 },
+  { name: 'THE STRANGLING ROOTS', stalk: 152, windup: 1.0, lunge: 620, lungeMax: 440, recoil: 0.4, shocks: 6, radius: 24, lungeEvery: 7, seedEvery: 9, seeds: 2, seedSpeed: 370, enrage: 1.05 },
+  { name: 'THE ELDER CANOPY', stalk: 164, windup: 0.85, lunge: 690, lungeMax: 480, recoil: 0.34, shocks: 7, radius: 26, lungeEvery: 5.5, seedEvery: 7, seeds: 3, seedSpeed: 410, enrage: 1.1 },
 ];
 
-export function applyBossLevel(i: number): void {
-  const b = BOSS_LEVELS[Math.max(0, Math.min(BOSS_LEVELS.length - 1, i))];
-  CFG.creatureStalkSpeed = b.stalk;
-  CFG.windup = b.windup;
-  CFG.lungeSpeed = b.lunge;
-  CFG.lungeMaxDist = b.lungeMax;
-  CFG.recoil = b.recoil;
-  CFG.shocksToWin = b.shocks;
-  CFG.creatureRadius = b.radius;
-  CFG.autoLungeEvery = b.lungeEvery;
-  CFG.bossShotEvery = b.shotEvery;
-  CFG.bossShotCount = b.shots;
-  CFG.bossShotSpeed = b.shotSpeed;
-  CFG.enrage = b.enrage;
-  CFG.freezeOnFire = b.freeze;
-  CFG.reactChance = b.react;
+export function applyRoom(i: number): void {
+  const r = ROOMS[Math.max(0, Math.min(ROOMS.length - 1, i))];
+  CFG.creatureStalkSpeed = r.stalk;
+  CFG.windup = r.windup;
+  CFG.lungeSpeed = r.lunge;
+  CFG.lungeMaxDist = r.lungeMax;
+  CFG.recoil = r.recoil;
+  CFG.shocksToWin = r.shocks;
+  CFG.creatureRadius = r.radius;
+  CFG.autoLungeEvery = r.lungeEvery;
+  CFG.seedEvery = r.seedEvery;
+  CFG.seedCount = r.seeds;
+  CFG.seedSpeed = r.seedSpeed;
+  CFG.enrage = r.enrage;
 }
 
 // Coins from a chest depend on how fast the boss fell. At or under `fast` seconds is the maximum,

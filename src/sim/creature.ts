@@ -1,7 +1,7 @@
 import { CFG, ROOM } from '../config';
 import type { Vec } from './routes';
 
-export type CreatureState = 'stalk' | 'windup' | 'lunge' | 'recoil' | 'freeze';
+export type CreatureState = 'stalk' | 'windup' | 'lunge' | 'recoil';
 
 export interface Creature {
   x: number;
@@ -14,12 +14,14 @@ export interface Creature {
   dirX: number;
   dirY: number;
   lungeLeft: number;
+  // A breaker thrown mid-lunge or mid-stun: it reacts as soon as it is free.
+  queued: { target: Vec; windup: number } | null;
   asleep: boolean;
   alive: boolean;
 }
 
 export function makeCreature(x: number, y: number): Creature {
-  return { x, y, facing: Math.PI, state: 'stalk', timer: 0, windupTotal: 1, target: { x, y }, dirX: 0, dirY: 0, lungeLeft: 0, asleep: false, alive: true };
+  return { x, y, facing: Math.PI, state: 'stalk', timer: 0, windupTotal: 1, target: { x, y }, dirX: 0, dirY: 0, lungeLeft: 0, queued: null, asleep: false, alive: true };
 }
 
 export function startWindup(c: Creature, target: Vec, windup: number): void {
@@ -30,10 +32,19 @@ export function startWindup(c: Creature, target: Vec, windup: number): void {
   c.facing = Math.atan2(target.y - c.y, target.x - c.x);
 }
 
-// Stands completely still for `seconds`; used by boss 1 while a surge is on its way.
-export function freezeCreature(c: Creature, seconds: number): void {
-  c.state = 'freeze';
-  c.timer = seconds;
+// What a thrown breaker does to it. A lunge already under way keeps its direction, so the
+// reaction waits for the lunge (or a stun) to finish.
+export function react(c: Creature, target: Vec, windup: number): void {
+  if (c.state === 'lunge' || c.state === 'recoil') c.queued = { target: { x: target.x, y: target.y }, windup };
+  else startWindup(c, target, windup);
+}
+
+function freeUp(c: Creature): void {
+  c.state = 'stalk';
+  if (c.queued) {
+    startWindup(c, c.queued.target, c.queued.windup);
+    c.queued = null;
+  }
 }
 
 export function hitCreature(c: Creature, dir: Vec): void {
@@ -86,12 +97,7 @@ export function stepCreature(c: Creature, dt: number, player: Vec, speedMul = 1)
       c.y += c.dirY * step;
       c.lungeLeft -= step;
       clampToRoom(c);
-      if (c.lungeLeft <= CFG.timerEpsilon) { c.lungeLeft = 0; c.state = 'stalk'; }
-      break;
-    }
-    case 'freeze': {
-      c.timer -= dt;
-      if (c.timer <= CFG.timerEpsilon) { c.timer = 0; c.state = 'stalk'; }
+      if (c.lungeLeft <= CFG.timerEpsilon) { c.lungeLeft = 0; freeUp(c); }
       break;
     }
     case 'recoil': {
@@ -99,7 +105,7 @@ export function stepCreature(c: Creature, dt: number, player: Vec, speedMul = 1)
       c.y += c.dirY * CFG.recoilKnock * dt;
       clampToRoom(c);
       c.timer -= dt;
-      if (c.timer <= CFG.timerEpsilon) { c.timer = 0; c.state = 'stalk'; }
+      if (c.timer <= CFG.timerEpsilon) { c.timer = 0; freeUp(c); }
       break;
     }
   }

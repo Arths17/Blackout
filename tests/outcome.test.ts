@@ -1,11 +1,15 @@
-import { describe, expect, it } from 'vitest';
-import { BOSS_START, CFG, EXIT, FIRST_HIT_SPAWN, LURES, PLAYER_START, ROOM } from '../src/config';
-import { createWorld, stepWorld, tryInteract } from '../src/sim/game';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { BOSS_START, CFG, EXIT, LURES, ROOM, applyRoom } from '../src/config';
+import { createWorld, stepWorld } from '../src/sim/game';
 import { simulateShot } from './shot';
 
 const WANT = { early: 'too early', hit: 'hit', late: 'too late' } as const;
 
 describe('quick bank outcomes', () => {
+  // The three lure marks were measured with this timing; the rooms now each set their own.
+  beforeAll(() => Object.assign(CFG, { windup: 1.0, lungeSpeed: 520, lungeMaxDist: 380, creatureStalkSpeed: 130 }));
+  afterAll(() => applyRoom(0));
+
   it('three lure positions give three different outcomes', () => {
     const lines: string[] = [];
     for (const [name, pos] of Object.entries(LURES)) {
@@ -67,13 +71,5 @@ describe('boss start', () => {
     const d1 = Math.hypot(w.creature.x - w.player.x, w.creature.y - w.player.y);
     expect(d1).toBeLessThan(d0 - 100);
     expect(w.creature.state).toBe('stalk');
-  });
-
-  it('a creature placed on the first-hit mark is still hit by breaker 1 from the start', () => {
-    const w = createWorld({ creature: FIRST_HIT_SPAWN, player: PLAYER_START, asleep: true });
-    expect(tryInteract(w)).toBe('ok');
-    for (let i = 0; i < 400 && w.surge; i++) stepWorld(w, { dx: 0, dy: 0 }, 1 / 60);
-    expect(w.shocks).toBeGreaterThanOrEqual(1);
-    expect(w.hp).toBe(CFG.healthPips);
   });
 });

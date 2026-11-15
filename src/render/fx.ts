@@ -47,7 +47,7 @@ export class Fx {
     const lights: Light[] = [];
     const t = w.time;
 
-    for (const s of w.shots) {
+    for (const s of w.seeds) {
       const x = px(s.x);
       const y = px(s.y);
       g.fillStyle(0xff7a1f, 0.3).fillCircle(x, y, 6);

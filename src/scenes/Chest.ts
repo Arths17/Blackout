@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { initAudio, play, setMusic, startAmbience } from '../audio';
-import { BOSS_LEVELS, PALETTE, VIEW } from '../config';
+import { ROOMS, PALETTE, VIEW } from '../config';
 import { LORE } from '../lore';
 import { progress, totalCoins } from '../progress';
 import { coinsFor } from '../sim/coins';
@@ -74,7 +74,7 @@ export class Chest extends Phaser.Scene {
     const text = (x: number, y: number, v: string, size: number, tint: number, origin = 0.5) =>
       this.add.bitmapText(x, y, 'stencil', v, size).setTint(tint).setOrigin(origin, 0.5).setDepth(30);
     text(CX, 14, lore.chest, 7, PALETTE.warm2);
-    text(CX, 25, `BOSS ${lvl + 1} OF ${BOSS_LEVELS.length} DEFEATED`, 7, PALETTE.n6);
+    text(CX, 25, `BOSS ${lvl + 1} OF ${ROOMS.length} DEFEATED`, 7, PALETTE.n6);
     this.total = text(VIEW.w - 8, 8, `COINS ${totalCoins()}`, 7, PALETTE.warm, 1);
     this.gain = text(CX, 44, '', 14, PALETTE.warm).setAlpha(0);
     this.hint = text(CX, 150, '[ENTER] OPEN THE CHEST', 7, PALETTE.warm2);
@@ -107,7 +107,7 @@ export class Chest extends Phaser.Scene {
     this.leaving = true;
     this.cameras.main.fadeOut(400, 8, 13, 18);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      if (progress.level >= BOSS_LEVELS.length - 1) this.scene.start('Finish');
+      if (progress.level >= ROOMS.length - 1) this.scene.start('Finish');
       else {
         progress.level++;
         this.scene.start('Game');
@@ -198,7 +198,7 @@ export class Chest extends Phaser.Scene {
         this.body.setText(this.message.slice(0, Math.floor(this.typed)));
       } else {
         this.body.setText(this.message);
-        this.hint.setText(progress.level >= BOSS_LEVELS.length - 1 ? '[ENTER] FINISH' : '[ENTER] NEXT FIGHT').setPosition(CX, 206).setVisible(true).setAlpha(1);
+        this.hint.setText(progress.level >= ROOMS.length - 1 ? '[ENTER] FINISH' : '[ENTER] NEXT FIGHT').setPosition(CX, 206).setVisible(true).setAlpha(1);
       }
     }
     this.drawCoins(dt);

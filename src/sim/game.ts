@@ -1,5 +1,5 @@
 import { BOSS_START, CFG, EXIT, PLAYER_START, ROOM } from '../config';
-import { freezeCreature, hitCreature, makeCreature, startWindup, stepCreature, type Creature } from './creature';
+import { hitCreature, makeCreature, react, startWindup, stepCreature, type Creature } from './creature';
 import { makePlayer, stepPlayer, type MoveInput, type PlayerState } from './player';
 import { ROUTES, dirAt, pointAt, type Route, type Vec } from './routes';
 import { distToSegment, makeSurge, stepSurge, type Surge } from './surge';
@@ -12,8 +12,8 @@ export type SimEvent =
   | { type: 'shock'; breaker: number; counted: boolean }
   | { type: 'miss'; breaker: number }
   | { type: 'powerBack' }
-  | { type: 'playerHit' }
-  | { type: 'bossShot' }
+  | { type: 'playerHit'; by: Hurt }
+  | { type: 'seeds' }
   | { type: 'dash' }
   | { type: 'parryStart' }
   | { type: 'parry'; streak: number }
@@ -26,6 +26,7 @@ export type SimEvent =
   | { type: 'lose' }
   | { type: 'escape' };
 
+export type Hurt = 'creature' | 'surge' | 'seed';
 export type Phase = 'play' | 'won' | 'lost' | 'escaped';
 export type FireResult = 'ok' | 'busy' | 'cooling' | 'offline' | 'over';
 
@@ -46,10 +47,10 @@ export interface World {
   endTime: number;
   listeners: ((e: SimEvent) => void)[];
   rng: number;
-  // Breaker whose charge the player is holding, or -1. Released from anywhere.
-  shots: BossShot[];
+  hurtBy: Hurt | null; // what last hurt the player, for the death screen
+  seeds: Seed[];
   nextLunge: number;
-  nextShot: number;
+  nextSeeds: number;
   hitsTaken: number;
   parryLeft: number;
   parryCool: number;
@@ -63,7 +64,7 @@ export interface World {
   bounceLocked: boolean;
 }
 
-export interface BossShot {
+export interface Seed {
   x: number;
   y: number;
   vx: number;
@@ -110,9 +111,10 @@ export function createWorld(opts: WorldOpts = {}): World {
     endTime: 0,
     listeners: [],
     rng: opts.seed ?? 12345,
-    shots: [],
+    hurtBy: null,
+    seeds: [],
     nextLunge: CFG.introSeconds + CFG.autoLungeEvery,
-    nextShot: CFG.introSeconds + CFG.bossShotEvery,
+    nextSeeds: CFG.introSeconds + CFG.seedEvery,
     hitsTaken: 0,
     parryLeft: 0,
     parryCool: 0,
@@ -131,6 +133,11 @@ function emit(w: World, e: SimEvent): void {
 
 export function currentWindup(w: World): number {
   return Math.max(CFG.windupFloor, CFG.windup - w.missStreak * CFG.missWindupReduction);
+}
+
+// The other half of the miss penalty: it stalks a little faster per miss in a row.
+export function stalkBoost(w: World): number {
+  return 1 + Math.min(CFG.missSpeedUpMax, w.missStreak * CFG.missSpeedUp);
 }
 
 export function missCooldown(w: World): number {
@@ -155,9 +162,7 @@ function startFire(w: World, route: Route, breaker: number): FireResult {
   }
   w.creature.asleep = false;
   // Click, windup and surge all start on this one call so their timing can't drift apart.
-  // The boss doesn't answer every shot: each one is a coin flip (boss 1 always freezes instead).
-  if (CFG.freezeOnFire) freezeCreature(w.creature, route.total / CFG.surgeSpeed + 0.4);
-  else if (CFG.reactChance >= 1 || roll(w) < CFG.reactChance) startWindup(w.creature, route.switchPos, currentWindup(w));
+  react(w.creature, route.switchPos, currentWindup(w));
   w.surge = makeSurge(route);
   emit(w, { type: 'relayClick', breaker });
   return 'ok';
@@ -176,11 +181,12 @@ export function tryInteract(w: World): FireResult | 'none' {
   return best >= 0 ? fire(w, best) : 'none';
 }
 
-export function damagePlayer(w: World): boolean {
+export function damagePlayer(w: World, by: Hurt): boolean {
   if (w.phase !== 'play' || w.grace > 0) return false;
   w.hp--;
   w.grace = CFG.graceSeconds;
-  emit(w, { type: 'playerHit' });
+  w.hurtBy = by;
+  emit(w, { type: 'playerHit', by });
   if (w.hp <= 0) {
     w.phase = 'lost';
     w.endTime = w.time;
@@ -209,7 +215,7 @@ function registerShock(w: World, breaker: number): void {
     w.endTime = w.time;
     w.creature.alive = false;
     w.surge = null;
-    w.shots = [];
+    w.seeds = [];
     w.cooldown = 0;
     w.grace = 0;
     emit(w, { type: 'win' });
@@ -239,13 +245,15 @@ function maybeBounce(w: World): void {
   emit(w, { type: 'bounceStart' });
 }
 
-// Counts a parry toward the streak; the second one in a row launches a super bounce.
-function parryGain(w: World, ux: number, uy: number): void {
+// Shoves the player clear; a parry that counts adds to the streak, and the second in a row launches a super bounce.
+function parryGain(w: World, ux: number, uy: number, counts = true): void {
   w.parryLeft = 0;
   w.impulse = { vx: ux * CFG.parryPush, vy: uy * CFG.parryPush, left: CFG.parryPushSeconds };
-  w.grace = Math.max(w.grace, 0.35);
-  w.parryStreak++;
-  w.parryStreakLeft = CFG.parryStreakSeconds;
+  w.grace = Math.max(w.grace, CFG.parryGrace);
+  if (counts) {
+    w.parryStreak++;
+    w.parryStreakLeft = CFG.parryStreakSeconds;
+  }
   emit(w, { type: 'parry', streak: w.parryStreak });
   if (w.parryStreak >= CFG.parriesForSuper) {
     w.parryStreak = 0;
@@ -257,18 +265,19 @@ function parryGain(w: World, ux: number, uy: number): void {
   }
 }
 
-// Blocks the boss's touch: no damage, and it is thrown back.
+// Blocks the creature's touch: no damage, and the two are thrown apart. Only a blocked lunge
+// counts toward the super bounce; walking into a mashed parry key earns nothing.
 function parried(w: World): void {
   const c = w.creature;
   const dx = c.x - w.player.x;
   const dy = c.y - w.player.y;
   const d = Math.hypot(dx, dy) || 1;
+  const lunging = c.state === 'lunge';
   hitCreature(c, { x: dx / d, y: dy / d });
-  // The boss goes one way and the player the other.
-  parryGain(w, -dx / d, -dy / d);
+  parryGain(w, -dx / d, -dy / d, lunging);
 }
 
-const enraged = (w: World): boolean => CFG.enrage > 1 && w.shocks >= Math.ceil(CFG.shocksToWin * 0.6);
+const enraged = (w: World): boolean => CFG.enrage > 1 && w.shocks >= Math.ceil(CFG.shocksToWin * CFG.enrageAt);
 
 // The boss's own attacks: a telegraphed lunge at where the player stands, and bouncing seeds.
 function bossAttacks(w: World): void {
@@ -276,24 +285,24 @@ function bossAttacks(w: World): void {
   if (!c.alive || c.asleep) return;
   const scale = enraged(w) ? 0.75 : 1;
   if (CFG.autoLungeEvery > 0 && c.state === 'stalk' && w.time >= w.nextLunge) {
-    startWindup(c, { x: w.player.x, y: w.player.y }, currentWindup(w) * 0.95);
+    startWindup(c, { x: w.player.x, y: w.player.y }, currentWindup(w) * CFG.autoLungeWindup);
     w.nextLunge = w.time + CFG.autoLungeEvery * scale;
   }
-  if (CFG.bossShotEvery > 0 && w.time >= w.nextShot) {
+  if (CFG.seedEvery > 0 && w.time >= w.nextSeeds) {
     const aim = Math.atan2(w.player.y - c.y, w.player.x - c.x);
-    const n = CFG.bossShotCount;
+    const n = CFG.seedCount;
     for (let i = 0; i < n; i++) {
-      const a = aim + (i - (n - 1) / 2) * CFG.bossShotSpread;
-      w.shots.push({ x: c.x, y: c.y, vx: Math.cos(a) * CFG.bossShotSpeed, vy: Math.sin(a) * CFG.bossShotSpeed, bouncesLeft: CFG.bossShotBounces });
+      const a = aim + (i - (n - 1) / 2) * CFG.seedSpread;
+      w.seeds.push({ x: c.x, y: c.y, vx: Math.cos(a) * CFG.seedSpeed, vy: Math.sin(a) * CFG.seedSpeed, bouncesLeft: CFG.seedBounces });
     }
-    w.nextShot = w.time + CFG.bossShotEvery * scale;
-    emit(w, { type: 'bossShot' });
+    w.nextSeeds = w.time + CFG.seedEvery * scale;
+    emit(w, { type: 'seeds' });
   }
 }
 
-function stepShots(w: World, dt: number): void {
-  const radius = CFG.surgeHitRadius * 0.45;
-  w.shots = w.shots.filter((shot) => {
+function stepSeeds(w: World, dt: number): void {
+  const radius = CFG.seedRadius;
+  w.seeds = w.seeds.filter((shot) => {
     let remaining = dt;
     while (remaining > 0) {
       const start = { x: shot.x, y: shot.y };
@@ -308,14 +317,14 @@ function stepShots(w: World, dt: number): void {
         if (t >= 0 && t < hitTime) { hitTime = t; wall = 'y'; }
       }
       const end = { x: shot.x + shot.vx * hitTime, y: shot.y + shot.vy * hitTime };
-      if (!w.bounce && distToSegment(w.player, start, end) <= CFG.surgeHitRadius + CFG.playerRadius) {
+      if (!w.bounce && distToSegment(w.player, start, end) <= CFG.seedRadius + CFG.playerRadius) {
         if (w.parryLeft > 0 && w.grace <= 0) {
           const sp = Math.hypot(shot.vx, shot.vy) || 1;
           parryGain(w, shot.vx / sp, shot.vy / sp);
           return false;
         }
         if (w.grace <= 0) {
-          damagePlayer(w);
+          damagePlayer(w, 'seed');
           return false;
         }
       }
@@ -353,7 +362,7 @@ function stepBounce(w: World, b: Bounce, dt: number): void {
     }
     const end = { x: p.x + b.vx * t, y: p.y + b.vy * t };
     const c = w.creature;
-    const reach = (b.super ? CFG.superRadius : r) + CFG.creatureRadius + CFG.bossHitBonus;
+    const reach = (b.super ? CFG.superRadius : r) + CFG.creatureRadius + CFG.creatureHitBonus;
     const speed = b.super ? CFG.superSpeed : CFG.bounceSpeed;
     if (!b.armed && Math.hypot(c.x - p.x, c.y - p.y) > reach + 12) b.armed = true;
     if (b.armed && c.alive && (b.super || c.state !== 'recoil') && distToSegment(c, start, end) <= reach) {
@@ -368,7 +377,7 @@ function stepBounce(w: World, b: Bounce, dt: number): void {
         w.endTime = w.time;
         c.alive = false;
         w.surge = null;
-        w.shots = [];
+        w.seeds = [];
         w.cooldown = 0;
         w.grace = 0;
         emit(w, { type: 'win' });
@@ -454,17 +463,17 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   }
   if (w.phase !== 'play') return;
   if (w.creature.alive) {
-    stepCreature(w.creature, dt, w.player, enraged(w) ? CFG.enrage : 1);
+    stepCreature(w.creature, dt, w.player, (enraged(w) ? CFG.enrage : 1) * stalkBoost(w));
     bossAttacks(w);
     const c = w.creature;
     if (!w.bounce && c.state !== 'recoil' && Math.hypot(c.x - w.player.x, c.y - w.player.y) < CFG.creatureRadius + CFG.playerRadius) {
       if (w.parryLeft > 0 && w.grace <= 0) parried(w);
-      else if (damagePlayer(w)) maybeBounce(w);
+      else if (damagePlayer(w, 'creature')) maybeBounce(w);
     }
   }
   // A lethal creature touch ends the tick: no shock, lamp or bounce may follow the lose event.
   if (isLost(w)) return;
-  stepShots(w, dt);
+  stepSeeds(w, dt);
   if (isLost(w)) return;
 
   const s = w.surge;
@@ -473,7 +482,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
   const res = stepSurge(
     s,
     dt,
-    { x: w.creature.x, y: w.creature.y, r: CFG.creatureRadius + CFG.bossHitBonus },
+    { x: w.creature.x, y: w.creature.y, r: CFG.creatureRadius + CFG.creatureHitBonus },
     { x: w.player.x, y: w.player.y, r: CFG.playerRadius },
     w.grace <= 0,
   );
@@ -488,7 +497,7 @@ export function stepWorld(w: World, input: MoveInput, dt: number): void {
     w.revealUntil = w.time + CFG.revealSeconds;
   }
   // Same-tick priority: the player's death beats a shock, even a fifth one.
-  if (res.hitPlayer) damagePlayer(w);
+  if (res.hitPlayer) damagePlayer(w, 'surge');
   if (isLost(w)) return;
   if (res.hitCreature && w.creature.alive) registerShock(w, id);
   if (w.shocks >= CFG.shocksToWin) return;

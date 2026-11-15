@@ -3,6 +3,8 @@ import { existsSync } from 'node:fs';
 import type { World } from '../src/sim/game.ts';
 import type { Vec } from '../src/sim/routes.ts';
 
+// Plays the sim headlessly with a few fixed strategies and prints win rates per room.
+// Usage: node tools/playbot.ts [games per strategy] [first seed]
 // Node strips types, but the browser sim deliberately uses extensionless imports.
 registerHooks({
   resolve(specifier, context, next) {
@@ -13,42 +15,38 @@ registerHooks({
     return next(specifier, context);
   },
 });
-const { CFG, ROOM, applyBossLevel } = await import('../src/config.ts');
-applyBossLevel(Number(process.env.LEVEL ?? 0));
-const { createWorld, stepWorld, fire, tryInteract } = await import('../src/sim/game.ts');
+const { CFG, ROOM, ROOMS, applyRoom } = await import('../src/config.ts');
+const { createWorld, stepWorld, fire } = await import('../src/sim/game.ts');
 const { ROUTES } = await import('../src/sim/routes.ts');
 const { distToSegment } = await import('../src/sim/surge.ts');
+
 const dt = 1 / CFG.stepHz;
-// ASSUMPTION: a game still playing at ten minutes is censored, not a death.
-const limit = 600;
-const games = Number(process.argv[2] ?? 300);
+const limit = 300; // seconds; a fight still going by then counts as a timeout
+const games = Number(process.argv[2] ?? 200);
 const seedBase = Number(process.argv[3] ?? 1);
-if (!Number.isSafeInteger(games) || games < 1 || !Number.isSafeInteger(seedBase)) {
-  throw new Error('Usage: node tools/playbot.ts [positive games per strategy] [integer first seed]');
-}
+
 function rng(seed: number) {
   let n = seed >>> 0;
-  return () => {
-    n = (Math.imul(n, 1664525) + 1013904223) >>> 0;
-    return n / 4294967296;
-  };
+  return () => ((n = (Math.imul(n, 1664525) + 1013904223) >>> 0) / 4294967296);
 }
-const isOfflineNow = (w: World, b: number) => w.lastHitBreaker === b;
-const distance = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
-function towards(w: World, target: Vec) {
-  return distance(w.player, target) < CFG.playerSpeed * dt
-    ? { dx: 0, dy: 0 }
-    : { dx: target.x - w.player.x, dy: target.y - w.player.y };
-}
-function predictsHit(w: World, breaker: number) {
-  // Look ahead only on a detached copy; the actual game receives movement and a generator number.
-  const copy = { ...w, player: { ...w.player }, creature: { ...w.creature, target: { ...w.creature.target } },
-    lampLitAt: w.lampLitAt.map(row => [...row]), shots: w.shots.map(s => ({ ...s })), listeners: [] } as World;
-  if (fire(copy, breaker) !== 'ok') return false;
+const dist = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
+const onRoute = (p: Vec, b: number, reach: number) => {
+  const pts = ROUTES[b].points;
+  for (let i = 1; i < pts.length; i++) if (distToSegment(p, pts[i - 1], pts[i]) <= reach) return true;
+  return false;
+};
+
+// Runs a detached copy forward to see whether throwing b right now would land.
+function predictsHit(w: World, b: number) {
+  const copy = { ...w, player: { ...w.player }, creature: { ...w.creature, target: { ...w.creature.target }, queued: null },
+    lampLitAt: w.lampLitAt.map((row) => [...row]), seeds: w.seeds.map((s) => ({ ...s })), listeners: [] } as World;
+  if (fire(copy, b) !== 'ok') return false;
   while (copy.surge && copy.phase === 'play') stepWorld(copy, { dx: 0, dy: 0 }, dt);
   return copy.shocks > w.shocks;
 }
-function dodge(w: World, target: Vec) {
+
+// Picks the step that gets toward the target while staying out of the creature, its lunge, seeds and the live lane.
+function dodge(w: World, target: Vec, care: number) {
   const p = w.player;
   const c = w.creature;
   let best = { dx: 0, dy: 0 };
@@ -59,137 +57,92 @@ function dodge(w: World, target: Vec) {
     const q = { x: p.x + dx * CFG.playerSpeed * 0.25, y: p.y + dy * CFG.playerSpeed * 0.25 };
     if (q.x < ROOM.x + CFG.playerRadius || q.x > ROOM.x + ROOM.w - CFG.playerRadius ||
         q.y < ROOM.y + CFG.playerRadius || q.y > ROOM.y + ROOM.h - CFG.playerRadius) continue;
-    const gap = distance(q, c);
-    let value = -distance(q, target) - Math.max(0, 110 - gap) * 5;
-    if (c.state === 'windup') {
-      value -= Math.max(0, 70 - distToSegment(q, c, c.target)) * 6;
-    }
-    for (const sh of w.shots) {
-      const ahead = { x: sh.x + sh.vx * 0.5, y: sh.y + sh.vy * 0.5 };
-      value -= Math.max(0, 55 - distToSegment(q, sh, ahead)) * 7;
+    let value = -dist(q, target) - Math.max(0, 110 - dist(q, c)) * 5;
+    if (c.state === 'windup') value -= Math.max(0, 70 - distToSegment(q, c, c.target)) * 6 * care;
+    for (const s of w.seeds) {
+      const ahead = { x: s.x + s.vx * 0.5, y: s.y + s.vy * 0.5 };
+      value -= Math.max(0, 55 - distToSegment(q, s, ahead)) * 7 * care;
     }
     if (c.state === 'lunge') {
       const end = { x: c.x + c.dirX * c.lungeLeft, y: c.y + c.dirY * c.lungeLeft };
-      value -= Math.max(0, 55 - distToSegment(q, c, end)) * 8;
+      value -= Math.max(0, 55 - distToSegment(q, c, end)) * 8 * care;
     }
     if (w.surge) {
-      const s = w.surge;
-      const points = s.route.points;
-      const leg = s.route.cum.findIndex((end, j) => j > 0 && end >= s.dist);
-      if (leg > 0) value -= Math.max(0, 55 - distToSegment(q, points[leg - 1], points[leg])) * 3;
+      const pts = w.surge.route.points;
+      for (let j = 1; j < pts.length; j++) value -= Math.max(0, 50 - distToSegment(q, pts[j - 1], pts[j])) * 3 * care;
     }
     if (value > score) { score = value; best = { dx, dy }; }
   }
-  return distance(p, target) < 8 && distance(p, c) > 120 ? { dx: 0, dy: 0 } : best;
+  return best;
 }
 
-type Strategy = 'random' | 'baiting' | 'spam';
-function play(strategy: Strategy, seed: number, spamBreaker = 0) {
+// expert: full-state forecast, perfect parries. Roughly the skill ceiling.
+// novice: wanders away from the creature and throws a breaker whenever the creature is standing on its line. No parry, sloppy dodging.
+// spam: stands still and throws whatever is ready.   parry: stands still and mashes parry.   idle: does nothing.
+type Strategy = 'expert' | 'novice' | 'spam' | 'parry' | 'idle';
+
+function play(strategy: Strategy, seed: number) {
   const random = rng(seed);
-  const w = createWorld();
-  const shots = ROUTES.map(() => 0);
-  const scores = ROUTES.map(() => 0);
-  const offline = ROUTES.map(() => 0);
-  const attempts = ROUTES.map(() => 0);
-  let invalidScores = 0;
-  let terminalScores = 0;
+  const w = createWorld({ seed });
+  let thrown = 0;
+  let repeats = 0;
   let prior = -1;
-  w.listeners.push(e => {
-    if (e.type === 'relayClick') shots[e.breaker]++;
-    if (e.type === 'deadClick') offline[e.breaker]++;
+  let waypoint: Vec = { x: ROOM.x + ROOM.w / 2, y: ROOM.y + ROOM.h / 2 };
+  let nextWaypoint = 0;
+  w.listeners.push((e) => {
+    if (e.type === 'relayClick') thrown++;
     if (e.type === 'shock' && e.counted) {
-      scores[e.breaker]++;
-      if (w.phase === 'lost') terminalScores++;
-      if (prior === e.breaker) invalidScores++;
+      if (prior === e.breaker && (w.surge?.hits ?? 0) <= 1) repeats++;
       prior = e.breaker;
     }
   });
-  const press = (b: number) => { attempts[b]++; return fire(w, b); };
-  let target: Vec = { x: ROOM.x + ROOM.w / 2, y: ROOM.y + ROOM.h / 2 };
-  let nextDecision = 0;
   for (let tick = 0; tick < limit * CFG.stepHz && w.phase === 'play'; tick++) {
     let input = { dx: 0, dy: 0, parry: false };
+    const c = w.creature;
+    const ready = !w.surge && w.cooldown <= 0;
+    const far = { x: c.x < ROOM.x + ROOM.w / 2 ? ROOM.x + ROOM.w - 80 : ROOM.x + 80, y: c.y < ROOM.y + ROOM.h / 2 ? ROOM.y + ROOM.h - 80 : ROOM.y + 80 };
     if (strategy === 'spam') {
-      if (tick % 12 === 0) press(spamBreaker);
-    } else if (strategy === 'random') {
-      if (tick >= nextDecision) {
-        target = { x: ROOM.x + 30 + random() * (ROOM.w - 60), y: ROOM.y + 30 + random() * (ROOM.h - 60) };
-        nextDecision = tick + Math.round((1 + random() * 4) * CFG.stepHz);
+      if (tick % 12 === 0) for (let b = 0; b < ROUTES.length; b++) if (fire(w, (b + tick / 12) % ROUTES.length) === 'ok') break;
+    } else if (strategy === 'parry') {
+      input.parry = w.parryCool <= 0;
+    } else if (strategy === 'novice') {
+      // reacts a few ticks late, and only to what is on screen right now
+      if (ready && tick % 10 === 0 && c.state === 'stalk') {
+        for (let b = 0; b < ROUTES.length; b++) {
+          if (w.lastHitBreaker !== b && onRoute(c, b, 14) && !onRoute(w.player, b, 40)) { fire(w, b); break; }
+        }
       }
-      input = { ...towards(w, target), parry: false };
-      if (tick % 12 === 0 && random() < 0.7) press(Math.floor(random() * ROUTES.length));
-    } else {
-      // fire only when the shot is predicted to land; otherwise keep away from the boss
-      if (tick % 12 === 0 && !w.surge && w.cooldown <= 0) {
-        for (let b = 0; b < ROUTES.length; b++) if (w.lastHitBreaker !== b && predictsHit(w, b)) { press(b); break; }
+      if (tick >= nextWaypoint || dist(w.player, waypoint) < 20) {
+        do waypoint = { x: ROOM.x + 60 + random() * (ROOM.w - 120), y: ROOM.y + 60 + random() * (ROOM.h - 120) };
+        while (dist(waypoint, c) < 300);
+        nextWaypoint = tick + Math.round((2 + random() * 3) * CFG.stepHz);
       }
-      const c = w.creature;
-      // kite toward the corner farthest from the boss
-      target = { x: c.x < ROOM.x + ROOM.w / 2 ? ROOM.x + ROOM.w - 80 : ROOM.x + 80, y: c.y < ROOM.y + ROOM.h / 2 ? ROOM.y + ROOM.h - 80 : ROOM.y + 80 };
-      const gap = Math.hypot(c.x - w.player.x, c.y - w.player.y);
-      const shotNear = w.shots.some(sh => Math.hypot(sh.x - w.player.x, sh.y - w.player.y) < 48);
-      const touching = (c.state === 'lunge' || c.state === 'stalk') && gap < CFG.creatureRadius + CFG.playerRadius + 38;
-      input = { ...dodge(w, target), parry: (shotNear || touching) && w.parryCool <= 0 && random() < Number(process.env.PARRY ?? 1) };
+      input = { ...dodge(w, waypoint, random() < 0.7 ? 0.5 : 0), parry: false };
+    } else if (strategy === 'expert') {
+      if (ready && tick % 6 === 0) {
+        for (let b = 0; b < ROUTES.length; b++) if (w.lastHitBreaker !== b && predictsHit(w, b)) { fire(w, b); break; }
+      }
+      const gap = dist(c, w.player);
+      const seedNear = w.seeds.some((s) => dist(s, w.player) < 40);
+      const touching = (c.state === 'lunge' || c.state === 'stalk') && gap < CFG.creatureRadius + CFG.playerRadius + 30;
+      input = { ...dodge(w, far, 1), parry: (seedNear || touching) && w.parryCool <= 0 };
     }
     stepWorld(w, input, dt);
   }
-  return { seed, spamBreaker: strategy === 'spam' ? spamBreaker : null, phase: w.phase,
-    seconds: w.phase === 'play' ? w.time : w.endTime, shocks: w.shocks,
-    shots, scores, offline, attempts, invalidScores, terminalScores };
+  return { won: w.phase === 'won', lost: w.phase === 'lost', seconds: w.phase === 'play' ? w.time : w.endTime, shocks: w.shocks, thrown, repeats, hp: w.hp };
 }
-function summary(strategy: Strategy) {
-  const runs = Array.from({ length: games }, (_, i) => play(strategy, seedBase + i, i % ROUTES.length));
-  const sum = (field: 'shots' | 'scores' | 'offline' | 'attempts') => ROUTES.map((_, b) => runs.reduce((n, r) => n + r[field][b], 0));
-  const times = (subset: typeof runs) => subset.length ? {
-    count: subset.length, average: subset.reduce((n, r) => n + r.seconds, 0) / subset.length,
-    min: Math.min(...subset.map(r => r.seconds)), max: Math.max(...subset.map(r => r.seconds)),
-  } : null;
-  const won = runs.filter(r => r.phase === 'won' || r.phase === 'escaped');
-  const lost = runs.filter(r => r.phase === 'lost');
-  return { strategy, games, winRate: won.length / games, deathRate: lost.length / games,
-    timeoutRate: runs.filter(r => r.phase === 'play').length / games,
-    observedSeconds: times(runs), winSeconds: times(won), deathSeconds: times(lost),
-    shots: sum('shots'), scores: sum('scores'), offline: sum('offline'), attempts: sum('attempts'),
-    repeatScores: runs.reduce((n, r) => n + r.invalidScores, 0),
-    terminalScores: runs.reduce((n, r) => n + r.terminalScores, 0),
-    spam: strategy === 'spam' ? ROUTES.map(r => ({ breaker: r.id,
-      games: runs.filter(run => run.spamBreaker === r.id).length,
-      wins: runs.filter(run => run.spamBreaker === r.id && run.phase === 'won').length,
-      shots: runs.filter(run => run.spamBreaker === r.id).reduce((n, run) => n + run.shots[r.id], 0),
-      maxShocks: Math.max(...runs.filter(run => run.spamBreaker === r.id).map(run => run.shocks), 0),
-    })) : null,
-    winningShots: won.length ? won.reduce((n, r) => n + r.shots.reduce((a, b) => a + b, 0), 0) / won.length : null };
+
+const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
+const cell = (v: number, digits = 0) => (Number.isNaN(v) ? '-' : v.toFixed(digits)).padStart(6);
+
+console.log(`${games} games per cell, seeds from ${seedBase}`);
+console.log('room strategy   win%  time s  die s  thrown  shocks  hp left  repeats');
+for (let room = 0; room < ROOMS.length; room++) {
+  applyRoom(room);
+  for (const strategy of ['expert', 'novice', 'spam', 'parry', 'idle'] as const) {
+    const runs = Array.from({ length: games }, (_, i) => play(strategy, seedBase + i));
+    const won = runs.filter((r) => r.won);
+    const lost = runs.filter((r) => r.lost);
+    console.log(`${room + 1}    ${strategy.padEnd(8)}${cell(won.length / games * 100)}  ${cell(avg(won.map((r) => r.seconds)))} ${cell(avg(lost.map((r) => r.seconds)))}  ${cell(avg(runs.map((r) => r.thrown)), 1)}  ${cell(avg(runs.map((r) => r.shocks)), 1)}   ${cell(avg(won.map((r) => r.hp)), 1)}  ${cell(runs.reduce((n, r) => n + r.repeats, 0))}`);
+  }
 }
-function fairness() {
-  return ROUTES.map(route => {
-    let hits = 0;
-    let total = 0;
-    let campHits = 0;
-    let cleanCampHits = 0;
-    const examples: { hit?: Vec; miss?: Vec } = {};
-    for (let y = ROOM.y + CFG.creatureRadius; y < ROOM.y + ROOM.h; y += 30) {
-      for (let x = ROOM.x + CFG.creatureRadius; x < ROOM.x + ROOM.w; x += 30) {
-        total++;
-        for (const camp of [false, true]) {
-          const w = createWorld({ player: route.switchPos, creature: { x, y } });
-          tryInteract(w);
-          while (w.surge && w.phase === 'play') {
-            const input = camp ? { dx: 0, dy: 0 } : towards(w, { x: ROOM.x + ROOM.w / 2, y: ROOM.y + ROOM.h / 2 });
-            stepWorld(w, input, dt);
-          }
-          if (camp) {
-            if (w.shocks) { campHits++; if (w.hp === CFG.healthPips) cleanCampHits++; }
-          } else {
-            if (w.shocks) { hits++; examples.hit ??= { x, y }; }
-            else examples.miss ??= { x, y };
-          }
-        }
-      }
-    }
-    return { breaker: route.id, total, hits, campHits, cleanCampHits, examples,
-      switchLaneGap: Math.min(...route.points.slice(1).map((p, i) => distToSegment(route.switchPos, route.points[i], p))),
-      surgePlayerReach: CFG.playerRadius + CFG.surgeHitRadius };
-  });
-}
-console.log(JSON.stringify({ games, seedBase, limit, stepHz: CFG.stepHz,
-  config: CFG, fairness: fairness(), results: (['random', 'baiting', 'spam'] as const).map(summary) }, null, 2));

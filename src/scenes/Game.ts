@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { initAudio, play, setCreatureDistance, setMusic, startAmbience, type MusicName } from '../audio';
-import { BOSS_LEVELS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyBossLevel } from '../config';
+import { ROOMS, CFG, DARK, LURES, PALETTE, VIEW, VIS, applyRoom } from '../config';
 import { progress, resetRun } from '../progress';
 import { LORE } from '../lore';
 import { createWorld, fire, stepWorld, type SimEvent, type World } from '../sim/game';
@@ -71,7 +71,7 @@ export class Game extends Phaser.Scene {
   create(): void {
     // Dev flags: ?lure=early|hit|late replays a Quick bank shot, ?slow=0.25 slows the sim, ?freeze=1.8 stops it at that time.
     const q = new URLSearchParams(window.location.search);
-    applyBossLevel(progress.level);
+    applyRoom(progress.level);
     this.slow = Number(q.get('slow') ?? 1) || 1;
     this.freezeAt = Number(q.get('freeze') ?? -1);
     const lure = q.get('lure');
@@ -123,8 +123,8 @@ export class Game extends Phaser.Scene {
       resetRun();
       this.scene.start('Title');
     });
-    this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', BOSS_LEVELS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
-    this.levelLine = this.add.bitmapText(VIEW.w / 2, 27, 'stencil', `ROOM ${progress.level + 1} OF ${BOSS_LEVELS.length}`, 7).setTint(PALETTE.warm).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
+    this.title = this.add.bitmapText(VIEW.w / 2, 40, 'stencil', ROOMS[progress.level].name, 14).setTint(PALETTE.warm2).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
+    this.levelLine = this.add.bitmapText(VIEW.w / 2, 27, 'stencil', `ROOM ${progress.level + 1} OF ${ROOMS.length}`, 7).setTint(PALETTE.warm).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
     this.titleRule = this.add.rectangle(VIEW.w / 2, 52, 150, 1, PALETTE.warm, 1).setDepth(DEPTH.banner).setAlpha(0);
     this.subtitle = this.add.bitmapText(VIEW.w / 2, 60, 'stencil', LORE[progress.level].warden, 7).setTint(PALETTE.n7).setOrigin(0.5).setDepth(DEPTH.banner).setAlpha(0);
 
@@ -194,7 +194,7 @@ export class Game extends Phaser.Scene {
         this.tweens.add({ targets: this.hurt, alpha: 0, duration: 300 });
         cam.shake(VIS.hurtShake.ms, VIS.hurtShake.amp);
         break;
-      case 'bossShot':
+      case 'seeds':
         play('boss_shot');
         this.fx.burst(this.w.creature.x, this.w.creature.y, 10);
         break;

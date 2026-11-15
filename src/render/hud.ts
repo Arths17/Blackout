@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BOSS_LEVELS, CFG, PALETTE, VIEW } from '../config';
+import { ROOMS, CFG, PALETTE, VIEW } from '../config';
 import { progress } from '../progress';
 import { inExit, type World } from '../sim/game';
 import { DEPTH } from './layers';
@@ -43,7 +43,7 @@ export class Hud {
     const TAGW = 80;
     this.frame.fillStyle(PALETTE.ink, 0.9).fillRect(VIEW.w - 2 - TAGW, 1, TAGW, 15);
     this.frame.lineStyle(1, PALETTE.n3, 1).strokeRect(VIEW.w - 2 - TAGW, 1, TAGW, 15);
-    text(VIEW.w - 2 - TAGW / 2, 8, `ROOM ${progress.level + 1} OF ${BOSS_LEVELS.length}`, PALETTE.warm, 7);
+    text(VIEW.w - 2 - TAGW / 2, 8, `ROOM ${progress.level + 1} OF ${ROOMS.length}`, PALETTE.warm, 7);
     this.healthCaption = text(84, 8, 'HEALTH', PALETTE.n6, 7);
     this.status = text(VIEW.w / 2, VIEW.h - 10, '', PALETTE.warm2, 7);
     for (let i = 0; i < CFG.healthPips; i++) this.pips.push(scene.add.image(5 + i * 10, 2, 'ui', 0).setOrigin(0, 0).setDepth(DEPTH.hud));
@@ -118,7 +118,7 @@ export class Hud {
     let banner = '', sub = '';
     if (w.phase === 'won' && !inExit(w.player)) { banner = 'POWER RESTORED'; sub = 'EXIT OPEN  GO UP, TOP RIGHT'; }
     else if (w.phase === 'escaped') {
-      const last = progress.level >= BOSS_LEVELS.length - 1;
+      const last = progress.level >= ROOMS.length - 1;
       banner = last ? 'THE ROT ENDS' : `BOSS ${progress.level + 1} DEFEATED`;
       sub = `${w.endTime.toFixed(1)}S  [ENTER] OPEN THE CHEST`;
     }
