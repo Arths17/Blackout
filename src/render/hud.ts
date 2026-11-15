@@ -190,7 +190,7 @@ export class Hud {
     this.prompt.setVisible(hot >= 0 && !this.open);
     if (hot >= 0) {
       const blink = Math.floor(w.time * 6) % 2 === 0;
-      this.prompt.setText(`[${hot + 1}]`).setTint(blink ? PALETTE.w : PATH_COLORS[hot]).setPosition(Math.round(px(w.creature.x)), Math.round(px(w.creature.y)) - 58);
+      this.prompt.setText(`[${hot + 1}]`).setTint(blink ? PALETTE.w : PATH_COLORS[hot]).setPosition(Math.round(px(w.creature.x)), Math.max(22, Math.round(px(w.creature.y)) - 64));
     }
 
     for (const n of this.notes) {
