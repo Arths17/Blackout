@@ -28,7 +28,7 @@ const levels: Record<SoundName, number> = {
   chest_open: 0.7,
   coin: 0.4,
   dash: 0.45,
-  // Music by Eric Skiff (Resistor Anthems), CC BY 4.0; see CREDITS.md. Levels are for the tracks' own loudness.
+  // Music by Eric Skiff (Resistor Anthems), CC BY 4.0, credited on the results screen. Levels are for the tracks' own loudness.
   music_menu: 0.6,
   fight_1: 0.62,
   fight_2: 0.62,
