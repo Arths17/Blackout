@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { initAudio, play, setMusic, startAmbience } from '../audio';
+import { play, setMusic, startAmbience } from '../audio';
 import { ROOMS, PALETTE, VIEW } from '../config';
 import { progress, resetRun, totalCoins } from '../progress';
 
@@ -18,7 +18,6 @@ export class Finish extends Phaser.Scene {
   }
 
   create(): void {
-    initAudio();
     startAmbience();
     setMusic('music_menu');
     play('power_return');

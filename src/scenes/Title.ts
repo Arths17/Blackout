@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { initAudio, setMusic, startAmbience } from '../audio';
+import { setMusic, startAmbience } from '../audio';
 import { DARK, PALETTE, VIEW } from '../config';
 import { TREE_EYES, pixLine } from '../render/pixel';
 
@@ -43,7 +43,6 @@ export class Title extends Phaser.Scene {
 
   create(): void {
     seen = true;
-    initAudio(); // so the first key press also unlocks audio
     startAmbience();
     setMusic('music_menu');
     this.leaving = false;
