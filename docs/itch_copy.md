@@ -42,7 +42,7 @@ So the whole game is baiting. You can't outrun it for long, but you can walk it 
 
 - Move with **WASD** or the arrow keys.
 - Press **1, 2 or 3** to fire that breaker. You don't have to be near it, which is the point. You're the bait, not the electrician.
-- Press **F** to parry a lunge or a seed. Land two in a row and you go flying in a bigger bounce that shocks it twice. **Shift** is a short dash.
+- Press **F** to parry its touch or a seed. Land two in a row and you turn into a bigger yellow super ball that flies further and does double damage. **Shift** is a short dash.
 - **R** restarts the fight instantly. You'll use it.
 
 Every breaker's path is always visible, so there's nothing to memorize. The skill is in where you stand and when you fire. Miss and the next windup gets shorter while the breaker takes longer to recover, so a wasted shot costs you.

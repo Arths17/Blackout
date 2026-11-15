@@ -243,22 +243,19 @@ describe('parry', () => {
     expect(w.bounce).toBeNull();
   });
 
-  it('only a parried lunge counts toward the super bounce', () => {
-    const walk = touching();
-    stepWorld(walk, press, DT);
-    expect(walk.parryStreak).toBe(0);
-    const lunge = lunging();
-    stepWorld(lunge, press, DT);
-    expect(lunge.hp).toBe(CFG.healthPips);
-    expect(lunge.parryStreak).toBe(1);
+  it('every parry counts toward the super bounce, and being hurt in between breaks the run', () => {
+    const w = touching();
+    stepWorld(w, press, DT);
+    expect(w.parryStreak).toBe(1);
+    w.grace = 0;
+    damagePlayer(w, 'creature');
+    expect(w.parryStreak).toBe(0);
   });
 
-  it('mashing parry against a creature that just walks in never launches a super bounce', () => {
-    const w = touching();
-    for (let i = 0; i < 60 * 20 && w.phase === 'play'; i++) {
-      stepWorld(w, { dx: 0, dy: 0, parry: w.parryCool <= 0 }, DT);
-      expect(w.bounce?.super ?? false).toBe(false);
-    }
+  it('a super bounce flies further and hits twice as hard as a normal one', () => {
+    expect(CFG.superShocks).toBe(2);
+    expect(CFG.superSpeed * CFG.superSeconds).toBeGreaterThan(CFG.bounceSpeed * CFG.bounceSeconds * 1.5);
+    expect(CFG.superRadius).toBeGreaterThan(CFG.playerRadius * 2);
   });
 
   it('a touch with no parry still hurts', () => {

@@ -206,6 +206,7 @@ export function damagePlayer(w: World, by: Hurt): boolean {
   w.hp--;
   w.grace = CFG.graceSeconds;
   w.hurtBy = by;
+  w.parryStreak = 0; // two parries in a row means nothing got through in between
   emit(w, { type: 'playerHit', by });
   if (w.hp <= 0) {
     w.phase = 'lost';
@@ -265,15 +266,13 @@ function maybeBounce(w: World): void {
   emit(w, { type: 'bounceStart' });
 }
 
-// Shoves the player clear; a parry that counts adds to the streak, and the second in a row launches a super bounce.
-function parryGain(w: World, ux: number, uy: number, counts = true): void {
+// Shoves the player clear and adds to the streak; the second parry in a row launches a super bounce.
+function parryGain(w: World, ux: number, uy: number): void {
   w.parryLeft = 0;
   w.impulse = { vx: ux * CFG.parryPush, vy: uy * CFG.parryPush, left: CFG.parryPushSeconds };
   w.grace = Math.max(w.grace, CFG.parryGrace);
-  if (counts) {
-    w.parryStreak++;
-    w.parryStreakLeft = CFG.parryStreakSeconds;
-  }
+  w.parryStreak++;
+  w.parryStreakLeft = CFG.parryStreakSeconds;
   emit(w, { type: 'parry', streak: w.parryStreak });
   if (w.parryStreak >= CFG.parriesForSuper) {
     w.parryStreak = 0;
@@ -285,16 +284,14 @@ function parryGain(w: World, ux: number, uy: number, counts = true): void {
   }
 }
 
-// Blocks the creature's touch: no damage, and the two are thrown apart. Only a blocked lunge
-// counts toward the super bounce; walking into a mashed parry key earns nothing.
+// Blocks the creature's touch: no damage, and the two are thrown apart.
 function parried(w: World): void {
   const c = w.creature;
   const dx = c.x - w.player.x;
   const dy = c.y - w.player.y;
   const d = Math.hypot(dx, dy) || 1;
-  const lunging = c.state === 'lunge';
   hitCreature(c, { x: dx / d, y: dy / d });
-  parryGain(w, -dx / d, -dy / d, lunging);
+  parryGain(w, -dx / d, -dy / d);
 }
 
 const enraged = (w: World): boolean => CFG.enrage > 1 && w.shocks >= Math.ceil(CFG.shocksToWin * CFG.enrageAt);

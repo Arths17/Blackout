@@ -71,6 +71,8 @@ export const DARK = {
 // One color and one dash length per breaker: its line on the floor, its number and its panel diagram.
 // Cold blue, lamp amber and moss green, all pulled from the room's own palette so nothing reads as neon.
 export const PATH_COLORS = [0x8fc3d6, 0xe2a04f, 0xa9c47c];
+// The super ball is the same yellow as the wardens' eyes, so it can't be mistaken for the normal blue-grey bounce.
+export const SUPER_YELLOW = { rim: 0xffc233, core: 0xffe45c };
 export const PATH_DASH = [5, 9, 3];
 
 // Presentation timing. None of this changes the rules.
@@ -158,7 +160,7 @@ export const CFG = {
   superSpeed: 640,
   superSeconds: 4,
   superRadius: 34,
-  superShocks: 2, // shocks a super bounce deals
+  superShocks: 2, // double a normal bounce, which deals 1
 };
 
 // One row per room. Stalk speed stays under playerSpeed so there is always a gap to open.

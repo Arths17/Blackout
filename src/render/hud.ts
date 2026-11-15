@@ -21,7 +21,7 @@ const CAUSE: Record<Hurt, string> = {
 const HOW = [
   'MOVE     WASD OR ARROWS',
   '1 2 3    THROW THAT BREAKER',
-  'F        PARRY A LUNGE OR A SEED',
+  'F        PARRY ITS TOUCH OR A SEED',
   'SHIFT    SHORT DASH',
   'R        RESTART THE ROOM',
   'ESC      PAUSE',
@@ -166,7 +166,7 @@ export class Hud {
   private statusLine(w: World, hot: number): string {
     if (w.phase === 'won') return 'THE EXIT IS OPEN  GO TO THE DOOR AT THE TOP RIGHT';
     if (w.phase !== 'play') return '';
-    if (w.bounce) return w.bounce.super ? 'SUPER BOUNCE  YOU SHOCK IT IF YOU HIT IT' : 'KNOCKED BACK  YOU SHOCK IT IF YOU HIT IT';
+    if (w.bounce) return w.bounce.super ? 'SUPER BALL  HIT IT FOR DOUBLE DAMAGE' : 'KNOCKED BACK  YOU SHOCK IT IF YOU HIT IT';
     if (w.surge) return 'SURGE LIVE  KEEP OFF ITS LINE';
     if (w.cooldown > 0) {
       const back = `POWER BACK IN ${w.cooldown.toFixed(1)}`;

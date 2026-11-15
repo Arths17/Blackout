@@ -30,7 +30,7 @@ Controls:
 | WASD or arrow keys | Move |
 | 1, 2, 3 | Throw that breaker from anywhere in the room |
 | E or Space | Throw the breaker whose panel you are standing next to |
-| F (or 4) | Parry a lunge or a seed |
+| F (or 4) | Parry the creature's touch or a seed |
 | Shift | Short dash |
 | R | Restart the room |
 | Esc | Pause, and open the options |
@@ -47,7 +47,7 @@ The pause screen has three options, changed with the arrow keys: volume, screen 
 - After you throw a breaker the creature stands still for a moment. That pause is what lets the surge reach it. The pause is shorter in every room, so later you have to throw earlier or catch it near the start of a line.
 - Look at where you are standing before you throw. Each line crosses the room two or three times.
 - When the creature knocks you back you bounce around the room for a couple of seconds. If you hit the creature on the way, that counts as a shock.
-- Parrying two lunges or seeds in a row launches a bigger bounce that is worth two shocks. Parrying is optional. You can win without it.
+- Two parries in a row, without being hurt in between, turn you into a bigger yellow super ball. It flies further than a normal bounce and does double damage if it hits the creature. Parrying is optional. You can win without it.
 
 ## Run it locally
 

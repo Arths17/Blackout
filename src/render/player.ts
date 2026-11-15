@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CFG, PALETTE } from '../config';
+import { CFG, PALETTE, SUPER_YELLOW } from '../config';
 import type { World } from '../sim/game';
 import { DEPTH } from './layers';
 import { atlasOf, facingOf, px } from './pixel';
@@ -33,15 +33,15 @@ export class PlayerView {
     }
     if (w.bounce) {
       this.spr.setVisible(false);
-      const big = w.bounce.super ? 1.9 : 1;
+      const big = w.bounce.super ? 2.2 : 1;
       const pulse = (5 + Math.sin(t * 18) * 1.2) * big;
       const b = w.bounce;
       const sp = Math.hypot(b.vx, b.vy) || 1;
       for (let i = 4; i >= 1; i--) {
-        this.ball.fillStyle(w.bounce.super ? PALETTE.warm : PALETTE.c2, 0.12 * (5 - i)).fillCircle(x - (b.vx / sp) * i * 5 * big, y - (b.vy / sp) * i * 5 * big, pulse - i * 0.6);
+        this.ball.fillStyle(w.bounce.super ? SUPER_YELLOW.rim : PALETTE.c2, 0.12 * (5 - i)).fillCircle(x - (b.vx / sp) * i * 5 * big, y - (b.vy / sp) * i * 5 * big, pulse - i * 0.6);
       }
-      this.ball.fillStyle(w.bounce.super ? PALETTE.warm : PALETTE.c2, 0.35).fillCircle(x, y, pulse + 3);
-      this.ball.fillStyle(w.bounce.super ? PALETTE.warm2 : PALETTE.c1, 1).fillCircle(x, y, pulse);
+      this.ball.fillStyle(w.bounce.super ? SUPER_YELLOW.rim : PALETTE.c2, 0.35).fillCircle(x, y, pulse + 3);
+      this.ball.fillStyle(w.bounce.super ? SUPER_YELLOW.core : PALETTE.c1, 1).fillCircle(x, y, pulse);
       this.ball.fillStyle(PALETTE.w, 1).fillCircle(x - 1, y - 1, 2);
       this.shadow.setPosition(x, y - 1);
       return;
